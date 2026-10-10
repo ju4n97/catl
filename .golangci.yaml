@@ -1,0 +1,158 @@
+version: "2"
+
+run:
+  timeout: 5m
+  tests: true
+  allow-parallel-runners: true
+
+issues:
+  max-issues-per-linter: 0
+  max-same-issues: 0
+
+linters:
+  default: none
+  enable:
+    # Correctness
+    - govet        # Run official Go vet analyzers.
+    - staticcheck  # Advanced static analysis for bugs and performance.
+    - errcheck     # Ensure returned errors are handled.
+    - errorlint    # Enforce Go 1.13+ error wrapping (errors.Is/As, %w).
+    - bodyclose    # Ensure HTTP response bodies are closed.
+    - nilerr       # Catch returning nil when err is non-nil.
+
+    # Dead code & redundancy
+    - ineffassign  # Detect unused variable assignments.
+    - unused       # Detect unused constants, vars, funcs, and types.
+    - unconvert    # Remove redundant type conversions.
+
+    # Code quality
+    - gocritic     # Catch stylistic issues and code smells.
+    - copyloopvar  # Catch loop variable capture bugs.
+    - perfsprint   # Optimize fmt.Sprintf calls into faster string ops.
+
+    # Style & docs
+    - revive       # Fast, idiomatic style and anti-pattern linter.
+    - godot        # Enforce trailing periods on doc comments.
+
+  exclusions:
+    rules:
+      - path: "_test\\.go$"
+        linters:
+          - errcheck
+      
+      - linters:
+          - errcheck
+        text: "Error return value of `.*\\.Close` is not checked"
+
+  settings:
+    errcheck:
+      exclude-functions:
+        # Ignored SQL cleanup
+        - (*database/sql.Rows).Close
+        - (*database/sql.Tx).Rollback
+        # Ignored stdout/stderr writes
+        - fmt.Fprintf(os.Stdout)
+        - fmt.Fprintf(os.Stderr)
+        - fmt.Fprint(os.Stdout)
+        - fmt.Fprint(os.Stderr)
+        - fmt.Fprintln(os.Stdout)
+        - fmt.Fprintln(os.Stderr)
+
+    gocritic:
+      disabled-checks: 
+        - ifElseChain
+
+    revive:
+      severity: warning
+      rules:
+        # Naming & conventions
+        - name: var-naming              # Enforce camelCase, standard initialisms, and no package stutter.
+          severity: warning
+        - name: error-naming            # Require Err prefix for values and Error suffix for types.
+          severity: warning
+        - name: receiver-naming         # Enforce consistent receiver names per type.
+          severity: warning
+        - name: time-naming             # Enforce standard naming for time.Duration values.
+          severity: warning
+        - name: unexported-return       # Prevent exported functions from returning unexported types.
+          severity: warning
+        - name: redefines-builtin-id    # Prevent shadowing Go built-in identifiers.
+          severity: warning
+        - name: exported                # Require godoc comments on exported declarations.
+          severity: warning
+
+        # Concurrency & context
+        - name: context-as-argument     # Require ctx context.Context as the first parameter.
+          severity: warning
+        - name: context-keys-type       # Disallow basic types for context keys.
+          severity: warning
+        - name: atomic                  # Catch incorrect sync/atomic usage.
+          severity: warning
+        - name: waitgroup-by-value      # Disallow passing sync.WaitGroup by value.
+          severity: warning
+
+        # Error handling & control flow
+        - name: error-return            # Require error as the last return parameter.
+          severity: warning
+        - name: error-strings           # Require lowercase error strings without trailing punctuation.
+          severity: warning
+        - name: errorf                  # Prefer fmt.Errorf(...) over errors.New(fmt.Sprintf(...)).
+          severity: warning
+        - name: indent-error-flow       # Enforce early returns over nested if/else error blocks.
+          severity: warning
+        - name: if-return               # Remove redundant else blocks after return statements.
+          severity: warning
+        - name: superfluous-else        # Remove redundant else blocks after terminal statements.
+          severity: warning
+        - name: deep-exit               # Disallow os.Exit and log.Fatal outside main().
+          severity: warning
+
+        # Correctness & safety
+        - name: modifies-value-receiver # Disallow mutating value receivers.
+          severity: warning
+        - name: modifies-parameter      # Disallow reassigning function parameters.
+          severity: warning
+        - name: unreachable-code        # Detect dead code after terminal statements.
+          severity: warning
+        - name: constant-logical-expr   # Detect constant boolean expressions.
+          severity: warning
+        - name: empty-block             # Detect empty control-flow blocks.
+          severity: warning
+
+        # Syntax cleanliness
+        - name: increment-decrement     # Enforce i++ and i-- syntax over i += 1.
+          severity: warning
+        - name: range                   # Remove redundant blank identifiers in range loops.
+          severity: warning
+        - name: blank-imports           # Require explanatory comments on blank imports.
+          severity: warning
+        - name: dot-imports             # Disallow dot imports.
+          severity: warning
+
+    godot:
+      scope: declarations
+      period: true
+
+formatters:
+  enable:
+    - gofumpt
+    - gci
+    - golines
+
+  settings:
+    gofumpt:
+      module-path: github.com/ju4n97/regi
+      extra:
+        group-params: true
+
+    gci:
+      sections:
+        - standard
+        - default
+        - prefix(github.com/ju4n97/regi)
+      custom-order: true
+
+    golines:
+      shorten-comments: false
+      reformat-tags: true
+      chain-split-dots: true
