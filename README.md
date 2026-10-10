@@ -25,39 +25,7 @@ Catalogs follow GitOps principles: definitions are maintained in version control
 
 ## Examples
 
-These are some examples of what can be built with `regi`. The idea is to keep definitions as files and let the engine focus on what to do with them.
-
-### [`ai-agents`](examples/ai-agents/)
-
-Agents defined as manifests, with prompts, tool definitions, and knowledge bases alongside them. The runtime is responsible for the inference; `regi` manages the definitions and their dependencies.
-
-### [`dynamic-forms`](examples/dynamic-forms/)
-
-A form engine driven by manifests instead of hardcoded UI components. Define fields, validation rules, and reusable components, then change forms through version-controlled data rather than application releases.
-
-### [`exoplanet-survey`](examples/exoplanet-survey/)
-
-Manage exoplanet targets, instruments, and observation plans as structured data. A more organized alternative to keeping everything in spreadsheets and scattered research files, with schemas and versioned scientific assets.
-
-### [`feature-flags`](examples/feature-flags/)
-
-Feature flags and rollout rules stored as declarative entities. The evaluator loads the catalog and decides which flags are enabled. Definitions can be updated and reviewed separately from the engine itself.
-
-### [`headless-cms`](examples/headless-cms/)
-
-Articles, pages, and media stored as catalog entities. Content lives in files and can be reviewed through Git, instead of being tied to a particular CMS database. The application still handles the API and rendering.
-
-### [`localization`](examples/localization/)
-
-Translation messages and locale-specific resources managed as catalogs. Useful when translations need their own versioning and shouldn't have to wait for an application release.
-
-### [`observability`](examples/observability/)
-
-Alert rules, dashboards, monitoring configuration, and runbooks in one place. Share definitions between services and keep them under version control; the monitoring system still does the actual evaluation.
-
-### [`policies`](examples/policies/)
-
-Security policies, authorization rules, and compliance controls packaged as reusable entities. Dependencies let different applications use shared policy catalogs without copying files between repositories.
+[See the examples directory](examples/)
 
 ## License
 
