@@ -1,0 +1,82 @@
+---
+title: Glossary
+description: Definitions of core regi terms, containment hierarchy, and domain vocabulary.
+---
+
+# Glossary
+
+This page defines the vocabulary used across `regi` commands, configuration files, specifications, and error messages.
+
+## Containment hierarchy
+
+```text
+workspace
+└── member (catalog)
+    ├── dependencies (external catalogs)
+    └── collections
+        └── entities
+            ├── manifest (validated data)
+            └── companion files (local files)
+```
+
+## Terms
+
+### Workspace
+
+A directory whose root `regi.toml` contains a `[workspace]` table. A workspace groups multiple catalog directories (members) in a single repository so they share a single root `regi.lock` file and can reference each other via local relative paths. A workspace doesn't define collections or own entities directly.
+
+### Catalog
+
+A directory whose root `regi.toml` contains a `[catalog]` table. A catalog defines a primary namespace (`catalog.name`), declares one or more collections, and may declare external dependencies. It is the fundamental unit of validation, packaging, and publishing.
+
+### Member
+
+A catalog directory listed in a workspace's `members` array. A member catalog operates as an independent namespace within the workspace, but delegates remote dependency pinning to the workspace's root `regi.lock`.
+
+### Collection
+
+A named grouping of entities within a catalog, declared under `[collections.<name>]` in `regi.toml`. All entities in a collection are validated against the same JSON Schema file.
+
+### Entity
+
+A single declarative item in a collection. An entity has an identifier and takes one of two shapes: a flat entity or a bundle entity.
+
+### Flat entity
+
+An entity represented by a single file directly inside a collection directory (e.g., `services/auth.yaml`). The filename without the extension is the entity identifier. Flat entities can't contain companion files.
+
+### Bundle entity
+
+An entity represented by a directory directly inside a collection directory (e.g., `services/billing/`). The directory name is the entity identifier. It contains exactly one manifest file (`manifest.yaml` or `manifest.json`) and may contain arbitrary companion files or subdirectories.
+
+### Manifest
+
+The YAML or JSON document that defines an entity. Manifests are the only files validated against a collection's JSON Schema. Bundle entities must name their manifest `manifest.yaml` or `manifest.json`.
+
+### Companion file
+
+Any file inside a bundle entity directory that is not the primary manifest (for example, Markdown runbooks, prompt templates, images, or schemas). Companion files are accessible to readers via `entity.FS` and are tracked by the catalog's tree hash.
+
+### Dependency
+
+An external catalog declared under `[dependencies]` in `regi.toml` and pinned in `regi.lock`. Dependencies can originate from Git repositories, HTTPS tarballs, or local filesystem paths. Dependencies are strictly non-transitive.
+
+### Namespace
+
+The prefix used to address an entity. For local entities, the namespace is the owning catalog's `catalog.name`. For dependency entities, the namespace is the dependency key declared in `regi.toml` (which must match the upstream catalog's `name`).
+
+### Qualified ID
+
+The canonical identifier for an entity, written as `namespace.id`. `regi` requires qualified IDs for lookups to prevent ambiguity. Qualified IDs are unique within a collection.
+
+### Tree hash
+
+A deterministic SHA-256 hash identifying the complete content of a catalog. It hashes the sorted relative paths and file digests of all non-dot regular files in the tree, excluding root `regi.lock` files. Pinned in `regi.lock` to verify that downloaded dependencies have not been tampered with.
+
+### Lockfile (`regi.lock`)
+
+A TOML file at the root of a catalog or workspace that records immutable pins (`resolved` commits or digests) and `tree` hashes for all remote dependencies. It is written only by `regi dependency add` and `regi dependency update`.
+
+### Vendor directory (`.regi/vendor`)
+
+A local directory where dependencies are copied using `regi vendor` to allow completely offline execution in air-gapped environments or CI pipelines.

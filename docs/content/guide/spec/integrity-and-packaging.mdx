@@ -1,0 +1,89 @@
+---
+title: Integrity and packaging
+description: The tree hash algorithm, deterministic PAX archives, threat model, and non-goals.
+---
+
+# Integrity and packaging
+
+`regi` guarantees catalog content integrity through deterministic tree hashing and reproducible tar packaging. A catalog produces identical digests and archive bytes across Linux, macOS, and Windows.
+
+## The tree hash algorithm
+
+The tree hash uniquely identifies the contents of a catalog. It covers all tracked files, schemas, manifests, and pointer files, while ignoring ignored files and package manager metadata.
+
+### Exclusions
+
+The tree hash algorithm ignores:
+
+- Any file or directory whose path component starts with an ASCII dot (`.`).
+- The root lockfile (`regi.lock`).
+
+### Algorithm
+
+1. Scan all regular files under the catalog root that don't match the exclusion rules. If any path contains ASCII control characters (`0x00`–`0x1F`, `0x7F`) or backslashes (`\`), abort with a validation error.
+2. Normalize all relative file paths to use forward slashes (`/`) without leading slashes.
+3. Sort the list of paths in byte-wise lexicographical order (`LC_ALL=C`).
+4. Compute the raw SHA-256 digest of each file's contents, formatted as a 64-character lowercase hexadecimal string.
+5. Format each entry as a single line:
+   ```text
+   <hex-digest>  <path>\n
+   ```
+   _(64 hex characters, two ASCII space characters `0x20`, the relative path, and an ASCII newline `0x0A`)_.
+6. Concatenate all lines in sorted order.
+7. Compute the SHA-256 digest of the combined payload.
+8. Prefix the result with `sha256:` to produce the final tree hash.
+
+An empty catalog produces `sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855` (the SHA-256 digest of zero bytes).
+
+## Reproducing the tree hash in shell
+
+You can verify a catalog's tree hash using standard Unix utilities:
+
+```bash
+find . -type f -not -path '*/.*' -not -name 'regi.lock' \
+  | sed 's|^\./||' \
+  | LC_ALL=C sort \
+  | while IFS= read -r file; do
+      printf '%s  %s\n' "$(sha256sum < "$file" | cut -d' ' -f1)" "$file"
+    done \
+  | sha256sum | cut -d' ' -f1 | sed 's/^/sha256:/'
+```
+
+On macOS, substitute `shasum -a 256` for `sha256sum`.
+
+## Package archive format
+
+Running `regi pack` serializes a catalog into a reproducible, uncompressed POSIX tar archive using standard PAX headers:
+
+```bash
+regi pack -o catalog.tar
+```
+
+## Archive extraction and safety
+
+When downloading and extracting catalog archives from HTTPS or Git dependencies:
+
+1. Readers ignore directory entries and PAX metadata records.
+2. Symbolic links, hard links, device nodes, and FIFOs are rejected immediately.
+3. Paths containing `..`, leading slashes, drive letters, backslashes, or control characters trigger an extraction failure.
+4. Archives containing case-folding collisions (such as `Rule.yaml` and `rule.yaml`) or Unicode normalization collisions (NFC vs. NFD) are rejected.
+5. Archives are extracted into a temporary directory and moved to their final cache destination using an atomic rename once verification passes.
+
+## Threat model and trust boundaries
+
+| Threat                                | Defense mechanism                                           | Verification point   |
+| :------------------------------------ | :---------------------------------------------------------- | :------------------- |
+| Upstream Git tag moved                | Computed tree hash differs from `regi.lock`                 | Fetch and validation |
+| Tampered companion file in dependency | Tree hash mismatch against `regi.lock`                      | Fetch and validation |
+| Modified vendored catalog in Git      | `regi.Open()` verifies vendor tree hash against `regi.lock` | Application startup  |
+| Path traversal escape                 | Paths checked via `fs.ValidPath`; `..` rejected             | Catalog loading      |
+| YAML billion-laughs attack            | Alias expansion capped at 1,000,000 values                  | Manifest parsing     |
+| ReDoS in schema regex                 | RE2 engine guarantees linear-time execution                 | Schema compilation   |
+
+## Non-goals
+
+`regi` focuses on structural validation, locking, and integrity verification. The following capabilities are explicitly outside its scope:
+
+- **Cryptographic provenance:** `regi` verifies integrity (that downloaded bytes match the recorded tree hash), not authenticity (who signed the bytes). Signature verification with Sigstore or GPG is a separate layer.
+- **Domain interpretation:** `regi` doesn't execute entity definitions, provision cloud infrastructure, or evaluate runtime queries. Consuming applications define how validated data is used.
+- **Snapshot isolation for dirty working trees:** In development, modifying local catalog files while an application reads them via `io/fs.FS` produces torn reads. Use `.regi/vendor` or clean Git checkouts for production stability.

@@ -1,0 +1,118 @@
+---
+title: Configuration
+description: Syntax and table specification for regi.toml in catalogs and workspaces.
+---
+
+# Configuration
+
+Every catalog or workspace has a `regi.toml` file at its root. The file is written in TOML and must be UTF-8 encoded without a Byte Order Mark (BOM).
+
+A `regi.toml` file defines either a catalog or a workspace. A single file can't contain both `[catalog]` and `[workspace]`.
+
+```toml title="regi.toml"
+#:schema https://ju4n97.github.io/regi/schema/v1/regi.schema.json
+
+[catalog]
+name = "clinical"
+
+[collections.protocols]
+schema = "schemas/protocols.json"
+
+[collections.monitors]
+schema = "schemas/monitors.json"
+dir = "telemetry/monitors"
+
+[dependencies]
+shared-infra = { git = "https://github.com/acme/shared-infra", tag = "v2.0.0" }
+```
+
+## Unknown keys and versioning
+
+Unknown keys at any level in `regi.toml` are treated as errors. If an older `regi` binary encounters a configuration file written for a newer version with new fields or tables, it rejects the unknown keys and reports that a newer version of `regi` is required:
+
+```text
+regi.toml: unknown key "feature_flag" (requires newer regi version)
+```
+
+```toml
+[catalog]
+name = "clinical"
+```
+
+```text
+regi.toml: requires regi 0.2 or later (running 0.1.0)
+```
+
+## The `[catalog]` table
+
+The `[catalog]` table marks the directory as an individual catalog:
+
+| Key            | Type   | Required | Description                                                           |
+| :------------- | :----- | :------: | :-------------------------------------------------------------------- |
+| `name`         | string |   Yes    | The catalog's namespace. Must match the identifier grammar.           |
+| `regi-version` | string |    No    | Minimum tool version required (`MAJOR.MINOR` or `MAJOR.MINOR.PATCH`). |
+
+## The `[collections.<name>]` table
+
+A catalog must define at least one collection. Each collection is declared under `[collections.<name>]`, where `<name>` is the collection name:
+
+```toml
+[collections.protocols]
+schema = "schemas/protocols.json"
+
+[collections.drafts]
+# Omitted schema: validated for YAML/JSON syntax only
+```
+
+| Key      | Type   | Required | Description                                                                                                               |
+| :------- | :----- | :------: | :------------------------------------------------------------------------------------------------------------------------ |
+| `schema` | string |    No    | Path to the collection's JSON Schema file, relative to catalog root. If omitted, manifests are validated for syntax only. |
+| `dir`    | string |    No    | Path to the collection directory, relative to the catalog root. Defaults to `<name>`.                                     |
+
+### Optional schemas and permissive mode
+
+Declaring a `schema` is optional:
+
+- **With a schema:** Manifests are strictly validated against JSON Schema Draft 2020-12, and fields annotated with `"format": "regi-file"` are verified against companion files on disk.
+- **Without a schema:** `regi` uses an empty permissive schema (`{}`). Manifests are validated for valid YAML 1.2 or JSON syntax, unique keys, and layout invariants, but no field-level checks occur. Companion files are still tracked by the tree hash, but field-level `regi-file` verification doesn't run.
+
+### Path rules for collections
+
+The values for `schema` and `dir` must follow these rules:
+
+- Paths must use forward slashes (`/`). Backslashes are rejected.
+- Paths can't be absolute and can't have a leading slash (e.g., `/schemas` is invalid).
+- Paths can't contain `.` or `..` segments (e.g., `../schemas` or `./schemas` is invalid).
+- Paths can't contain trailing slashes.
+- Paths can't contain dot-prefixed components (e.g., `.schemas/protocols.json` is invalid).
+- `dir = "."` is forbidden. A collection can't occupy the catalog root.
+- Two collections can't declare the same directory or have overlapping paths.
+
+## The `[dependencies]` table
+
+The `[dependencies]` table declares remote catalogs that this catalog relies on. Each key is the dependency's namespace, and the value is an inline table defining the source:
+
+```toml
+[dependencies]
+shared-infra = { git = "https://github.com/acme/shared-infra", tag = "v2.0.0" }
+policies     = { url = "https://cdn.example.com/policies.tar.gz" }
+local-core   = { path = "../core" }
+```
+
+The key must match the `catalog.name` of the target catalog. See [Dependencies](./dependencies.mdx) for full source syntax and lockfile behavior.
+
+## The `[workspace]` table
+
+A workspace groups multiple catalogs in one repository so they share a single lockfile and can depend on each other via local paths:
+
+```toml title="regi.toml"
+[workspace]
+members = ["clinical", "assistants"]
+```
+
+| Key            | Type             | Required | Description                                                           |
+| :------------- | :--------------- | :------: | :-------------------------------------------------------------------- |
+| `members`      | array of strings |   Yes    | Array of relative member directory paths, sorted, with no duplicates. |
+| `regi-version` | string           |    No    | Minimum tool version required.                                        |
+
+A workspace `regi.toml` can't contain `[catalog]`, `[collections]`, or `[dependencies]`. Member catalogs declare their own collections in their respective `regi.toml` files. See [Workspaces](./workspaces.mdx) for full workspace rules.

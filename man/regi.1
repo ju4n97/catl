@@ -87,9 +87,6 @@ regi check [flags]
 
 .RE
 
-.PP
-\fB--include-blobs\fP: Query remote blob stores to verify referenced blobs exist
-
 .SH clean
 .PP
 Clear local download and build cache
@@ -215,51 +212,3 @@ regi pack [flags]
 
 .PP
 \fB--output, -o\fP="": Write tar archive to file instead of stdout
-
-.SH publish
-.PP
-Publish catalog to an OCI registry
-
-.PP
-.RS
-
-.PP
-regi publish 
-
-.RE
-
-.SH blob
-.PP
-Manage content-addressed companion files and pointer files
-
-.PP
-.RS
-
-.PP
-regi blob  [args...]
-
-.RE
-
-.SS add
-.PP
-Convert companion files into content-addressed blobs
-
-.PP
-.RS
-
-.PP
-regi blob add 
-
-.RE
-
-.SS check
-.PP
-Verify blob pointer syntax and check for filename collisions
-
-.PP
-.RS
-
-.PP
-regi blob check
-
-.RE

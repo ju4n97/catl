@@ -1,0 +1,162 @@
+---
+title: Dependencies
+description: Declaring, pinning, and updating remote dependencies from Git, OCI, HTTPS, and S3.
+---
+
+# Dependencies
+
+A catalog can depend on other catalogs to import shared entities, schemas, and companion files. Dependencies are declared in `regi.toml` under the `[dependencies]` table.
+
+```toml title="regi.toml"
+[dependencies]
+shared-infra = { git = "https://github.com/acme/shared-infra", tag = "v2.0.0" }
+policies     = { url = "https://cdn.example.com/catalogs/policies-v1.tar.gz" }
+local-core   = { path = "../core" }
+```
+
+Every dependency has a namespace matching the table key. This key must strictly match the `catalog.name` declared in the target catalog's own `regi.toml`. Entities from `shared-infra` are resolved using that namespace (for example, `shared-infra.postgres`).
+
+## Source types
+
+A dependency must specify exactly one source type.
+
+### Git
+
+Git dependencies are read directly from Git's object database without invoking the system `git` binary:
+
+```toml
+[dependencies]
+shared-infra = { git = "https://github.com/acme/shared-infra", tag = "v2.0.0" }
+mono-catalog = { git = "https://github.com/acme/monorepo", rev = "d6e89a7123bf01c4a0b1e5f7a3c9d2e8b4f60718", subdir = "catalogs/infra" }
+```
+
+A Git source requires exactly one of `tag`, `branch`, or `rev`. Commits (`rev`) must be full 40-character hexadecimal strings. Annotated tags are automatically peeled to their target commits.
+
+The optional `subdir` field specifies a subdirectory inside the repository that contains the target catalog. Git submodules (gitlinks) inside the target tree cause an error, and Git LFS pointers are treated as plain text files rather than resolved.
+
+### OCI artifacts
+
+Catalogs published with `regi catalog publish` can be consumed from OCI container registries:
+
+```toml
+[dependencies]
+observability = { oci = "ghcr.io/acme/observability", tag = "1.4.0" }
+pinned-tools  = { oci = "ghcr.io/acme/tools", digest = "sha256:77d1a3c9e0b4f5a6b7c8d9e0f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0" }
+```
+
+An OCI source requires either `tag` or `digest`. The repository hosts a tar layer containing the catalog files.
+
+### HTTPS archives
+
+Tar archives hosted on HTTP or HTTPS servers can be imported directly:
+
+```toml
+[dependencies]
+policies = { url = "https://cdn.example.com/catalogs/policies-v1.tar.gz", digest = "sha256:4b227777d4dd1fc61c6f884f48641d02b4d121d3fd328cb08b5531fcacdabf8a" }
+```
+
+The URL must point to a `.tar`, `.tar.gz`, or `.tgz` archive. The optional `digest` field verifies the downloaded archive file before extraction.
+
+### S3 archives
+
+Immutable tar archives stored in S3 storage buckets use the `s3` source key:
+
+```toml
+[dependencies]
+data-platform = { s3 = "s3://example-catalogs/data-platform-1.0.tar.gz" }
+```
+
+The object must be a `.tar`, `.tar.gz`, or `.tgz` archive. Authentication uses standard AWS credential environment variables and instance roles.
+
+### Local paths
+
+Catalogs residing on the local filesystem (such as sibling directories or workspace members) use `path`:
+
+```toml
+[dependencies]
+local-core = { path = "../core" }
+```
+
+Local path dependencies are read in place. Because the local filesystem is trusted, path dependencies are not recorded in `regi.lock`, are never cached, and are never hashed.
+
+### Network timeouts and retries
+
+All remote dependency operations over HTTP, HTTPS, and S3 enforce bounded network defaults:
+
+- **Per-request timeout:** 30 seconds for metadata and manifests; streaming timeout applies per 10 MiB chunk for large archives.
+- **Retries:** Up to 3 automatic retries with exponential backoff on transient errors (HTTP 429, 502, 503, 504, and connection resets).
+- **Redirects:** Capped at a maximum of 10 redirects. Redirecting from HTTPS to plaintext HTTP is rejected.
+
+## Source string syntax
+
+CLI commands like `regi add` accept canonical source strings:
+
+```bash
+regi add 'git+https://github.com/acme/shared-infra#tag=v2.0.0'
+regi add 'git+https://github.com/acme/monorepo#tag=v1.0.0&subdir=catalogs/infra'
+regi add 'https://cdn.example.com/catalogs/policies-v1.tar.gz'
+regi add ../core
+```
+
+Characters like `#` and `&` inside branch or tag names must be URL percent-encoded.
+
+## The lockfile (`regi.lock`)
+
+When remote dependencies are added or updated, `regi` writes `regi.lock` at the catalog root. This file pins the immutable identity and content tree hash for every non-path dependency.
+
+```toml title="regi.lock"
+version = 1
+
+[[dependency]]
+requested = "git+https://github.com/acme/shared-infra#tag=v2.0.0"
+resolved = "d6e89a7123bf01c4a0b1e5f7a3c9d2e8b4f60718"
+tree = "sha256:9f2c1a7b8e4f5a6b7c8d9e0f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b"
+```
+
+Entries are sorted by `requested`. The `resolved` key holds the exact commit hash for Git or the manifest digest for OCI. The `tree` key records the cryptographic tree hash of the extracted catalog files.
+
+Only `regi dependency add` and `regi dependency update` modify `regi.lock`. All other commands (including `validate`, `list`, `pack`, and Go's `regi.Open`) treat the lockfile as read-only. If `regi.lock` is missing an entry or doesn't match `regi.toml`, operations fail with `ErrLockStale`:
+
+```text
+regi: regi.lock is out of date; run 'regi dependency update'
+```
+
+## Updating dependencies
+
+To re-resolve dependencies to their latest remote revisions, use `regi update`:
+
+```bash
+# Re-resolve all remote dependencies
+regi update
+
+# Re-resolve a single dependency
+regi update shared-infra
+```
+
+`regi` fetches the remote source, checks whether `resolved` or `tree` has changed, and writes the updated lockfile.
+
+If an existing Git tag has moved to a different commit, `regi update` aborts with an error because force-moving a published release tag is a security risk. To accept a moved tag intentionally, supply the `--force` flag:
+
+```bash
+regi update --force shared-infra
+```
+
+## Non-transitive resolution
+
+Dependencies are non-transitive. `regi` only downloads and validates the direct dependencies declared in your own `regi.toml`.
+
+If catalog A depends on catalog B, and catalog B declares a dependency on catalog C, catalog A doesn't download, lock, or resolve catalog C. If catalog A needs an entity from catalog C, catalog A must declare catalog C in its own `regi.toml`.
+
+This prevents dependency version conflicts and eliminates diamond dependency graph resolution entirely.
+
+## Vendoring for offline environments
+
+To create a fully self-contained repository that requires no network access in CI or production, vendor dependencies into the local catalog:
+
+```bash
+regi vendor
+```
+
+This copies all remote dependencies into `.regi/vendor/`, verified against `regi.lock`. Local `path` dependencies are not copied because they already exist on disk.
+
+When running in offline mode (`--offline` or `REGI_OFFLINE=1`), `regi` reads dependencies directly from `.regi/vendor` or the local cache without opening network connections.

@@ -1,0 +1,270 @@
+---
+title: Embedding in Go
+description: Reading, validating, and reloading catalogs using the github.com/ju4n97/regi Go module.
+---
+
+# Embedding in Go
+
+The `regi` Go module provides programmatic read access to catalogs and workspaces. It contains no CGO dependencies, uses no background threads, and executes validation offline.
+
+Complete type signatures, interfaces, and methods are maintained in GoDoc. See the [pkg.go.dev reference for github.com/ju4n97/regi](https://pkg.go.dev/github.com/ju4n97/regi) for auto-generated API documentation.
+
+```bash
+go get github.com/ju4n97/regi@v0.1.0
+```
+
+```go
+import "github.com/ju4n97/regi"
+```
+
+## Opening a catalog
+
+Use `regi.Open` to read and validate a catalog from disk:
+
+```go
+package main
+
+import (
+    "context"
+    "fmt"
+    "log"
+
+    "github.com/ju4n97/regi"
+)
+
+type Policy struct {
+    Severity string `json:"severity"`
+    Enabled  bool   `json:"enabled"`
+}
+
+func main() {
+    ctx := context.Background()
+
+    cat, err := regi.Open(ctx, "./compliance-catalog", regi.Options{
+        Offline: true, // Forbid network calls; read from vendor or cache only
+    })
+    if err != nil {
+        log.Fatalf("failed to open catalog: %v", err)
+    }
+
+    // Resolve an entity by collection and qualified ID
+    entity, err := cat.Resolve("policies", "compliance.require-mfa")
+    if err != nil {
+        log.Fatalf("failed to resolve entity: %v", err)
+    }
+
+    // Decode the manifest into your application's struct
+    var p Policy
+    if err := entity.Unmarshal(&p); err != nil {
+        log.Fatalf("manifest decode error: %v", err)
+    }
+
+    fmt.Printf("Policy %s: severity=%s enabled=%v\n", entity.QualifiedID(), p.Severity, p.Enabled)
+}
+```
+
+`regi.Open` performs the following steps:
+
+1. Parses `regi.toml`.
+2. Verifies that `regi.lock` matches the declared dependencies.
+3. If `.regi/vendor` exists, calculates its tree hash and verifies it against the lock.
+4. Validates all manifests against their respective collection JSON Schemas.
+5. Returns a `*regi.Catalog` instance that is immutable and safe for concurrent use across goroutines.
+
+## Reading companion files
+
+For bundle entities, access companion files using standard `io/fs.FS` interfaces through `entity.FS(ctx)`:
+
+```go
+package main
+
+import (
+    "context"
+    "fmt"
+    "io/fs"
+    "log"
+
+    "github.com/ju4n97/regi"
+)
+
+func readRunbook(ctx context.Context, cat *regi.Catalog, qualifiedID string) error {
+    entity, err := cat.Resolve("monitors", qualifiedID)
+    if err != nil {
+        return err
+    }
+
+    // entity.FS returns a read-only io/fs.FS scoped to the bundle directory
+    fsys := entity.FS(ctx)
+
+    // Read a companion file
+    data, err := fs.ReadFile(fsys, "mitigation.md")
+    if err != nil {
+        return fmt.Errorf("could not read companion file: %w", err)
+    }
+
+    fmt.Printf("Runbook:\n%s\n", string(data))
+    return nil
+}
+```
+
+Calling `Open` or `ReadFile` on `entity.FS` streams content directly from the local filesystem on disk.
+
+The returned filesystem adheres to standard Go `fs.ValidPath` rules: paths escaping the bundle directory with `..` are rejected, and dot-prefixed files are hidden.
+
+## Resolving entities in workspaces
+
+When working with a multi-catalog workspace, open the workspace root using `regi.OpenWorkspace` and access member catalogs via `ws.Member(name)`:
+
+```go
+package main
+
+import (
+    "context"
+    "fmt"
+    "log"
+
+    "github.com/ju4n97/regi"
+)
+
+func main() {
+    ctx := context.Background()
+
+    ws, err := regi.OpenWorkspace(ctx, "./healthcare-platform", regi.Options{})
+    if err != nil {
+        log.Fatalf("failed to open workspace: %v", err)
+    }
+
+    // Scoped resolution: retrieve the "assistants" member
+    assistants, err := ws.Member("assistants")
+    if err != nil {
+        log.Fatalf("member not found: %v", err)
+    }
+
+    // Resolve an entity within the context of the "assistants" catalog
+    agent, err := assistants.Resolve("agents", "assistants.triage")
+    if err != nil {
+        log.Fatalf("failed to resolve agent: %v", err)
+    }
+
+    fmt.Printf("Resolved agent: %s\n", agent.QualifiedID())
+}
+```
+
+Resolving entities through `ws.Member("name")` guarantees that lookups evaluate against that specific member's declared dependencies and namespaces.
+
+## In-memory testing with `OpenFS`
+
+To test applications without touching the local disk, use `regi.OpenFS` with `testing/fstest.MapFS` or Go's standard `embed.FS`:
+
+```go
+package main
+
+import (
+    "context"
+    "embed"
+    "io/fs"
+    "testing"
+
+    "github.com/ju4n97/regi"
+)
+
+//go:embed testdata/catalog/*
+var testCatalogFS embed.FS
+
+func TestCatalogIntegration(t *testing.T) {
+    ctx := context.Background()
+
+    subFS, err := fs.Sub(testCatalogFS, "testdata/catalog")
+    if err != nil {
+        t.Fatalf("sub fs error: %v", err)
+    }
+
+    cat, err := regi.OpenFS(ctx, subFS, regi.Options{})
+    if err != nil {
+        t.Fatalf("OpenFS failed: %v", err)
+    }
+
+    entity, err := cat.Resolve("rules", "test-catalog.allow-all")
+    if err != nil {
+        t.Fatalf("Resolve failed: %v", err)
+    }
+
+    if entity.ID() != "allow-all" {
+        t.Errorf("got ID %q, want allow-all", entity.ID())
+    }
+}
+```
+
+## Atomic catalog swapping in long-lived servers
+
+Long-lived HTTP services or background workers can reload updated catalogs without restarting the process using Go's standard `sync/atomic`:
+
+```go
+package main
+
+import (
+    "context"
+    "log"
+    "sync/atomic"
+
+    "github.com/ju4n97/regi"
+)
+
+type Server struct {
+    catalog atomic.Pointer[regi.Catalog]
+}
+
+func (s *Server) Reload(ctx context.Context, dir string) error {
+    // Open and validate the new catalog before updating the pointer
+    next, err := regi.Open(ctx, dir, regi.Options{Offline: true})
+    if err != nil {
+        return err // Validation failed; keep the existing catalog active
+    }
+
+    // Atomically swap the pointer
+    s.catalog.Store(next)
+    return nil
+}
+
+func (s *Server) CurrentCatalog() *regi.Catalog {
+    return s.catalog.Load()
+}
+```
+
+### Working tree caveat
+
+`regi.Catalog` doesn't snapshot the entire local working tree into memory on startup. File reads via `entity.FS` stream content from disk lazily.
+
+Modifying files on disk while an application reads them produces torn reads. In production environments, run atomic reloads against clean Git checkouts or vendored directories (`.regi/vendor/`).
+
+## Error handling
+
+Inspect failure reasons using standard `errors.Is`:
+
+```go
+if err != nil {
+    switch {
+    case errors.Is(err, regi.ErrNotFound):
+        // The entity or namespace doesn't exist
+    case errors.Is(err, regi.ErrNotQualified):
+        // The caller passed a bare ID without a namespace
+    case errors.Is(err, regi.ErrLockStale):
+        // regi.lock doesn't match regi.toml; needs 'regi dependency update'
+    case errors.Is(err, regi.ErrTamperedVendor):
+        // Files inside .regi/vendor don't match the tree hash
+    case errors.Is(err, regi.ErrRequiresNewer):
+        // The catalog requires a newer version of the regi library
+    }
+}
+```
+
+To extract structured line-by-line schema validation failures, inspect `*regi.ValidationError` using `errors.As`:
+
+```go
+var valErr *regi.ValidationError
+if errors.As(err, &valErr) {
+    for _, d := range valErr.Diagnostics {
+        log.Printf("%s:%d: [%s] %s\n", d.Path, d.Line, d.Pointer, d.Message)
+    }
+}
+```

@@ -1,0 +1,85 @@
+---
+title: Installation
+description: Installing the static regi binary, container images, and source builds.
+---
+
+# Installation
+
+`regi` is a single static binary. It has no CGO or libc dependencies and doesn't shell out to `git` or `tar`.
+
+Prebuilt binaries are available for Linux, macOS, and Windows on x86_64 and arm64.
+
+## Shell script (Linux and macOS)
+
+Download the install script pinned to a release tag, check its SHA-256 digest, and run it:
+
+```bash
+VERSION="latest"
+EXPECTED_SHA256="4b227777d4dd1fc61c6f884f48641d02b4d121d3fd328cb08b5531fcacdabf8a"
+
+curl -fsSLO "https://github.com/ju4n97/regi/releases/download/${VERSION}/install.sh"
+echo "${EXPECTED_SHA256} install.sh" | sha256sum -c -
+
+bash install.sh --version "${VERSION}"
+rm install.sh
+```
+
+The script places the binary in `/usr/local/bin/regi`, or in `$HOME/.local/bin/regi` if running without root permissions.
+
+## PowerShell (Windows)
+
+Download and verify the Windows installer:
+
+```powershell
+$Version = "latest"
+$ExpectedHash = "9f2c1a7b8e4f5a6b7c8d9e0f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b"
+
+Invoke-WebRequest -Uri "https://github.com/ju4n97/regi/releases/download/$Version/install.ps1" -OutFile install.ps1
+$ActualHash = (Get-FileHash install.ps1 -Algorithm SHA256).Hash.ToLower()
+
+if ($ActualHash -ne $ExpectedHash) {
+    Remove-Item install.ps1
+    throw "Checksum mismatch: expected $ExpectedHash, got $ActualHash"
+}
+
+& .\install.ps1 -Version $Version
+Remove-Item install.ps1
+```
+
+## Go install
+
+If you have Go 1.27+ installed, build directly from source:
+
+```bash
+go install github.com/ju4n97/regi/cmd/regi@latest
+```
+
+Make sure `$GOPATH/bin` or `$HOME/go/bin` is in your `PATH`.
+
+## Container image
+
+Run `regi` in CI or scripts using the official container image:
+
+```bash
+# Pin by tag
+docker run --rm -v "$(pwd):/catalog" ghcr.io/ju4n97/regi:latest -C /catalog validate
+
+# Or pin by digest
+docker run --rm -v "$(pwd):/catalog" \
+  ghcr.io/ju4n97/regi@sha256:77d1a3c9e0b4f5a6b7c8d9e0f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0 \
+  -C /catalog validate
+```
+
+## Verifying the binary
+
+Check that the binary works and outputs the expected version:
+
+```bash
+regi version
+```
+
+Output:
+
+```text
+regi <version>
+```

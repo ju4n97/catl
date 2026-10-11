@@ -1,0 +1,173 @@
+---
+title: Quick start
+description: Create a catalog, write a schema, add entities, and validate them from scratch.
+---
+
+# Quick start
+
+This guide creates a feature flag catalog, writes a JSON Schema, adds flat and bundle entities, and inspects them using the hierarchical CLI.
+
+## 1. Create the catalog
+
+Run `regi init` to scaffold a new catalog directory:
+
+```bash
+regi init --name app-flags --collection flags flags-catalog
+cd flags-catalog
+```
+
+The command writes the catalog configuration, a schema stub, and Git line-ending attributes:
+
+```text
+create flags-catalog/regi.toml
+create flags-catalog/schemas/flags.json
+create flags-catalog/.gitattributes
+```
+
+The generated `regi.toml` binds the `flags` collection to its schema:
+
+```toml title="regi.toml"
+[catalog]
+name = "app-flags"
+
+[collections.flags]
+schema = "schemas/flags.json"
+```
+
+## 2. Define the schema
+
+Replace `schemas/flags.json` with this JSON Schema Draft 2020-12 definition:
+
+```json title="schemas/flags.json"
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "required": ["enabled"],
+  "properties": {
+    "enabled": { "type": "boolean" },
+    "rollout": { "type": "integer", "minimum": 0, "maximum": 100 }
+  },
+  "additionalProperties": false
+}
+```
+
+This requires every flag manifest to have a boolean `enabled` field, allows an optional `rollout` percentage between 0 and 100, and rejects unrecognized fields.
+
+## 3. Add entities
+
+An entity is either a standalone file (flat entity) or a directory with companion files (bundle entity).
+
+### Add a flat entity
+
+Create `flags/dark-mode.yaml`. The filename without its extension defines the entity identifier (`dark-mode`):
+
+```yaml title="flags/dark-mode.yaml"
+enabled: true
+rollout: 100
+```
+
+### Add a bundle entity
+
+Create a directory when an entity requires companion files. The directory name becomes the identifier (`new-checkout`), and the manifest must be named `manifest.yaml` or `manifest.json`:
+
+```bash
+mkdir -p flags/new-checkout
+```
+
+```yaml title="flags/new-checkout/manifest.yaml"
+enabled: false
+rollout: 10
+```
+
+Add a Markdown companion file inside the bundle directory:
+
+```markdown title="flags/new-checkout/notes.md"
+# Checkout experiment notes
+
+Targeted only at staging accounts during the phase 1 rollout.
+```
+
+## 4. Validate
+
+Run `regi check` from the catalog root:
+
+```bash
+regi check
+echo "Exit code: $?"
+```
+
+```text
+Exit code: 0
+```
+
+`regi check` is silent when everything passes.
+
+To see what happens when validation fails, edit `flags/new-checkout/manifest.yaml` and change `rollout` to `150`:
+
+```bash
+regi check
+```
+
+```text
+flags/new-checkout/manifest.yaml:2: /rollout: 150 is greater than the maximum of 100
+```
+
+`regi` outputs the file path, line number, JSON Pointer, and error message to standard error, exiting with status 1. Change the value back to `10` before proceeding.
+
+## 5. List and resolve
+
+List all entities in the catalog:
+
+```bash
+regi list
+```
+
+```text
+flags	app-flags.dark-mode	flags/dark-mode.yaml
+flags	app-flags.new-checkout	flags/new-checkout/manifest.yaml
+```
+
+Every entity is identified by its qualified ID: `namespace.id`. Here the namespace is the catalog name (`app-flags`).
+
+To get the absolute path to a manifest from a script or editor, use `regi resolve`:
+
+```bash
+regi resolve flags app-flags.dark-mode
+```
+
+```text
+/home/user/flags-catalog/flags/dark-mode.yaml
+```
+
+Because IDs are scoped to collections, `resolve` requires both the collection name and the qualified ID. If you pass a bare ID without a namespace, `regi` rejects it and suggests the right qualified ID:
+
+```bash
+regi resolve flags dark-mode
+```
+
+```text
+regi: "dark-mode" is not a qualified ID (want namespace.id); did you mean "app-flags.dark-mode"?
+```
+
+To view the raw contents of a manifest, use `regi show`:
+
+```bash
+regi show flags app-flags.dark-mode
+```
+
+```yaml
+enabled: true
+rollout: 100
+```
+
+For bundle entities, you can also stream companion files by passing their path inside the bundle:
+
+```bash
+regi show flags app-flags.new-checkout notes.md
+```
+
+```markdown
+# Checkout experiment notes
+
+Targeted only at staging accounts during the phase 1 rollout.
+```

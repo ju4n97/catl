@@ -1,0 +1,27 @@
+[
+    {
+        "type": "file",
+        "name": "index",
+        "label": "Introduction"
+    },
+    {
+        "type": "file",
+        "name": "installation",
+        "label": "Installation"
+    },
+    {
+        "type": "file",
+        "name": "quick-start",
+        "label": "Quick start"
+    },
+    {
+        "type": "dir",
+        "name": "spec",
+        "label": "Specification"
+    },
+    {
+        "type": "dir",
+        "name": "reference",
+        "label": "Reference"
+    }
+]

@@ -1,0 +1,12 @@
+[
+    {
+        "type": "file",
+        "name": "glossary",
+        "label": "Glossary"
+    },
+    {
+        "type": "file",
+        "name": "embedding",
+        "label": "Embedding in Go"
+    }
+]

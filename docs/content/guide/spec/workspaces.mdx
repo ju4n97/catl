@@ -1,0 +1,140 @@
+---
+title: Workspaces
+description: Managing multiple catalogs in a single repository with shared lockfiles and path dependencies.
+---
+
+# Workspaces
+
+A workspace groups multiple catalogs that live together in a single repository. The catalogs are called members. Workspace members share a single root lockfile and can depend on each other through local relative paths.
+
+```text
+healthcare-platform/
+├── regi.toml              # Workspace root configuration
+├── regi.lock              # Shared lockfile pinning all member dependencies
+├── clinical/              # Workspace member: "clinical"
+│   ├── regi.toml          # Catalog configuration
+│   └── protocols/
+└── assistants/            # Workspace member: "assistants"
+    ├── regi.toml          # Catalog configuration
+    └── agents/
+```
+
+## Declaring a workspace
+
+A workspace is declared by placing a `regi.toml` file with a `[workspace]` table at the repository root:
+
+```toml title="healthcare-platform/regi.toml"
+[workspace]
+members = [
+    "assistants",
+    "clinical",
+]
+```
+
+The `members` array lists relative directory paths from the workspace root using forward slashes. Paths can't contain `.` or `..` segments and can't escape the workspace root.
+
+A workspace configuration file can't contain `[catalog]`, `[collections]`, or `[dependencies]`. It defines no collections and owns no entities of its own.
+
+Each directory listed under `members` must contain its own `regi.toml` declaring a `[catalog]`. A workspace member can't be a workspace itself. Member catalog names (the `catalog.name` field) must be unique across the workspace.
+
+## Local path dependencies
+
+Workspace members depend on each other using standard relative path dependencies:
+
+```toml title="healthcare-platform/assistants/regi.toml"
+[catalog]
+name = "assistants"
+
+[dependencies]
+clinical = { path = "../clinical" }
+
+[collections.agents]
+schema = "schemas/agents.json"
+```
+
+Path dependencies are resolved directly on disk. Because dependencies are non-transitive, mutual references between workspace members (such as `assistants` depending on `clinical` while `clinical` depends on `assistants`) are permitted and don't cause resolution loops.
+
+### Schema sharing across members
+
+Because `$ref` resolution can't escape a catalog root, members can't use `$ref` to import a schema located in another member or at the workspace root. If multiple members share identical schemas, each member must maintain its own copy under its local `schemas/` directory, or import the schema from a shared dependency catalog.
+
+## Unified locking and discovery
+
+When commands run inside a workspace, `regi` locates the nearest `regi.toml` by climbing upward through parent directories. The upward search stops when it encounters a `.git` directory or the filesystem root.
+
+If the climbed search finds a catalog that is listed as a member of an enclosing workspace, commands automatically use the workspace's root `regi.lock`. Workspace members don't maintain individual `regi.lock` files.
+
+```bash
+# Validates every member in the workspace
+cd healthcare-platform
+regi check
+
+# Validates only the "assistants" member using the root lockfile
+cd healthcare-platform/assistants
+regi check
+
+# Validates a specific member from anywhere in the workspace
+regi check -m clinical
+```
+
+Running `regi update` inside a workspace re-resolves remote dependencies across all members. If two members declare dependencies pointing to the same remote source, they share a single entry in `regi.lock`.
+
+## Scoped entity resolution
+
+In code, entities must be resolved from the perspective of a specific member catalog rather than globally from the workspace root.
+
+This scoping ensures that dependency namespaces remain unambiguous:
+
+```go
+package main
+
+import (
+    "context"
+    "fmt"
+    "log"
+
+    "github.com/ju4n97/regi"
+)
+
+func main() {
+    ctx := context.Background()
+
+    // Open the workspace root
+    ws, err := regi.OpenWorkspace(ctx, "./healthcare-platform", regi.Options{})
+    if err != nil {
+        log.Fatalf("failed to open workspace: %v", err)
+    }
+
+    // Retrieve the specific member catalog
+    assistants, err := ws.Member("assistants")
+    if err != nil {
+        log.Fatalf("member not found: %v", err)
+    }
+
+    // Resolve an entity owned by this member
+    triageAgent, err := assistants.Resolve("agents", "assistants.triage")
+    if err != nil {
+        log.Fatalf("failed to resolve entity: %v", err)
+    }
+    fmt.Printf("Loaded agent: %s\n", triageAgent.QualifiedID())
+
+    // Resolve an entity from the member's "clinical" dependency
+    protocol, err := assistants.Resolve("protocols", "clinical.emergency-guide")
+    if err != nil {
+        log.Fatalf("failed to resolve protocol: %v", err)
+    }
+    fmt.Printf("Referenced protocol: %s\n", protocol.QualifiedID())
+}
+```
+
+The `Workspace` type exposes `Member(name)` to return a `*regi.Catalog`. Entity resolution methods exist on `Catalog`, ensuring lookups evaluate against the specific member's declared dependencies.
+
+## Packaging workspace members
+
+Package archives contain exactly one catalog. The workspace itself is never packaged as a whole.
+
+To pack individual members, pass the `-m` flag:
+
+```bash
+regi -m clinical pack -o clinical-v1.0.tar
+```

@@ -1,0 +1,36 @@
+---
+title: Introduction to regi
+description: Overview, architecture, and core operational model of regi.
+---
+
+# Introduction to regi
+
+`regi` reads and manages declarative data stored in directories. A catalog directory contains YAML or JSON manifests alongside companion files like templates, runbooks, or images. These files describe entities such as service metadata, policies, agents, flags, or alerts.
+
+`regi` gives programs a consistent way to load these files, validate them against JSON Schema, pin external dependencies in a lockfile, and read the verified result.
+
+```text
+catalog/
+├── regi.toml                 # Catalog name, collections, and dependencies
+├── regi.lock                 # Pinned content hashes for remote dependencies
+├── schemas/
+│   └── service.json          # JSON Schema Draft 2020-12
+└── services/
+    ├── auth.yaml             # Flat entity (ID: auth)
+    └── billing/              # Bundle entity (ID: billing)
+        ├── manifest.yaml     # Validated manifest
+        ├── runbook.md        # Inline companion file
+        └── diagram.png       # Companion image file
+```
+
+The package includes a standalone CLI binary and an embeddable Go library. Both use the same parsing engine and validation rules.
+
+## How it works
+
+`regi` runs synchronously against the filesystem. It has no background daemon, opens no network ports during validation, and needs no database.
+
+Data is organized into collections declared in `regi.toml`. Each collection has a JSON Schema file. Manifests are parsed using strict YAML 1.2 or JSON rules and checked against that schema. Companion files live inside bundle directories and are verified through cryptographic tree hashes.
+
+External dependencies come from Git repositories, HTTPS archives, or local directory paths. When you add a dependency, `regi` fetches it, hashes its contents, and writes the tree hash to `regi.lock`. Later builds and runtime calls to `regi.Open` verify that the on-disk bytes match the lock.
+
+Validation doesn't use the network. Schemas, dependencies, and companion files must exist locally or in `.regi/vendor`. If anything has been tampered with or is missing, validation fails immediately.

@@ -1,0 +1,32 @@
+[
+    {
+        "type": "file",
+        "name": "layout-and-manifests",
+        "label": "Layout and manifests"
+    },
+    {
+        "type": "file",
+        "name": "identifiers",
+        "label": "Identifiers"
+    },
+    {
+        "type": "file",
+        "name": "configuration",
+        "label": "Configuration"
+    },
+    {
+        "type": "file",
+        "name": "dependencies",
+        "label": "Dependencies"
+    },
+    {
+        "type": "file",
+        "name": "workspaces",
+        "label": "Workspaces"
+    },
+    {
+        "type": "file",
+        "name": "integrity-and-packaging",
+        "label": "Integrity and packaging"
+    }
+]

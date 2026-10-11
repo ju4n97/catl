@@ -1,0 +1,78 @@
+[
+    {
+        "type": "file",
+        "name": "regi",
+        "label": "Overview"
+    },
+    {
+        "type": "section-header",
+        "label": "Catalog"
+    },
+    {
+        "type": "file",
+        "name": "regi-init",
+        "label": "regi init"
+    },
+    {
+        "type": "file",
+        "name": "regi-check",
+        "label": "regi check"
+    },
+    {
+        "type": "file",
+        "name": "regi-clean",
+        "label": "regi clean"
+    },
+    {
+        "type": "section-header",
+        "label": "Entities"
+    },
+    {
+        "type": "file",
+        "name": "regi-list",
+        "label": "regi list"
+    },
+    {
+        "type": "file",
+        "name": "regi-resolve",
+        "label": "regi resolve"
+    },
+    {
+        "type": "file",
+        "name": "regi-show",
+        "label": "regi show"
+    },
+    {
+        "type": "section-header",
+        "label": "Dependencies"
+    },
+    {
+        "type": "file",
+        "name": "regi-add",
+        "label": "regi add"
+    },
+    {
+        "type": "file",
+        "name": "regi-remove",
+        "label": "regi remove"
+    },
+    {
+        "type": "file",
+        "name": "regi-update",
+        "label": "regi update"
+    },
+    {
+        "type": "file",
+        "name": "regi-vendor",
+        "label": "regi vendor"
+    },
+    {
+        "type": "section-header",
+        "label": "Distribution"
+    },
+    {
+        "type": "file",
+        "name": "regi-pack",
+        "label": "regi pack"
+    }
+]

@@ -1,0 +1,160 @@
+---
+title: Layout and manifests
+description: Directory structure, flat and bundle entities, manifest syntax, JSON Schema validation, and limits.
+---
+
+# Layout and manifests
+
+A catalog is a directory tree on disk. It contains a root `regi.toml`, a directory for schemas, and one directory per declared collection.
+
+```text
+clinical-catalog/
+├── regi.toml
+├── schemas/
+│   ├── protocols.json
+│   └── tools.json
+├── protocols/
+│   ├── triage.yaml               # Flat entity: ID "triage"
+│   └── emergency-guide/          # Bundle entity: ID "emergency-guide"
+│       ├── manifest.yaml
+│       ├── flow.md               # Companion file
+│       └── diagram.png           # Companion image file
+└── tools/
+    └── check-schedule.yaml       # Flat entity: ID "check-schedule"
+```
+
+## Directory layout
+
+The catalog root belongs exclusively to `regi`. Any unrecognized file or directory at the root that doesn't match declared collections, schemas, `regi.toml`, or `regi.lock` fails validation. If you need scratch directories, editor settings, or CI scripts inside the catalog root, prefix their names with a dot (`.`). Any file or directory starting with a dot is ignored by scanners, tree hashing, and packaging.
+
+Each collection maps to a subdirectory matching the collection name, unless overridden by the `dir` key in `regi.toml`. If a declared collection directory doesn't exist on disk, `regi` treats it as an empty collection. You don't need to create `.gitkeep` files to track empty collections.
+
+Symbolic links are forbidden anywhere inside the catalog, except within ignored dot-prefixed paths. A symlink in a collection or schema directory triggers an immediate validation error.
+
+Every path in the catalog must be valid UTF-8 in Unicode Normalization Form C (NFC). File and directory paths can't contain backslashes (`\`) or ASCII control characters (`0x00`-`0x1F`, `0x7F`).
+
+## Entity shapes
+
+Entities inside a collection take one of two shapes: flat entities or bundle entities.
+
+### Flat entities
+
+A flat entity is a single manifest file placed directly in the collection directory. Its filename without the extension is its identifier:
+
+```text
+protocols/triage.yaml
+```
+
+The file contains the YAML or JSON manifest directly:
+
+```yaml title="protocols/triage.yaml"
+title: Patient Triage Flow
+severity: high
+timeout_seconds: 300
+```
+
+Flat entities can't have companion files. If an entity needs assets like Markdown templates, images, or PDFs, it must be created as a bundle.
+
+### Bundle entities
+
+A bundle entity is a directory directly inside the collection directory. The directory name is the entity identifier:
+
+```text
+protocols/emergency-guide/
+├── manifest.yaml
+├── flow.md
+└── diagram.pdf
+```
+
+A bundle directory must contain exactly one manifest, named either `manifest.yaml` or `manifest.json`. Having both `manifest.yaml` and `manifest.json` in the same bundle is an error.
+
+The manifest describes the entity, while other files in the directory act as companion files. Companion files can be organized in subdirectories:
+
+```text
+protocols/emergency-guide/
+├── manifest.yaml
+├── steps/
+│   ├── step-1.md
+│   └── step-2.md
+└── assets/
+    └── flowchart.png
+```
+
+An identifier can't be used as both a flat file and a bundle directory in the same collection. For example, `protocols/triage.yaml` and `protocols/triage/` can't coexist.
+
+Directories inside a collection don't nest. Any subdirectory directly inside a collection is treated as an entity, not a sub-collection or category.
+
+## Manifest decoding
+
+Manifests are read as YAML 1.2 or JSON and decoded into memory before schema validation.
+
+YAML manifests use strict YAML 1.2 core schema rules:
+
+- Unquoted values like `yes`, `no`, `on`, and `off` are parsed as strings, not booleans. Only `true` and `false` are booleans.
+- Duplicate keys are rejected.
+- Merge keys (`<<`) are rejected.
+- Custom YAML tags (like `!custom` or `!include`) are rejected.
+- A manifest must contain exactly one document. Multi-document streams separated by `---` are rejected.
+
+JSON manifests must follow RFC 8259 with unique keys. Numbers must not evaluate to `NaN` or `Infinity`.
+
+## Schema validation
+
+Each collection can optionally bind to a JSON Schema Draft 2020-12 file. When declared, every manifest in the collection is validated against this schema.
+
+If `schema` is omitted in `regi.toml`, the collection operates in permissive mode: manifests are checked for syntax, unique keys, and layout rules, but field-level type checking is skipped. Companion files inside bundles are still hashed and packaged, but field-level `regi-file` assertions require an explicit schema.
+
+```json title="schemas/protocols.json"
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "required": ["title", "severity", "documentation"],
+  "properties": {
+    "title": { "type": "string" },
+    "severity": { "type": "string", "enum": ["low", "medium", "high"] },
+    "timeout_seconds": { "type": "integer", "minimum": 1 },
+    "documentation": { "type": "string", "format": "regi-file" }
+  },
+  "additionalProperties": false
+}
+```
+
+Schema validation runs offline. The Draft 2020-12 metaschema is embedded in `regi`, and schemas never access the network during validation.
+
+Local `$ref` references resolve only to files inside the catalog root. Targets that leave the catalog root or point to remote URLs (`https://...`) are rejected. Absolute `$id` values declared in schemas are ignored during local `$ref` resolution.
+
+Regular expressions in schemas are evaluated with Go's RE2 engine. RE2 guarantees linear-time evaluation and eliminates catastrophic backtracking (ReDoS). Perl and ECMA-262 lookaround assertions (`(?=...)`, `(?!...)`) and backreferences are rejected during schema compilation.
+
+### The `regi-file` format
+
+A string property can specify `"format": "regi-file"` to assert that its value points to an existing companion file in the bundle:
+
+```json
+"documentation": {
+  "type": "string",
+  "format": "regi-file"
+}
+```
+
+When validating this field, `regi` checks that:
+
+- The value is a relative path using forward slashes without leading slashes or `..` segments.
+- The file exists inside the bundle entity directory on disk.
+- The entity is a bundle entity. Using `regi-file` on a flat entity is a validation error because flat entities have no companion files.
+
+In schemas that use `oneOf` or `anyOf`, `regi-file` constraints are enforced only on the branch that successfully validates the manifest.
+
+## Fixed limits
+
+`regi` enforces limits to keep memory consumption and validation time bounded when reading untrusted input:
+
+| Target                  | Limit            | Behavior on breach                   |
+| :---------------------- | :--------------- | :----------------------------------- |
+| Identifier length       | 63 bytes         | Validation error                     |
+| Relative path length    | 1,024 bytes      | Validation error                     |
+| Path component length   | 255 bytes        | Validation error                     |
+| Manifest file size      | 4 MiB            | Validation error                     |
+| Schema file size        | 4 MiB            | Validation error                     |
+| Decoded manifest values | 1,000,000 values | Parser error (alias expansion limit) |
+| Manifest nesting depth  | 64 levels        | Parser error                         |
+| Unpacked archive size   | 16 GiB           | Extraction error                     |

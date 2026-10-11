@@ -1,0 +1,12 @@
+[
+    {
+        "text": "Guide",
+        "link": "/guide/index",
+        "activeMatch": "^/guide/"
+    },
+    {
+        "text": "CLI",
+        "link": "/cli/regi",
+        "activeMatch": "^/cli/"
+    }
+]
