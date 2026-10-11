@@ -32,6 +32,9 @@ go.work.sum
 # .idea/
 # .vscode/
 
+# Temp
+tmp/
+
 # TODO: remove this
 README
 agentd

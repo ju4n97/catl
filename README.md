@@ -14,8 +14,8 @@ Catalogs follow GitOps principles: definitions are maintained in version control
 
 - Validates manifests, schemas, and catalog structure.
 - Pins dependencies and verifies content using cryptographic hashes.
-- Packages and publishes reproducible catalogs to OCI registries.
-- Supports companion files, content-addressed blobs, and offline vendoring.
+- Packages reproducible catalogs into deterministic PAX tar archives.
+- Supports companion files and offline vendoring.
 - Provides a standalone CLI and an embeddable Go library.
 - Requires no daemon or database.
 
