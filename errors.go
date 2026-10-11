@@ -15,9 +15,6 @@ var (
 	// ErrTamperedVendor is returned when the vendor directory content does not match the tree hash.
 	ErrTamperedVendor = errors.New("regi: vendor directory content does not match tree hash")
 
-	// ErrBlobNotCached is returned when a blob is not present in the local cache.
-	ErrBlobNotCached = errors.New("regi: blob is not present in local cache (offline)")
-
 	// ErrRequiresNewer is returned when a configuration requires a newer version of regi.
 	ErrRequiresNewer = errors.New("regi: configuration requires a newer version of regi")
 )
