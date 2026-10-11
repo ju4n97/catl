@@ -5,63 +5,65 @@ description: Installing the static catl binary, container images, and source bui
 
 # Installation
 
-`catl` is distributed as a single static binary with no CGO or libc dependencies. Archive packaging, content tree hashing, and JSON Schema validation are implemented natively in Go without shelling out to `tar`.
+`catl` is distributed as a single static binary with no CGO or libc dependencies.
 
-Prebuilt binaries are available for Linux, macOS, and Windows on x86_64 and arm64.
+Prebuilt binaries are available for Linux, macOS, and Windows on x86_64 and arm64 on the [GitHub releases page](https://github.com/ju4n97/catl/releases).
 
 ## System requirements
 
 - **Core operations:** Zero external runtime dependencies. Commands that operate locally, such as `catl check`, `catl list`, `catl resolve`, `catl pack`, and the Go library API, run hermetically in scratch or distroless containers without external utilities.
 - **Git dependencies (optional):** If you fetch or update remote Git dependencies using `catl add` or `catl update`, the system `git` CLI (2.30+) must be available in your `PATH`. If `git` is missing, only those remote mutation commands fail; offline validation and inspection remain fully functional.
 
-## Shell script (Linux and macOS)
-
-Download the install script pinned to a release tag, verify its SHA-256 digest, and run it:
+## Linux and macOS
 
 ```bash
-VERSION="latest"
-EXPECTED_SHA256="4b227777d4dd1fc61c6f884f48641d02b4d121d3fd328cb08b5531fcacdabf8a"
-
-curl -fsSLO "https://github.com/ju4n97/catl/releases/download/${VERSION}/install.sh"
-echo "${EXPECTED_SHA256} install.sh" | sha256sum -c -
-
-bash install.sh --version "${VERSION}"
-rm install.sh
+curl -fsSL https://catl.dev/install.sh | bash
 ```
-
-````
 
 The script installs the binary to `/usr/local/bin/catl`, or `$HOME/.local/bin/catl` when running without root permissions.
 
-## PowerShell (Windows)
-
-Download and verify the Windows installer:
+## Windows
 
 ```powershell
-$Version = "latest"
-$ExpectedHash = "9f2c1a7b8e4f5a6b7c8d9e0f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b"
-
-Invoke-WebRequest -Uri "https://github.com/ju4n97/catl/releases/download/$Version/install.ps1" -OutFile install.ps1
-$ActualHash = (Get-FileHash install.ps1 -Algorithm SHA256).Hash.ToLower()
-
-if ($ActualHash -ne $ExpectedHash) {
-    Remove-Item install.ps1
-    throw "Checksum mismatch: expected $ExpectedHash, got $ActualHash"
-}
-
-& .\install.ps1 -Version $Version
-Remove-Item install.ps1
+irm https://catl.dev/install.ps1 | iex
 ```
 
-## Go install
+## Verify artifact integrity
 
-If you have Go 1.27+ installed, build and install the binary directly from source:
+Release assets include SHA-256 digests in `checksums.txt`:
+
+```bash
+curl -fsSLO https://github.com/ju4n97/catl/releases/latest/download/checksums.txt
+
+# Linux
+sha256sum --ignore-missing --check checksums.txt
+
+# macOS
+shasum -a 256 --ignore-missing -c checksums.txt
+```
+
+## Build from source
+
+### Build using Go install
+
+Requires Go 1.27+ installed:
 
 ```bash
 go install github.com/ju4n97/catl/cmd/catl@latest
 ```
 
 Ensure `$GOPATH/bin` or `$HOME/go/bin` is present in your `PATH`.
+
+### Build locally from git
+
+Requires [Task](https://taskfile.dev) installed:
+
+```bash
+git clone https://github.com/ju4n97/catl.git
+cd catl
+task build
+# Binary is generated at bin/catl
+```
 
 ## Container image
 
@@ -87,9 +89,58 @@ Check that the binary is installed correctly and verify its reported version:
 catl version
 ```
 
-Output:
+Display CLI command usage:
 
-```text
-catl <version>
+```bash
+catl --help
 ```
-````
+
+## Shell autocompletion
+
+catl supports dynamic completion for subcommands and flags.
+
+### Bash
+
+Add completion to `~/.bashrc`:
+
+```bash
+echo 'complete -o default -C catl catl' >> ~/.bashrc
+source ~/.bashrc
+```
+
+### Zsh
+
+Add the following to `~/.zshrc`:
+
+```zsh
+autoload -Uz +X compinit && compinit
+autoload -Uz +X bashcompinit && bashcompinit
+complete -o default -C catl catl
+```
+
+### Fish
+
+Add the following to `~/.config/fish/completions/catl.fish`:
+
+```fish
+complete -c catl -f -a '(catl --generate-shell-completion (commandline -cop))'
+```
+
+## Man pages
+
+Package manager installations (`.deb`, `.rpm`, `.pkg.tar.zst`) install man pages automatically.
+
+### Manual installation
+
+```bash
+sudo mkdir -p /usr/local/share/man/man1
+sudo curl -fsSL https://raw.githubusercontent.com/ju4n97/catl/main/man/catl.1 \
+  -o /usr/local/share/man/man1/catl.1
+sudo mandb 2>/dev/null || true
+```
+
+View the manual:
+
+```bash
+man catl
+```
