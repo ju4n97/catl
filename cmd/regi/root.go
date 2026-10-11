@@ -62,10 +62,6 @@ func newRootCommand() *cli.Command {
 
 			// Distribution
 			newPackCommand(),
-			newPublishCommand(),
-
-			// Storage
-			newBlobCommand(),
 		},
 	}
 }
