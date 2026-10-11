@@ -2,9 +2,9 @@ blank_issues_enabled: true
 
 contact_links:
   - name: Ideas
-    url: https://github.com/ju4n97/regi/categories/ideas
+    url: https://github.com/ju4n97/catl/categories/ideas
     about: Share ideas and feature suggestions.
 
   - name: Questions
-    url: https://github.com/ju4n97/regi/discussions/categories/q-a
+    url: https://github.com/ju4n97/catl/discussions/categories/q-a
     about: Ask questions and get help.

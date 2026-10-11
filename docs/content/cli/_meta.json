@@ -1,7 +1,7 @@
 [
     {
         "type": "file",
-        "name": "regi",
+        "name": "catl",
         "label": "Overview"
     },
     {
@@ -10,18 +10,18 @@
     },
     {
         "type": "file",
-        "name": "regi-init",
-        "label": "regi init"
+        "name": "catl-init",
+        "label": "catl init"
     },
     {
         "type": "file",
-        "name": "regi-check",
-        "label": "regi check"
+        "name": "catl-check",
+        "label": "catl check"
     },
     {
         "type": "file",
-        "name": "regi-clean",
-        "label": "regi clean"
+        "name": "catl-clean",
+        "label": "catl clean"
     },
     {
         "type": "section-header",
@@ -29,18 +29,18 @@
     },
     {
         "type": "file",
-        "name": "regi-list",
-        "label": "regi list"
+        "name": "catl-list",
+        "label": "catl list"
     },
     {
         "type": "file",
-        "name": "regi-resolve",
-        "label": "regi resolve"
+        "name": "catl-resolve",
+        "label": "catl resolve"
     },
     {
         "type": "file",
-        "name": "regi-show",
-        "label": "regi show"
+        "name": "catl-show",
+        "label": "catl show"
     },
     {
         "type": "section-header",
@@ -48,23 +48,23 @@
     },
     {
         "type": "file",
-        "name": "regi-add",
-        "label": "regi add"
+        "name": "catl-add",
+        "label": "catl add"
     },
     {
         "type": "file",
-        "name": "regi-remove",
-        "label": "regi remove"
+        "name": "catl-remove",
+        "label": "catl remove"
     },
     {
         "type": "file",
-        "name": "regi-update",
-        "label": "regi update"
+        "name": "catl-update",
+        "label": "catl update"
     },
     {
         "type": "file",
-        "name": "regi-vendor",
-        "label": "regi vendor"
+        "name": "catl-vendor",
+        "label": "catl vendor"
     },
     {
         "type": "section-header",
@@ -72,7 +72,7 @@
     },
     {
         "type": "file",
-        "name": "regi-pack",
-        "label": "regi pack"
+        "name": "catl-pack",
+        "label": "catl pack"
     }
 ]

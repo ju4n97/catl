@@ -1,25 +1,25 @@
 ---
 title: Embedding in Go
-description: Reading, validating, and reloading catalogs using the github.com/ju4n97/regi Go module.
+description: Reading, validating, and reloading catalogs using the github.com/ju4n97/catl Go module.
 ---
 
 # Embedding in Go
 
-The `regi` Go module provides programmatic read access to catalogs and workspaces. It contains no CGO dependencies, uses no background threads, and executes validation offline.
+The `catl` Go module provides programmatic read access to catalogs and workspaces. It contains no CGO dependencies, uses no background threads, and executes validation offline.
 
-Complete type signatures, interfaces, and methods are maintained in GoDoc. See the [pkg.go.dev reference for github.com/ju4n97/regi](https://pkg.go.dev/github.com/ju4n97/regi) for auto-generated API documentation.
+Complete type signatures, interfaces, and methods are maintained in GoDoc. See the [pkg.go.dev reference for github.com/ju4n97/catl](https://pkg.go.dev/github.com/ju4n97/catl) for auto-generated API documentation.
 
 ```bash
-go get github.com/ju4n97/regi@v0.1.0
+go get github.com/ju4n97/catl@v0.1.0
 ```
 
 ```go
-import "github.com/ju4n97/regi"
+import "github.com/ju4n97/catl"
 ```
 
 ## Opening a catalog
 
-Use `regi.Open` to read and validate a catalog from disk:
+Use `catl.Open` to read and validate a catalog from disk:
 
 ```go
 package main
@@ -29,7 +29,7 @@ import (
     "fmt"
     "log"
 
-    "github.com/ju4n97/regi"
+    "github.com/ju4n97/catl"
 )
 
 type Policy struct {
@@ -40,7 +40,7 @@ type Policy struct {
 func main() {
     ctx := context.Background()
 
-    cat, err := regi.Open(ctx, "./compliance-catalog", regi.Options{
+    cat, err := catl.Open(ctx, "./compliance-catalog", catl.Options{
         Offline: true, // Forbid network calls; read from vendor or cache only
     })
     if err != nil {
@@ -63,13 +63,13 @@ func main() {
 }
 ```
 
-`regi.Open` performs the following steps:
+`catl.Open` performs the following steps:
 
-1. Parses `regi.toml`.
-2. Verifies that `regi.lock` matches the declared dependencies.
-3. If `.regi/vendor` exists, calculates its tree hash and verifies it against the lock.
+1. Parses `catl.toml`.
+2. Verifies that `catl.lock` matches the declared dependencies.
+3. If `.catl/vendor` exists, calculates its tree hash and verifies it against the lock.
 4. Validates all manifests against their respective collection JSON Schemas.
-5. Returns a `*regi.Catalog` instance that is immutable and safe for concurrent use across goroutines.
+5. Returns a `*catl.Catalog` instance that is immutable and safe for concurrent use across goroutines.
 
 ## Reading companion files
 
@@ -84,10 +84,10 @@ import (
     "io/fs"
     "log"
 
-    "github.com/ju4n97/regi"
+    "github.com/ju4n97/catl"
 )
 
-func readRunbook(ctx context.Context, cat *regi.Catalog, qualifiedID string) error {
+func readRunbook(ctx context.Context, cat *catl.Catalog, qualifiedID string) error {
     entity, err := cat.Resolve("monitors", qualifiedID)
     if err != nil {
         return err
@@ -113,7 +113,7 @@ The returned filesystem adheres to standard Go `fs.ValidPath` rules: paths escap
 
 ## Resolving entities in workspaces
 
-When working with a multi-catalog workspace, open the workspace root using `regi.OpenWorkspace` and access member catalogs via `ws.Member(name)`:
+When working with a multi-catalog workspace, open the workspace root using `catl.OpenWorkspace` and access member catalogs via `ws.Member(name)`:
 
 ```go
 package main
@@ -123,13 +123,13 @@ import (
     "fmt"
     "log"
 
-    "github.com/ju4n97/regi"
+    "github.com/ju4n97/catl"
 )
 
 func main() {
     ctx := context.Background()
 
-    ws, err := regi.OpenWorkspace(ctx, "./healthcare-platform", regi.Options{})
+    ws, err := catl.OpenWorkspace(ctx, "./healthcare-platform", catl.Options{})
     if err != nil {
         log.Fatalf("failed to open workspace: %v", err)
     }
@@ -154,7 +154,7 @@ Resolving entities through `ws.Member("name")` guarantees that lookups evaluate 
 
 ## In-memory testing with `OpenFS`
 
-To test applications without touching the local disk, use `regi.OpenFS` with `testing/fstest.MapFS` or Go's standard `embed.FS`:
+To test applications without touching the local disk, use `catl.OpenFS` with `testing/fstest.MapFS` or Go's standard `embed.FS`:
 
 ```go
 package main
@@ -165,7 +165,7 @@ import (
     "io/fs"
     "testing"
 
-    "github.com/ju4n97/regi"
+    "github.com/ju4n97/catl"
 )
 
 //go:embed testdata/catalog/*
@@ -179,7 +179,7 @@ func TestCatalogIntegration(t *testing.T) {
         t.Fatalf("sub fs error: %v", err)
     }
 
-    cat, err := regi.OpenFS(ctx, subFS, regi.Options{})
+    cat, err := catl.OpenFS(ctx, subFS, catl.Options{})
     if err != nil {
         t.Fatalf("OpenFS failed: %v", err)
     }
@@ -207,16 +207,16 @@ import (
     "log"
     "sync/atomic"
 
-    "github.com/ju4n97/regi"
+    "github.com/ju4n97/catl"
 )
 
 type Server struct {
-    catalog atomic.Pointer[regi.Catalog]
+    catalog atomic.Pointer[catl.Catalog]
 }
 
 func (s *Server) Reload(ctx context.Context, dir string) error {
     // Open and validate the new catalog before updating the pointer
-    next, err := regi.Open(ctx, dir, regi.Options{Offline: true})
+    next, err := catl.Open(ctx, dir, catl.Options{Offline: true})
     if err != nil {
         return err // Validation failed; keep the existing catalog active
     }
@@ -226,16 +226,16 @@ func (s *Server) Reload(ctx context.Context, dir string) error {
     return nil
 }
 
-func (s *Server) CurrentCatalog() *regi.Catalog {
+func (s *Server) CurrentCatalog() *catl.Catalog {
     return s.catalog.Load()
 }
 ```
 
 ### Working tree caveat
 
-`regi.Catalog` doesn't snapshot the entire local working tree into memory on startup. File reads via `entity.FS` stream content from disk lazily.
+`catl.Catalog` doesn't snapshot the entire local working tree into memory on startup. File reads via `entity.FS` stream content from disk lazily.
 
-Modifying files on disk while an application reads them produces torn reads. In production environments, run atomic reloads against clean Git checkouts or vendored directories (`.regi/vendor/`).
+Modifying files on disk while an application reads them produces torn reads. In production environments, run atomic reloads against clean Git checkouts or vendored directories (`.catl/vendor/`).
 
 ## Error handling
 
@@ -244,24 +244,24 @@ Inspect failure reasons using standard `errors.Is`:
 ```go
 if err != nil {
     switch {
-    case errors.Is(err, regi.ErrNotFound):
+    case errors.Is(err, catl.ErrNotFound):
         // The entity or namespace doesn't exist
-    case errors.Is(err, regi.ErrNotQualified):
+    case errors.Is(err, catl.ErrNotQualified):
         // The caller passed a bare ID without a namespace
-    case errors.Is(err, regi.ErrLockStale):
-        // regi.lock doesn't match regi.toml; needs 'regi dependency update'
-    case errors.Is(err, regi.ErrTamperedVendor):
-        // Files inside .regi/vendor don't match the tree hash
-    case errors.Is(err, regi.ErrRequiresNewer):
-        // The catalog requires a newer version of the regi library
+    case errors.Is(err, catl.ErrLockStale):
+        // catl.lock doesn't match catl.toml; needs 'catl dependency update'
+    case errors.Is(err, catl.ErrTamperedVendor):
+        // Files inside .catl/vendor don't match the tree hash
+    case errors.Is(err, catl.ErrRequiresNewer):
+        // The catalog requires a newer version of the catl library
     }
 }
 ```
 
-To extract structured line-by-line schema validation failures, inspect `*regi.ValidationError` using `errors.As`:
+To extract structured line-by-line schema validation failures, inspect `*catl.ValidationError` using `errors.As`:
 
 ```go
-var valErr *regi.ValidationError
+var valErr *catl.ValidationError
 if errors.As(err, &valErr) {
     for _, d := range valErr.Diagnostics {
         log.Printf("%s:%d: [%s] %s\n", d.Path, d.Line, d.Pointer, d.Message)

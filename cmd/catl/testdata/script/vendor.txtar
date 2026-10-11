@@ -1,0 +1,29 @@
+# Vendor remote dependencies
+exec catl vendor
+stdout 'vendor shared-infra'
+exists .catl/vendor/shared-infra/catl.toml
+
+# Validate catalog offline using vendored dependencies
+exec catl --offline check
+! stdout .
+! stderr .
+
+-- catl.toml --
+[catalog]
+name = "my-app"
+
+[collections.services]
+
+[dependencies]
+shared-infra = { git = "https://github.com/acme/shared-infra", tag = "v2.0.0" }
+
+-- catl.lock --
+version = 1
+
+[[dependency]]
+requested = "git+https://github.com/acme/shared-infra#tag=v2.0.0"
+resolved = "d6e89a7123bf01c4a0b1e5f7a3c9d2e8b4f60718"
+tree = "sha256:9f2c1a7b8e4f5a6b7c8d9e0f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b"
+
+-- services/api/manifest.yaml --
+title: API Service

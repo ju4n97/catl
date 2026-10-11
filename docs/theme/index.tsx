@@ -3,10 +3,10 @@ import { Layout as BasicLayout } from "@rspress/core/theme-original";
 const Layout = () => (
     <BasicLayout
         afterNavMenu={
-            <div className="regi-nav-actions">
+            <div className="catl-nav-actions">
                 <a
-                    href="/regi/guide/installation"
-                    className="regi-button regi-button--primary"
+                    href="/catl/guide/installation"
+                    className="catl-button catl-button--primary"
                 >
                     Install
                 </a>

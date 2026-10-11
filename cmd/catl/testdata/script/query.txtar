@@ -1,0 +1,56 @@
+# List all entities in tabular format
+exec catl list
+stdout '^flags\tapp-flags\.dark-mode\tflags/dark-mode\.yaml$'
+stdout '^flags\tapp-flags\.new-checkout\tflags/new-checkout/manifest\.yaml$'
+
+# Filter entity listing by collection
+exec catl list flags
+stdout 'app-flags\.dark-mode'
+
+# Output entities as newline-delimited JSON objects
+exec catl list --json
+stdout '\{"collection":"flags","namespace":"app-flags","id":"dark-mode"'
+
+# Output entities with NUL delimiters for shell scripts
+exec catl list -z
+stdout 'flags\tapp-flags\.dark-mode\tflags/dark-mode\.yaml\x00'
+
+# Flag conflict between json and null output
+! exec catl list --json --null
+stderr 'cannot use --json and --null together'
+
+# Reject bare identifier with helpful suggestion
+! exec catl resolve flags dark-mode
+stderr 'catl: "dark-mode" is not a qualified ID \(want namespace\.id\); did you mean "app-flags\.dark-mode"\?'
+
+# Resolve entity manifest path on disk
+exec catl resolve flags app-flags.dark-mode
+stdout 'flags/dark-mode\.yaml'
+
+# Stream flat manifest contents to standard output
+exec catl show flags app-flags.dark-mode
+stdout 'enabled: true'
+stdout 'rollout: 100'
+
+# Stream companion file from bundle entity
+exec catl show flags app-flags.new-checkout notes.md
+stdout '# Experiment Notes'
+stdout 'Targeted staging cohort\.'
+
+-- catl.toml --
+[catalog]
+name = "app-flags"
+
+[collections.flags]
+
+-- flags/dark-mode.yaml --
+enabled: true
+rollout: 100
+
+-- flags/new-checkout/manifest.yaml --
+enabled: false
+rollout: 10
+
+-- flags/new-checkout/notes.md --
+# Experiment Notes
+Targeted staging cohort.

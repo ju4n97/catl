@@ -9,21 +9,21 @@ A workspace groups multiple catalogs that live together in a single repository. 
 
 ```text
 healthcare-platform/
-├── regi.toml              # Workspace root configuration
-├── regi.lock              # Shared lockfile pinning all member dependencies
+├── catl.toml              # Workspace root configuration
+├── catl.lock              # Shared lockfile pinning all member dependencies
 ├── clinical/              # Workspace member: "clinical"
-│   ├── regi.toml          # Catalog configuration
+│   ├── catl.toml          # Catalog configuration
 │   └── protocols/
 └── assistants/            # Workspace member: "assistants"
-    ├── regi.toml          # Catalog configuration
+    ├── catl.toml          # Catalog configuration
     └── agents/
 ```
 
 ## Declaring a workspace
 
-A workspace is declared by placing a `regi.toml` file with a `[workspace]` table at the repository root:
+A workspace is declared by placing a `catl.toml` file with a `[workspace]` table at the repository root:
 
-```toml title="healthcare-platform/regi.toml"
+```toml title="healthcare-platform/catl.toml"
 [workspace]
 members = [
     "assistants",
@@ -35,13 +35,13 @@ The `members` array lists relative directory paths from the workspace root using
 
 A workspace configuration file can't contain `[catalog]`, `[collections]`, or `[dependencies]`. It defines no collections and owns no entities of its own.
 
-Each directory listed under `members` must contain its own `regi.toml` declaring a `[catalog]`. A workspace member can't be a workspace itself. Member catalog names (the `catalog.name` field) must be unique across the workspace.
+Each directory listed under `members` must contain its own `catl.toml` declaring a `[catalog]`. A workspace member can't be a workspace itself. Member catalog names (the `catalog.name` field) must be unique across the workspace.
 
 ## Local path dependencies
 
 Workspace members depend on each other using standard relative path dependencies:
 
-```toml title="healthcare-platform/assistants/regi.toml"
+```toml title="healthcare-platform/assistants/catl.toml"
 [catalog]
 name = "assistants"
 
@@ -60,24 +60,24 @@ Because `$ref` resolution can't escape a catalog root, members can't use `$ref` 
 
 ## Unified locking and discovery
 
-When commands run inside a workspace, `regi` locates the nearest `regi.toml` by climbing upward through parent directories. The upward search stops when it encounters a `.git` directory or the filesystem root.
+When commands run inside a workspace, `catl` locates the nearest `catl.toml` by climbing upward through parent directories. The upward search stops when it encounters a `.git` directory or the filesystem root.
 
-If the climbed search finds a catalog that is listed as a member of an enclosing workspace, commands automatically use the workspace's root `regi.lock`. Workspace members don't maintain individual `regi.lock` files.
+If the climbed search finds a catalog that is listed as a member of an enclosing workspace, commands automatically use the workspace's root `catl.lock`. Workspace members don't maintain individual `catl.lock` files.
 
 ```bash
 # Validates every member in the workspace
 cd healthcare-platform
-regi check
+catl check
 
 # Validates only the "assistants" member using the root lockfile
 cd healthcare-platform/assistants
-regi check
+catl check
 
 # Validates a specific member from anywhere in the workspace
-regi check -m clinical
+catl check -m clinical
 ```
 
-Running `regi update` inside a workspace re-resolves remote dependencies across all members. If two members declare dependencies pointing to the same remote source, they share a single entry in `regi.lock`.
+Running `catl update` inside a workspace re-resolves remote dependencies across all members. If two members declare dependencies pointing to the same remote source, they share a single entry in `catl.lock`.
 
 ## Scoped entity resolution
 
@@ -93,14 +93,14 @@ import (
     "fmt"
     "log"
 
-    "github.com/ju4n97/regi"
+    "github.com/ju4n97/catl"
 )
 
 func main() {
     ctx := context.Background()
 
     // Open the workspace root
-    ws, err := regi.OpenWorkspace(ctx, "./healthcare-platform", regi.Options{})
+    ws, err := catl.OpenWorkspace(ctx, "./healthcare-platform", catl.Options{})
     if err != nil {
         log.Fatalf("failed to open workspace: %v", err)
     }
@@ -127,7 +127,7 @@ func main() {
 }
 ```
 
-The `Workspace` type exposes `Member(name)` to return a `*regi.Catalog`. Entity resolution methods exist on `Catalog`, ensuring lookups evaluate against the specific member's declared dependencies.
+The `Workspace` type exposes `Member(name)` to return a `*catl.Catalog`. Entity resolution methods exist on `Catalog`, ensuring lookups evaluate against the specific member's declared dependencies.
 
 ## Packaging workspace members
 
@@ -136,5 +136,5 @@ Package archives contain exactly one catalog. The workspace itself is never pack
 To pack individual members, pass the `-m` flag:
 
 ```bash
-regi -m clinical pack -o clinical-v1.0.tar
+catl -m clinical pack -o clinical-v1.0.tar
 ```

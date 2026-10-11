@@ -5,7 +5,7 @@ description: The tree hash algorithm, deterministic PAX archives, threat model, 
 
 # Integrity and packaging
 
-`regi` guarantees catalog content integrity through deterministic tree hashing and reproducible tar packaging. A catalog produces identical digests and archive bytes across Linux, macOS, and Windows.
+`catl` guarantees catalog content integrity through deterministic tree hashing and reproducible tar packaging. A catalog produces identical digests and archive bytes across Linux, macOS, and Windows.
 
 ## The tree hash algorithm
 
@@ -16,7 +16,7 @@ The tree hash uniquely identifies the contents of a catalog. It covers all track
 The tree hash algorithm ignores:
 
 - Any file or directory whose path component starts with an ASCII dot (`.`).
-- The root lockfile (`regi.lock`).
+- The root lockfile (`catl.lock`).
 
 ### Algorithm
 
@@ -25,10 +25,10 @@ The tree hash algorithm ignores:
 3. Sort the list of paths in byte-wise lexicographical order (`LC_ALL=C`).
 4. Compute the raw SHA-256 digest of each file's contents, formatted as a 64-character lowercase hexadecimal string.
 5. Format each entry as a single line:
-   ```text
-   <hex-digest>  <path>\n
-   ```
-   _(64 hex characters, two ASCII space characters `0x20`, the relative path, and an ASCII newline `0x0A`)_.
+    ```text
+    <hex-digest>  <path>\n
+    ```
+    _(64 hex characters, two ASCII space characters `0x20`, the relative path, and an ASCII newline `0x0A`)_.
 6. Concatenate all lines in sorted order.
 7. Compute the SHA-256 digest of the combined payload.
 8. Prefix the result with `sha256:` to produce the final tree hash.
@@ -40,7 +40,7 @@ An empty catalog produces `sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b93
 You can verify a catalog's tree hash using standard Unix utilities:
 
 ```bash
-find . -type f -not -path '*/.*' -not -name 'regi.lock' \
+find . -type f -not -path '*/.*' -not -name 'catl.lock' \
   | sed 's|^\./||' \
   | LC_ALL=C sort \
   | while IFS= read -r file; do
@@ -53,10 +53,10 @@ On macOS, substitute `shasum -a 256` for `sha256sum`.
 
 ## Package archive format
 
-Running `regi pack` serializes a catalog into a reproducible, uncompressed POSIX tar archive using standard PAX headers:
+Running `catl pack` serializes a catalog into a reproducible, uncompressed POSIX tar archive using standard PAX headers:
 
 ```bash
-regi pack -o catalog.tar
+catl pack -o catalog.tar
 ```
 
 ## Archive extraction and safety
@@ -73,17 +73,17 @@ When downloading and extracting catalog archives from HTTPS or Git dependencies:
 
 | Threat                                | Defense mechanism                                           | Verification point   |
 | :------------------------------------ | :---------------------------------------------------------- | :------------------- |
-| Upstream Git tag moved                | Computed tree hash differs from `regi.lock`                 | Fetch and validation |
-| Tampered companion file in dependency | Tree hash mismatch against `regi.lock`                      | Fetch and validation |
-| Modified vendored catalog in Git      | `regi.Open()` verifies vendor tree hash against `regi.lock` | Application startup  |
+| Upstream Git tag moved                | Computed tree hash differs from `catl.lock`                 | Fetch and validation |
+| Tampered companion file in dependency | Tree hash mismatch against `catl.lock`                      | Fetch and validation |
+| Modified vendored catalog in Git      | `catl.Open()` verifies vendor tree hash against `catl.lock` | Application startup  |
 | Path traversal escape                 | Paths checked via `fs.ValidPath`; `..` rejected             | Catalog loading      |
 | YAML billion-laughs attack            | Alias expansion capped at 1,000,000 values                  | Manifest parsing     |
 | ReDoS in schema regex                 | RE2 engine guarantees linear-time execution                 | Schema compilation   |
 
 ## Non-goals
 
-`regi` focuses on structural validation, locking, and integrity verification. The following capabilities are explicitly outside its scope:
+`catl` focuses on structural validation, locking, and integrity verification. The following capabilities are explicitly outside its scope:
 
-- **Cryptographic provenance:** `regi` verifies integrity (that downloaded bytes match the recorded tree hash), not authenticity (who signed the bytes). Signature verification with Sigstore or GPG is a separate layer.
-- **Domain interpretation:** `regi` doesn't execute entity definitions, provision cloud infrastructure, or evaluate runtime queries. Consuming applications define how validated data is used.
-- **Snapshot isolation for dirty working trees:** In development, modifying local catalog files while an application reads them via `io/fs.FS` produces torn reads. Use `.regi/vendor` or clean Git checkouts for production stability.
+- **Cryptographic provenance:** `catl` verifies integrity (that downloaded bytes match the recorded tree hash), not authenticity (who signed the bytes). Signature verification with Sigstore or GPG is a separate layer.
+- **Domain interpretation:** `catl` doesn't execute entity definitions, provision cloud infrastructure, or evaluate runtime queries. Consuming applications define how validated data is used.
+- **Snapshot isolation for dirty working trees:** In development, modifying local catalog files while an application reads them via `io/fs.FS` produces torn reads. Use `.catl/vendor` or clean Git checkouts for production stability.

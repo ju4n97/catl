@@ -141,7 +141,7 @@ formatters:
 
   settings:
     gofumpt:
-      module-path: github.com/ju4n97/regi
+      module-path: github.com/ju4n97/catl
       extra:
         group-params: true
 
@@ -149,7 +149,7 @@ formatters:
       sections:
         - standard
         - default
-        - prefix(github.com/ju4n97/regi)
+        - prefix(github.com/ju4n97/catl)
       custom-order: true
 
     golines:

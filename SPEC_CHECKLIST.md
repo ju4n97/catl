@@ -2,7 +2,7 @@
 
 ## 1. Catalog & Directory Layout
 
-- [ ] Catalog root belongs exclusively to regi; stray non-dot files fail validation (clean checkout rule).
+- [ ] Catalog root belongs exclusively to catl; stray non-dot files fail validation (clean checkout rule).
 - [ ] Any path starting with an ASCII dot (`.`) is ignored by scanners, tree hashing, and packaging.
 - [ ] Symbolic links anywhere outside dot-paths cause an immediate validation error.
 - [ ] Path names with ASCII control characters (`\x00`–`\x1F`, `\x7F`) or backslashes (`\`) are rejected globally.
@@ -13,11 +13,11 @@
 - [ ] Bundle entity is a directory `<id>/` containing exactly one `manifest.yaml` or `manifest.json`.
 - [ ] An identifier cannot coexist as both a flat file and a bundle directory in the same collection.
 
-## 2. Configuration (`regi.toml`)
+## 2. Configuration (`catl.toml`)
 
 - [ ] File must be valid UTF-8 without Byte Order Mark (BOM).
 - [ ] File contains either `[catalog]` or `[workspace]`, never both.
-- [ ] Unknown keys at any level trigger an error indicating a newer regi version is required.
+- [ ] Unknown keys at any level trigger an error indicating a newer catl version is required.
 - [ ] `[catalog].name` must strictly match identifier grammar `^[a-z0-9]+(-[a-z0-9]+)*$` (max 63 bytes).
 - [ ] Catalog must declare at least one collection under `[collections.<name>]`.
 - [ ] Collection `schema` path is optional; if omitted, collection runs in permissive mode.
@@ -37,59 +37,59 @@
 - [ ] Duplicate YAML and JSON keys are rejected.
 - [ ] YAML merge keys (`<<`) and custom tags are rejected.
 - [ ] Multi-document YAML streams (`---`) are rejected.
-- [ ] `"format": "regi-file"` asserts target file exists inside the bundle entity.
-- [ ] `"format": "regi-file"` declared inside a flat entity manifest causes a validation error.
-- [ ] `"format": "regi-file"` in `oneOf`/`anyOf` is asserted only on the successful matching branch.
+- [ ] `"format": "catl-file"` asserts target file exists inside the bundle entity.
+- [ ] `"format": "catl-file"` declared inside a flat entity manifest causes a validation error.
+- [ ] `"format": "catl-file"` in `oneOf`/`anyOf` is asserted only on the successful matching branch.
 - [ ] Hard resource limits enforced: manifest size (4 MiB), schema size (4 MiB), YAML depth (64), alias expansions (1,000,000 values), path length (1,024 bytes).
 
-## 4. Dependencies & Lockfile (`regi.lock`)
+## 4. Dependencies & Lockfile (`catl.lock`)
 
 - [ ] Supported sources: `git` (tag, branch, rev, subdir), `url` (HTTPS tarball), and `path` (local).
-- [ ] Dependency table key in `regi.toml` must strictly match the upstream `catalog.name` (no aliasing).
+- [ ] Dependency table key in `catl.toml` must strictly match the upstream `catalog.name` (no aliasing).
 - [ ] Git sources peel annotated tags to commits; gitlinks (submodules) are rejected; LFS pointers treated as plain text.
-- [ ] `regi add <source>` records `requested`, `resolved` commit/digest, and `tree` hash in `regi.lock`.
-- [ ] Local `path` dependencies are trusted and never recorded in `regi.lock`.
-- [ ] `regi.lock` is read-only for inspection and validation commands; missing or mismatched pins return `ErrLockStale`.
-- [ ] `regi update` re-resolves dependencies and prunes unreferenced entries.
-- [ ] `regi update` rejects force-moved Git tags unless `--force` is passed.
-- [ ] `regi remove <name>` removes dependency from `regi.toml` and prunes `regi.lock`.
+- [ ] `catl add <source>` records `requested`, `resolved` commit/digest, and `tree` hash in `catl.lock`.
+- [ ] Local `path` dependencies are trusted and never recorded in `catl.lock`.
+- [ ] `catl.lock` is read-only for inspection and validation commands; missing or mismatched pins return `ErrLockStale`.
+- [ ] `catl update` re-resolves dependencies and prunes unreferenced entries.
+- [ ] `catl update` rejects force-moved Git tags unless `--force` is passed.
+- [ ] `catl remove <name>` removes dependency from `catl.toml` and prunes `catl.lock`.
 - [ ] Dependencies are strictly non-transitive.
 
 ## 5. Workspaces
 
 - [ ] `[workspace]` root defines `members` array of relative paths; cannot contain `catalog`, `collections`, or `dependencies`.
 - [ ] Member directories must be valid catalogs; member names must be unique across the workspace.
-- [ ] Workspace members share a single `regi.lock` at the workspace root; members have no individual locks.
-- [ ] Upward lockfile search climbs to nearest `regi.toml` and stops at `.git` or filesystem root.
+- [ ] Workspace members share a single `catl.lock` at the workspace root; members have no individual locks.
+- [ ] Upward lockfile search climbs to nearest `catl.toml` and stops at `.git` or filesystem root.
 - [ ] Members depend on each other via `path = "../sibling"`.
-- [ ] `regi check` from workspace root validates all members.
-- [ ] `regi check -m <name>` validates only the specified member using the workspace lock.
+- [ ] `catl check` from workspace root validates all members.
+- [ ] `catl check -m <name>` validates only the specified member using the workspace lock.
 - [ ] In Go API, `Workspace.Member("name").Resolve()` scopes entity lookups to the member's namespace.
-- [ ] `regi update` at workspace root prunes lock entries only when unreferenced by all members.
+- [ ] `catl update` at workspace root prunes lock entries only when unreferenced by all members.
 
 ## 6. Packaging & Integrity (Tree Hash)
 
-- [ ] Tree hash algorithm excludes root `regi.lock`.
+- [ ] Tree hash algorithm excludes root `catl.lock`.
 - [ ] Tree hash algorithm excludes all dot-prefixed files and directories.
 - [ ] Tree hash algorithm rejects paths with control characters (`\x00`–`\x1F`, `\x7F`) or backslashes (`\`).
 - [ ] Tree hash reproducible with documented shell recipe (`LC_ALL=C sort`).
-- [ ] `regi pack` serializes catalog to deterministic POSIX tar archive with PAX headers.
-- [ ] `regi pack` archive excludes `regi.lock`, dotfiles, local caches, and never injects `index.json`.
-- [ ] `regi pack` sets `uid=0`, `gid=0`, `mtime=0`, mode `0644`, and sorts files lexicographically.
-- [ ] `regi vendor` copies remote dependencies into `.regi/vendor/`.
-- [ ] `regi check` and `regi.Open()` verify `.regi/vendor/` tree hash on startup (`ErrTamperedVendor`).
-- [ ] `regi --offline check` validates successfully using `.regi/vendor/` with network disabled.
+- [ ] `catl pack` serializes catalog to deterministic POSIX tar archive with PAX headers.
+- [ ] `catl pack` archive excludes `catl.lock`, dotfiles, local caches, and never injects `index.json`.
+- [ ] `catl pack` sets `uid=0`, `gid=0`, `mtime=0`, mode `0644`, and sorts files lexicographically.
+- [ ] `catl vendor` copies remote dependencies into `.catl/vendor/`.
+- [ ] `catl check` and `catl.Open()` verify `.catl/vendor/` tree hash on startup (`ErrTamperedVendor`).
+- [ ] `catl --offline check` validates successfully using `.catl/vendor/` with network disabled.
 
 ## 7. CLI & Operational Behavior
 
 - [ ] Exit codes: `0` (success), `1` (catalog/validation error), `2` (usage error), `3` (transient network error).
-- [ ] `regi check` is completely silent on success and exits 0 (Unix rule of silence).
+- [ ] `catl check` is completely silent on success and exits 0 (Unix rule of silence).
 - [ ] Diagnostics on failure emit in deterministic order: path, line number, JSON Pointer, message.
-- [ ] `regi list` outputs tab-separated columns (`COLLECTION  QUALIFIED-ID  PATH`).
-- [ ] `regi list` supports `--json` (newline-delimited JSON) and `-z` (NUL-delimited records).
-- [ ] `regi list` flags `--json` and `--null` are mutually exclusive.
-- [ ] `regi resolve` with bare ID exits 1 with candidate qualified ID suggestion.
-- [ ] `regi show` streams verified manifest or companion file to stdout.
-- [ ] `regi clean` purges local cache directory, strictly preserving `.regi/vendor/`.
+- [ ] `catl list` outputs tab-separated columns (`COLLECTION  QUALIFIED-ID  PATH`).
+- [ ] `catl list` supports `--json` (newline-delimited JSON) and `-z` (NUL-delimited records).
+- [ ] `catl list` flags `--json` and `--null` are mutually exclusive.
+- [ ] `catl resolve` with bare ID exits 1 with candidate qualified ID suggestion.
+- [ ] `catl show` streams verified manifest or companion file to stdout.
+- [ ] `catl clean` purges local cache directory, strictly preserving `.catl/vendor/`.
 - [ ] Cache writes are atomic (temporary file + rename) and read-only (`0444`).
 - [ ] Standard streams honored: data to stdout, diagnostics to stderr.

@@ -1,10 +1,10 @@
 ---
 pageType: home
-title: regi
+title: catl
 description: A tool for validating, managing, and reading declarative catalogs.
 
 hero:
-    name: regi
+    name: catl
     text: Catalogs of declarative data
     tagline: A standalone CLI and Go library for parsing manifests, validating schemas, resolving dependencies, and verifying catalog contents.
     actions:
@@ -22,7 +22,7 @@ features:
       link: /guide/spec/layout-and-manifests
 
     - title: Dependency locking
-      details: Declare dependencies in regi.toml. Record resolved revisions and SHA-256 tree hashes in regi.lock.
+      details: Declare dependencies in catl.toml. Record resolved revisions and SHA-256 tree hashes in catl.lock.
       icon: 🔗
       link: /guide/spec/dependencies
 
@@ -42,7 +42,7 @@ features:
       link: /guide/spec/layout-and-manifests
 
     - title: CLI and Go API
-      details: Use the standalone binary or embed regi in a Go application. Both use the same parsing and validation rules.
+      details: Use the standalone binary or embed catl in a Go application. Both use the same parsing and validation rules.
       icon: 🛠️
       link: /guide/reference/embedding
 ---

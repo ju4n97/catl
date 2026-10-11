@@ -1,11 +1,11 @@
 ---
 title: Glossary
-description: Definitions of core regi terms, containment hierarchy, and domain vocabulary.
+description: Definitions of core catl terms, containment hierarchy, and domain vocabulary.
 ---
 
 # Glossary
 
-This page defines the vocabulary used across `regi` commands, configuration files, specifications, and error messages.
+This page defines the vocabulary used across `catl` commands, configuration files, specifications, and error messages.
 
 ## Containment hierarchy
 
@@ -23,19 +23,19 @@ workspace
 
 ### Workspace
 
-A directory whose root `regi.toml` contains a `[workspace]` table. A workspace groups multiple catalog directories (members) in a single repository so they share a single root `regi.lock` file and can reference each other via local relative paths. A workspace doesn't define collections or own entities directly.
+A directory whose root `catl.toml` contains a `[workspace]` table. A workspace groups multiple catalog directories (members) in a single repository so they share a single root `catl.lock` file and can reference each other via local relative paths. A workspace doesn't define collections or own entities directly.
 
 ### Catalog
 
-A directory whose root `regi.toml` contains a `[catalog]` table. A catalog defines a primary namespace (`catalog.name`), declares one or more collections, and may declare external dependencies. It is the fundamental unit of validation, packaging, and publishing.
+A directory whose root `catl.toml` contains a `[catalog]` table. A catalog defines a primary namespace (`catalog.name`), declares one or more collections, and may declare external dependencies. It is the fundamental unit of validation, packaging, and publishing.
 
 ### Member
 
-A catalog directory listed in a workspace's `members` array. A member catalog operates as an independent namespace within the workspace, but delegates remote dependency pinning to the workspace's root `regi.lock`.
+A catalog directory listed in a workspace's `members` array. A member catalog operates as an independent namespace within the workspace, but delegates remote dependency pinning to the workspace's root `catl.lock`.
 
 ### Collection
 
-A named grouping of entities within a catalog, declared under `[collections.<name>]` in `regi.toml`. All entities in a collection are validated against the same JSON Schema file.
+A named grouping of entities within a catalog, declared under `[collections.<name>]` in `catl.toml`. All entities in a collection are validated against the same JSON Schema file.
 
 ### Entity
 
@@ -59,24 +59,24 @@ Any file inside a bundle entity directory that is not the primary manifest (for 
 
 ### Dependency
 
-An external catalog declared under `[dependencies]` in `regi.toml` and pinned in `regi.lock`. Dependencies can originate from Git repositories, HTTPS tarballs, or local filesystem paths. Dependencies are strictly non-transitive.
+An external catalog declared under `[dependencies]` in `catl.toml` and pinned in `catl.lock`. Dependencies can originate from Git repositories, HTTPS tarballs, or local filesystem paths. Dependencies are strictly non-transitive.
 
 ### Namespace
 
-The prefix used to address an entity. For local entities, the namespace is the owning catalog's `catalog.name`. For dependency entities, the namespace is the dependency key declared in `regi.toml` (which must match the upstream catalog's `name`).
+The prefix used to address an entity. For local entities, the namespace is the owning catalog's `catalog.name`. For dependency entities, the namespace is the dependency key declared in `catl.toml` (which must match the upstream catalog's `name`).
 
 ### Qualified ID
 
-The canonical identifier for an entity, written as `namespace.id`. `regi` requires qualified IDs for lookups to prevent ambiguity. Qualified IDs are unique within a collection.
+The canonical identifier for an entity, written as `namespace.id`. `catl` requires qualified IDs for lookups to prevent ambiguity. Qualified IDs are unique within a collection.
 
 ### Tree hash
 
-A deterministic SHA-256 hash identifying the complete content of a catalog. It hashes the sorted relative paths and file digests of all non-dot regular files in the tree, excluding root `regi.lock` files. Pinned in `regi.lock` to verify that downloaded dependencies have not been tampered with.
+A deterministic SHA-256 hash identifying the complete content of a catalog. It hashes the sorted relative paths and file digests of all non-dot regular files in the tree, excluding root `catl.lock` files. Pinned in `catl.lock` to verify that downloaded dependencies have not been tampered with.
 
-### Lockfile (`regi.lock`)
+### Lockfile (`catl.lock`)
 
-A TOML file at the root of a catalog or workspace that records immutable pins (`resolved` commits or digests) and `tree` hashes for all remote dependencies. It is written only by `regi dependency add` and `regi dependency update`.
+A TOML file at the root of a catalog or workspace that records immutable pins (`resolved` commits or digests) and `tree` hashes for all remote dependencies. It is written only by `catl dependency add` and `catl dependency update`.
 
-### Vendor directory (`.regi/vendor`)
+### Vendor directory (`.catl/vendor`)
 
-A local directory where dependencies are copied using `regi vendor` to allow completely offline execution in air-gapped environments or CI pipelines.
+A local directory where dependencies are copied using `catl vendor` to allow completely offline execution in air-gapped environments or CI pipelines.

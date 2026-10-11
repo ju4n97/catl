@@ -1,10 +1,10 @@
-# regi
+# catl
 
-[![Go Reference](https://img.shields.io/badge/Go_Reference-pkg.go.dev-007D9C?style=flat-square&logo=go&logoColor=white)](https://pkg.go.dev/github.com/ju4n97/regi)
-[![Release](https://img.shields.io/github/v/release/ju4n97/regi?style=flat-square&color=FFB000&labelColor=1A1A1A)](https://github.com/ju4n97/regi/releases)
-[![CI](https://img.shields.io/github/actions/workflow/status/ju4n97/regi/ci.yaml?style=flat-square&label=CI&labelColor=1A1A1A)](https://github.com/ju4n97/regi/actions/workflows/ci.yaml)
+[![Go Reference](https://img.shields.io/badge/Go_Reference-pkg.go.dev-007D9C?style=flat-square&logo=go&logoColor=white)](https://pkg.go.dev/github.com/ju4n97/catl)
+[![Release](https://img.shields.io/github/v/release/ju4n97/catl?style=flat-square&color=FFB000&labelColor=1A1A1A)](https://github.com/ju4n97/catl/releases)
+[![CI](https://img.shields.io/github/actions/workflow/status/ju4n97/catl/ci.yaml?style=flat-square&label=CI&labelColor=1A1A1A)](https://github.com/ju4n97/catl/actions/workflows/ci.yaml)
 
-`regi` is a package manager for declarative data. It's like `cargo` or `go mod`, but for directories of structured files instead of source code. It validates YAML and JSON manifests against JSON Schema, pins remote dependencies with cryptographic tree hashes, and gives you verified, offline access to catalog contents through a CLI or an embeddable Go library.
+`catl` is a package manager for declarative data. It's like `cargo` or `go mod`, but for directories of structured files instead of source code. It validates YAML and JSON manifests against JSON Schema, pins remote dependencies with cryptographic tree hashes, and gives you verified, offline access to catalog contents through a CLI or an embeddable Go library.
 
 It is a lightweight substrate for anything built on declarative data, such as AI agent runtimes, feature flag evaluators, headless CMSs, and policy engines, so you don't have to reinvent validation, locking, and integrity for every project.
 
@@ -19,11 +19,11 @@ It is a lightweight substrate for anything built on declarative data, such as AI
 
 ## Quick start
 
-A catalog is a directory containing a `regi.toml`, JSON schemas, and collections of manifests:
+A catalog is a directory containing a `catl.toml`, JSON schemas, and collections of manifests:
 
 ```text
 catalog/
-├── regi.toml                 # Name, collections, dependencies
+├── catl.toml                 # Name, collections, dependencies
 ├── schemas/
 │   └── service.json          # JSON Schema Draft 2020-12
 └── services/
@@ -36,10 +36,10 @@ catalog/
 ### Validate and query from the CLI
 
 ```bash
-regi check                                      # Validate (silent on success)
-regi list                                       # List entities
-regi resolve services platform.billing          # Print manifest path
-regi show services platform.billing runbook.md  # Stream a companion file
+catl check                                      # Validate (silent on success)
+catl list                                       # List entities
+catl resolve services platform.billing          # Print manifest path
+catl show services platform.billing runbook.md  # Stream a companion file
 ```
 
 ### Read verified data in Go
@@ -53,7 +53,7 @@ import (
     "io/fs"
     "log"
 
-    "github.com/ju4n97/regi"
+    "github.com/ju4n97/catl"
 )
 
 type Service struct {
@@ -64,7 +64,7 @@ type Service struct {
 func main() {
     ctx := context.Background()
 
-    cat, err := regi.Open(ctx, "./catalog", regi.Options{})
+    cat, err := catl.Open(ctx, "./catalog", catl.Options{})
     if err != nil {
         log.Fatal(err)
     }
@@ -91,7 +91,7 @@ func main() {
 
 ## Documentation
 
-<https://ju4n97.github.io/regi/>
+<https://ju4n97.github.io/catl/>
 
 ## Examples
 

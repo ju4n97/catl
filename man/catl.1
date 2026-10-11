@@ -1,0 +1,214 @@
+.nh
+.TH catl 8
+
+.SH NAME
+.PP
+catl - Package manager and validator for declarative entity catalogs
+
+
+.SH SYNOPSIS
+.PP
+catl
+
+.PP
+.RS
+
+.nf
+[--cwd|-C]=[value]
+[--member|-m]=[value]
+[--offline]
+[--quiet|-q]
+[--verbose|-v]
+
+.fi
+.RE
+
+.PP
+\fBUsage\fP:
+
+.PP
+.RS
+
+.nf
+catl [flags] <command> [args...]
+
+.fi
+.RE
+
+
+.SH GLOBAL OPTIONS
+.PP
+\fB--cwd, -C\fP="": Change working directory before executing
+
+.PP
+\fB--member, -m\fP="": Target a specific workspace member (can be repeated)
+
+.PP
+\fB--offline\fP: Disable all network calls and fail if dependencies are not cached
+
+.PP
+\fB--quiet, -q\fP: Suppress informational output and emit only errors
+
+.PP
+\fB--verbose, -v\fP: Print detailed diagnostics and progress to stderr
+
+
+.SH COMMANDS
+.SH init
+.PP
+Initialize a new catalog or workspace
+
+.PP
+.RS
+
+.PP
+catl init [flags] [dir]
+
+.RE
+
+.PP
+\fB--collection\fP="": Name of the initial collection to create (default: "items")
+
+.PP
+\fB--name\fP="": Catalog namespace (defaults to directory base name)
+
+.PP
+\fB--workspace\fP: Initialize a workspace root instead of a catalog
+
+.SH check, c, validate
+.PP
+Validate schemas, paths, and lockfile integrity
+
+.PP
+.RS
+
+.PP
+catl check [flags]
+
+.RE
+
+.SH clean
+.PP
+Clear local download and build cache
+
+.PP
+.RS
+
+.PP
+catl clean
+
+.RE
+
+.SH list, ls
+.PP
+List entities across collections
+
+.PP
+.RS
+
+.PP
+catl list [flags] [collection]
+
+.RE
+
+.PP
+\fB--all, -a\fP: Include entities imported from declared dependencies
+
+.PP
+\fB--json\fP: Output entities as newline-delimited JSON objects
+
+.PP
+\fB--null, -z\fP: Delimit records with ASCII NUL characters for scripts
+
+.SH resolve
+.PP
+Print the filesystem path of a manifest
+
+.PP
+.RS
+
+.PP
+catl resolve  
+
+.RE
+
+.SH show
+.PP
+Stream a manifest or companion file to stdout
+
+.PP
+.RS
+
+.PP
+catl show   [path]
+
+.RE
+
+.SH add
+.PP
+Add a remote dependency to catl.toml and lock it
+
+.PP
+.RS
+
+.PP
+catl add 
+
+.RE
+
+.SH remove, rm
+.PP
+Remove a dependency from catl.toml and lockfile
+
+.PP
+.RS
+
+.PP
+catl remove 
+
+.RE
+
+.SH update
+.PP
+Update dependencies in catl.lock to latest revisions
+
+.PP
+.RS
+
+.PP
+catl update [flags] [name...]
+
+.RE
+
+.PP
+\fB--force\fP: Allow updating when a remote tag has moved to a new commit
+
+.SH vendor
+.PP
+Vendor dependencies into .catl/vendor for offline use
+
+.PP
+.RS
+
+.PP
+catl vendor [flags]
+
+.RE
+
+.PP
+\fB--skip-blobs\fP: Skip downloading large blob payloads when vendoring
+
+.SH pack
+.PP
+Build a deterministic PAX tar archive of the catalog
+
+.PP
+.RS
+
+.PP
+catl pack [flags]
+
+.RE
+
+.PP
+\fB--output, -o\fP="": Write tar archive to file instead of stdout

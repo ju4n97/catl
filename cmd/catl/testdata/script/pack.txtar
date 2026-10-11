@@ -1,0 +1,46 @@
+# Build deterministic tar archive
+exec catl pack -o package.tar
+exists package.tar
+
+# Verify exclusions in unpacked archive
+mkdir -p unpacked
+cd unpacked
+exec tar -xf ../package.tar
+exists catl.toml
+exists schemas/rules.json
+exists rules/auth.yaml
+! exists catl.lock
+! exists index.json
+! exists .catl-index.json
+! exists .gitattributes
+! exists .hidden-draft.yaml
+cd ..
+
+# Verify bit-for-bit packaging determinism
+exec catl pack -o package2.tar
+cmp package.tar package2.tar
+
+-- catl.toml --
+[catalog]
+name = "platform-rules"
+
+[collections.rules]
+schema = "schemas/rules.json"
+
+-- catl.lock --
+version = 1
+
+-- .gitattributes --
+* text=auto eol=lf
+
+-- .hidden-draft.yaml --
+title: Hidden
+
+-- schemas/rules.json --
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object"
+}
+
+-- rules/auth.yaml --
+enabled: true

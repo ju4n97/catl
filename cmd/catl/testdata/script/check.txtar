@@ -1,0 +1,73 @@
+# Valid catalog passes silently with exit code 0
+exec catl check
+! stdout .
+! stderr .
+
+# Flag conflict between include-blobs and offline
+! exec catl check --include-blobs --offline
+stderr 'cannot be used together'
+
+# Schema validation failure on value exceeding bounds
+cp invalid-threshold.yaml rules/rate-limit.yaml
+! exec catl check
+stderr 'rules/rate-limit\.yaml:2: /threshold: 150 is greater than the maximum of 100'
+! stdout .
+
+# Revert to valid manifest
+cp valid-threshold.yaml rules/rate-limit.yaml
+exec catl check
+! stdout .
+! stderr .
+
+# Strict YAML 1.2 parsing rejects unquoted 'no' as boolean
+cp string-boolean.yaml rules/rate-limit.yaml
+! exec catl check
+stderr 'rules/rate-limit\.yaml:1: /enabled: expected boolean, got string'
+! stdout .
+
+# Permissive mode passes when collection declares no schema
+cp catl-no-schema.toml catl.toml
+exec catl check
+! stdout .
+! stderr .
+
+-- catl.toml --
+[catalog]
+name = "platform-rules"
+
+[collections.rules]
+schema = "schemas/rules.json"
+
+-- catl-no-schema.toml --
+[catalog]
+name = "platform-rules"
+
+[collections.rules]
+
+-- schemas/rules.json --
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "required": ["enabled", "threshold"],
+  "properties": {
+    "enabled": { "type": "boolean" },
+    "threshold": { "type": "integer", "maximum": 100 }
+  },
+  "additionalProperties": false
+}
+
+-- rules/rate-limit.yaml --
+enabled: true
+threshold: 50
+
+-- valid-threshold.yaml --
+enabled: true
+threshold: 50
+
+-- invalid-threshold.yaml --
+enabled: true
+threshold: 150
+
+-- string-boolean.yaml --
+enabled: no
+threshold: 50

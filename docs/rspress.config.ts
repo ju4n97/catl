@@ -5,11 +5,11 @@ import pluginKatex from "rspress-plugin-katex";
 
 export default defineConfig({
   root: "content",
-  title: "regi",
+  title: "catl",
   description: "A package manager for declarative entities.",
   lang: "en",
-  logoText: "regi",
-  base: "/regi/",
+  logoText: "catl",
+  base: "/catl/",
   siteOrigin: "https://ju4n97.github.io",
   globalStyles: path.join(__dirname, "theme/index.css"),
   head: [["meta", { name: "theme-color", content: "#d97706" }]],
@@ -29,13 +29,13 @@ export default defineConfig({
     enableScrollToTop: true,
     llmsUI: true,
     editLink: {
-      docRepoBaseUrl: "https://github.com/ju4n97/regi/tree/main/website/docs",
+      docRepoBaseUrl: "https://github.com/ju4n97/catl/tree/main/website/docs",
     },
     socialLinks: [
       {
         icon: "github",
         mode: "link",
-        content: "https://github.com/ju4n97/regi",
+        content: "https://github.com/ju4n97/catl",
       },
     ],
   },

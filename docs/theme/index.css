@@ -219,7 +219,7 @@ h1, h2, h3, h4, h5, h6,
 code, pre, kbd,
 .rp-codeblock, .rp-codeblock *,
 .rp-code-block, .rp-search-button,
-.rp-doc th, .regi-button {
+.rp-doc th, .catl-button {
   font-family: var(--font-mono) !important;
 }
 
@@ -328,14 +328,14 @@ body::after {
   justify-content: flex-start;
 }
 
-.regi-nav-actions {
+.catl-nav-actions {
   display: flex;
   align-items: center;
   gap: 10px;
   margin-left: auto;
 }
 
-.regi-button {
+.catl-button {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -353,26 +353,26 @@ body::after {
   cursor: pointer;
 }
 
-.regi-button--primary {
+.catl-button--primary {
   background: var(--accent);
   border-color: var(--accent);
   color: var(--button-text);
   box-shadow: 0 0 10px var(--brand-tint);
 }
 
-.regi-button--primary:hover {
+.catl-button--primary:hover {
   background: var(--accent-hover);
   border-color: var(--accent-hover);
 }
 
-.regi-button--secondary:hover,
-.regi-button--ghost:hover {
+.catl-button--secondary:hover,
+.catl-button--ghost:hover {
   background: var(--bg-soft);
   border-color: var(--accent);
   color: var(--accent);
 }
 
-.regi-button--ghost {
+.catl-button--ghost {
   border-color: transparent;
   color: var(--text-muted);
 }

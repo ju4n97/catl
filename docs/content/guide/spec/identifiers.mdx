@@ -5,7 +5,7 @@ description: Identifier grammar, catalog namespaces, qualified IDs, and collecti
 
 # Identifiers
 
-Every entity in `regi` is addressed using a qualified identifier that pairs a namespace with an entity ID:
+Every entity in `catl` is addressed using a qualified identifier that pairs a namespace with an entity ID:
 
 ```bash
 namespace.id
@@ -45,18 +45,18 @@ patient..triage # Dots are forbidden
 
 ## Namespaces
 
-A catalog's primary namespace is its `catalog.name` declared in `regi.toml`.
+A catalog's primary namespace is its `catalog.name` declared in `catl.toml`.
 
-```toml title="regi.toml"
+```toml title="catl.toml"
 [catalog]
 name = "clinical"
 ```
 
 All local entities in this catalog belong to the `clinical` namespace.
 
-When a catalog declares dependencies in `regi.toml`, each dependency key defines an external namespace. The key must match the dependency's own `catalog.name`:
+When a catalog declares dependencies in `catl.toml`, each dependency key defines an external namespace. The key must match the dependency's own `catalog.name`:
 
-```toml title="regi.toml"
+```toml title="catl.toml"
 [dependencies]
 shared-infra = { git = "https://github.com/acme/shared-infra", tag = "v1.4.0" }
 ```
@@ -72,16 +72,16 @@ clinical.triage
 shared-infra.postgres
 ```
 
-`regi` doesn't accept bare IDs in commands or API calls. You can't ask `regi` to resolve `triage`; you must specify `clinical.triage`.
+`catl` doesn't accept bare IDs in commands or API calls. You can't ask `catl` to resolve `triage`; you must specify `clinical.triage`.
 
-This rule eliminates ambiguity. The identifier means the same thing regardless of which directory your shell is in or which catalog you have open. If you pass a bare ID to a command, `regi` rejects it with a hint:
+This rule eliminates ambiguity. The identifier means the same thing regardless of which directory your shell is in or which catalog you have open. If you pass a bare ID to a command, `catl` rejects it with a hint:
 
 ```bash
-regi entity resolve protocols triage
+catl entity resolve protocols triage
 ```
 
 ```text
-regi: "triage" is not a qualified ID (want namespace.id); did you mean "clinical.triage"?
+catl: "triage" is not a qualified ID (want namespace.id); did you mean "clinical.triage"?
 ```
 
 ## Collection scoping
@@ -102,8 +102,8 @@ Because of this, lookups in both the CLI and the Go API require both the collect
 
 ```bash
 # In the CLI
-regi resolve protocols clinical.heart-rate
-regi resolve monitors clinical.heart-rate
+catl resolve protocols clinical.heart-rate
+catl resolve monitors clinical.heart-rate
 ```
 
 ```go

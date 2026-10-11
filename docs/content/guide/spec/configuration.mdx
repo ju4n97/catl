@@ -1,16 +1,16 @@
 ---
 title: Configuration
-description: Syntax and table specification for regi.toml in catalogs and workspaces.
+description: Syntax and table specification for catl.toml in catalogs and workspaces.
 ---
 
 # Configuration
 
-Every catalog or workspace has a `regi.toml` file at its root. The file is written in TOML and must be UTF-8 encoded without a Byte Order Mark (BOM).
+Every catalog or workspace has a `catl.toml` file at its root. The file is written in TOML and must be UTF-8 encoded without a Byte Order Mark (BOM).
 
-A `regi.toml` file defines either a catalog or a workspace. A single file can't contain both `[catalog]` and `[workspace]`.
+A `catl.toml` file defines either a catalog or a workspace. A single file can't contain both `[catalog]` and `[workspace]`.
 
-```toml title="regi.toml"
-#:schema https://ju4n97.github.io/regi/schema/v1/regi.schema.json
+```toml title="catl.toml"
+#:schema https://ju4n97.github.io/catl/schema/v1/catl.schema.json
 
 [catalog]
 name = "clinical"
@@ -28,10 +28,10 @@ shared-infra = { git = "https://github.com/acme/shared-infra", tag = "v2.0.0" }
 
 ## Unknown keys and versioning
 
-Unknown keys at any level in `regi.toml` are treated as errors. If an older `regi` binary encounters a configuration file written for a newer version with new fields or tables, it rejects the unknown keys and reports that a newer version of `regi` is required:
+Unknown keys at any level in `catl.toml` are treated as errors. If an older `catl` binary encounters a configuration file written for a newer version with new fields or tables, it rejects the unknown keys and reports that a newer version of `catl` is required:
 
 ```text
-regi.toml: unknown key "feature_flag" (requires newer regi version)
+catl.toml: unknown key "feature_flag" (requires newer catl version)
 ```
 
 ```toml
@@ -40,7 +40,7 @@ name = "clinical"
 ```
 
 ```text
-regi.toml: requires regi 0.2 or later (running 0.1.0)
+catl.toml: requires catl 0.2 or later (running 0.1.0)
 ```
 
 ## The `[catalog]` table
@@ -50,7 +50,7 @@ The `[catalog]` table marks the directory as an individual catalog:
 | Key            | Type   | Required | Description                                                           |
 | :------------- | :----- | :------: | :-------------------------------------------------------------------- |
 | `name`         | string |   Yes    | The catalog's namespace. Must match the identifier grammar.           |
-| `regi-version` | string |    No    | Minimum tool version required (`MAJOR.MINOR` or `MAJOR.MINOR.PATCH`). |
+| `catl-version` | string |    No    | Minimum tool version required (`MAJOR.MINOR` or `MAJOR.MINOR.PATCH`). |
 
 ## The `[collections.<name>]` table
 
@@ -73,8 +73,8 @@ schema = "schemas/protocols.json"
 
 Declaring a `schema` is optional:
 
-- **With a schema:** Manifests are strictly validated against JSON Schema Draft 2020-12, and fields annotated with `"format": "regi-file"` are verified against companion files on disk.
-- **Without a schema:** `regi` uses an empty permissive schema (`{}`). Manifests are validated for valid YAML 1.2 or JSON syntax, unique keys, and layout invariants, but no field-level checks occur. Companion files are still tracked by the tree hash, but field-level `regi-file` verification doesn't run.
+- **With a schema:** Manifests are strictly validated against JSON Schema Draft 2020-12, and fields annotated with `"format": "catl-file"` are verified against companion files on disk.
+- **Without a schema:** `catl` uses an empty permissive schema (`{}`). Manifests are validated for valid YAML 1.2 or JSON syntax, unique keys, and layout invariants, but no field-level checks occur. Companion files are still tracked by the tree hash, but field-level `catl-file` verification doesn't run.
 
 ### Path rules for collections
 
@@ -105,7 +105,7 @@ The key must match the `catalog.name` of the target catalog. See [Dependencies](
 
 A workspace groups multiple catalogs in one repository so they share a single lockfile and can depend on each other via local paths:
 
-```toml title="regi.toml"
+```toml title="catl.toml"
 [workspace]
 members = ["clinical", "assistants"]
 ```
@@ -113,6 +113,6 @@ members = ["clinical", "assistants"]
 | Key            | Type             | Required | Description                                                           |
 | :------------- | :--------------- | :------: | :-------------------------------------------------------------------- |
 | `members`      | array of strings |   Yes    | Array of relative member directory paths, sorted, with no duplicates. |
-| `regi-version` | string           |    No    | Minimum tool version required.                                        |
+| `catl-version` | string           |    No    | Minimum tool version required.                                        |
 
-A workspace `regi.toml` can't contain `[catalog]`, `[collections]`, or `[dependencies]`. Member catalogs declare their own collections in their respective `regi.toml` files. See [Workspaces](./workspaces.mdx) for full workspace rules.
+A workspace `catl.toml` can't contain `[catalog]`, `[collections]`, or `[dependencies]`. Member catalogs declare their own collections in their respective `catl.toml` files. See [Workspaces](./workspaces.mdx) for full workspace rules.

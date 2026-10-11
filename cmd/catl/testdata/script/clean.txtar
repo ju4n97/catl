@@ -1,0 +1,23 @@
+# Populate cache directory with dummy entries
+mkdir -p $CATL_CACHE_DIR/git/acme-infra
+mkdir -p $CATL_CACHE_DIR/blobs/sha256
+cp dummy.txt $CATL_CACHE_DIR/blobs/sha256/4b227777d4dd1fc61c6f884f48641d02b4d121d3fd328cb08b5531fcacdabf8a
+
+# Populate local catalog with vendored dependencies
+mkdir -p my-catalog/.catl/vendor/shared-infra
+cp dummy.txt my-catalog/.catl/vendor/shared-infra/manifest.yaml
+
+# Purge cache
+exec catl clean
+! stdout .
+! stderr .
+
+# Cache must be completely removed
+! exists $CATL_CACHE_DIR/git/acme-infra
+! exists $CATL_CACHE_DIR/blobs/sha256/4b227777d4dd1fc61c6f884f48641d02b4d121d3fd328cb08b5531fcacdabf8a
+
+# Local vendored directory must remain untouched
+exists my-catalog/.catl/vendor/shared-infra/manifest.yaml
+
+-- dummy.txt --
+test-data
