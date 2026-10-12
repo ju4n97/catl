@@ -3,18 +3,18 @@ package catl
 import "errors"
 
 var (
-	// ErrNotQualified is returned when an identifier is not qualified.
+	// ErrNotQualified is returned when an identifier does not contain a namespace prefix.
 	ErrNotQualified = errors.New("catl: identifier is not qualified (want namespace.id)")
 
-	// ErrNotFound is returned when an entity or namespace is not found.
+	// ErrNotFound is returned when a requested entity, collection, or namespace does not exist.
 	ErrNotFound = errors.New("catl: entity or namespace not found")
 
-	// ErrLockStale is returned when the lock file is out of date.
+	// ErrLockStale indicates that catl.lock does not match declared dependencies in catl.toml.
 	ErrLockStale = errors.New("catl: catl.lock is out of date; run 'catl update'")
 
-	// ErrTamperedVendor is returned when the vendor directory content does not match the tree hash.
+	// ErrTamperedVendor indicates that content in .catl/vendor does not match the recorded tree hash.
 	ErrTamperedVendor = errors.New("catl: vendor directory content does not match tree hash")
 
-	// ErrRequiresNewer is returned when a configuration requires a newer version of catl.
+	// ErrRequiresNewer indicates that the configuration requires a newer version of the catl tool.
 	ErrRequiresNewer = errors.New("catl: configuration requires a newer version of catl")
 )
