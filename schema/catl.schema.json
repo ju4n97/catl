@@ -38,11 +38,11 @@
         },
         "relpath": {
             "type": "string",
-            "pattern": "^(?!/|\\.|.*\\/\\.)[^\\x00-\\x1F\\x7F\\\\]*[^\\x00-\\x1F\\x7F\\\\/]$"
+            "pattern": "^[^/.](.*[^/])?$"
         },
         "anypath": {
             "type": "string",
-            "pattern": "^(?!/)(?![A-Za-z]:)[^\\x00-\\x1F\\x7F\\\\]+$"
+            "pattern": "^[^/:].*$"
         },
         "catalog": {
             "type": "object",
@@ -70,51 +70,61 @@
             "additionalProperties": { "$ref": "#/$defs/dependency" }
         },
         "dependency": {
+            "type": "object",
+            "properties": {
+                "git": { "$ref": "#/$defs/git-source" },
+                "archive": { "$ref": "#/$defs/archive-source" },
+                "path": { "$ref": "#/$defs/path-source" }
+            },
             "oneOf": [
-                {
-                    "type": "object",
-                    "properties": {
-                        "git": {
-                            "type": "string",
-                            "pattern": "^(https|ssh)://.+"
-                        },
-                        "tag": { "type": "string", "minLength": 1 },
-                        "branch": { "type": "string", "minLength": 1 },
-                        "rev": {
-                            "type": "string",
-                            "pattern": "^[0-9a-f]{40}$"
-                        },
-                        "subdir": { "$ref": "#/$defs/relpath" }
-                    },
-                    "required": ["git"],
-                    "oneOf": [
-                        { "required": ["tag"] },
-                        { "required": ["branch"] },
-                        { "required": ["rev"] }
-                    ],
-                    "additionalProperties": false
+                { "required": ["git"] },
+                { "required": ["archive"] },
+                { "required": ["path"] }
+            ],
+            "additionalProperties": false
+        },
+        "git-source": {
+            "type": "object",
+            "properties": {
+                "repo": {
+                    "type": "string",
+                    "pattern": "^(https|ssh)://.+"
                 },
-                {
-                    "type": "object",
-                    "properties": {
-                        "url": {
-                            "type": "string",
-                            "pattern": "^https://.+"
-                        },
-                        "digest": { "$ref": "#/$defs/digest" }
-                    },
-                    "required": ["url"],
-                    "additionalProperties": false
+                "tag": { "type": "string", "minLength": 1 },
+                "branch": { "type": "string", "minLength": 1 },
+                "rev": {
+                    "type": "string",
+                    "pattern": "^[0-9a-f]{40}$"
                 },
-                {
-                    "type": "object",
-                    "properties": {
-                        "path": { "$ref": "#/$defs/anypath" }
-                    },
-                    "required": ["path"],
-                    "additionalProperties": false
-                }
-            ]
+                "subdir": { "$ref": "#/$defs/relpath" }
+            },
+            "required": ["repo"],
+            "oneOf": [
+                { "required": ["tag"] },
+                { "required": ["branch"] },
+                { "required": ["rev"] }
+            ],
+            "additionalProperties": false
+        },
+        "archive-source": {
+            "type": "object",
+            "properties": {
+                "url": {
+                    "type": "string",
+                    "pattern": "^https://.+"
+                },
+                "digest": { "$ref": "#/$defs/digest" }
+            },
+            "required": ["url"],
+            "additionalProperties": false
+        },
+        "path-source": {
+            "type": "object",
+            "properties": {
+                "dir": { "$ref": "#/$defs/anypath" }
+            },
+            "required": ["dir"],
+            "additionalProperties": false
         },
         "collections": {
             "type": "object",

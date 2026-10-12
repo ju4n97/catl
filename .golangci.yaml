@@ -13,26 +13,27 @@ linters:
   default: none
   enable:
     # Correctness
-    - govet        # Run official Go vet analyzers.
-    - staticcheck  # Advanced static analysis for bugs and performance.
-    - errcheck     # Ensure returned errors are handled.
-    - errorlint    # Enforce Go 1.13+ error wrapping (errors.Is/As, %w).
-    - bodyclose    # Ensure HTTP response bodies are closed.
-    - nilerr       # Catch returning nil when err is non-nil.
+    - govet          # Run official Go vet analyzers.
+    - staticcheck    # Advanced static analysis for bugs and performance.
+    - errcheck       # Ensure returned errors are handled.
+    - gochecksumtype # Enforce type-safety of sum types.
+    - errorlint      # Enforce Go 1.13+ error wrapping (errors.Is/As, %w).
+    - bodyclose      # Ensure HTTP response bodies are closed.
+    - nilerr         # Catch returning nil when err is non-nil.
 
     # Dead code & redundancy
-    - ineffassign  # Detect unused variable assignments.
-    - unused       # Detect unused constants, vars, funcs, and types.
-    - unconvert    # Remove redundant type conversions.
+    - ineffassign    # Detect unused variable assignments.
+    - unused         # Detect unused constants, vars, funcs, and types.
+    - unconvert      # Remove redundant type conversions.
 
     # Code quality
-    - gocritic     # Catch stylistic issues and code smells.
-    - copyloopvar  # Catch loop variable capture bugs.
-    - perfsprint   # Optimize fmt.Sprintf calls into faster string ops.
+    - gocritic       # Catch stylistic issues and code smells.
+    - copyloopvar    # Catch loop variable capture bugs.
+    - perfsprint     # Optimize fmt.Sprintf calls into faster string ops.
 
     # Style & docs
-    - revive       # Fast, idiomatic style and anti-pattern linter.
-    - godot        # Enforce trailing periods on doc comments.
+    - revive         # Fast, idiomatic style and anti-pattern linter.
+    - godot          # Enforce trailing periods on doc comments.
 
   exclusions:
     rules:

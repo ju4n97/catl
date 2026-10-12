@@ -11,5 +11,5 @@ var (
 
 	// ErrRequiresNewer indicates that the configuration contains unrecognized keys
 	// or tables, signaling that a newer version of catl is required.
-	ErrRequiresNewer = errors.New("configuration requires a newer version of catl")
+	ErrRequiresNewer = errors.New("catl.toml requires a newer version of catl")
 )

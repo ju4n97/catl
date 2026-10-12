@@ -1,0 +1,64 @@
+package config
+
+import (
+	"bytes"
+	"errors"
+	"fmt"
+	"os"
+
+	"github.com/pelletier/go-toml/v2"
+)
+
+var utf8BOM = []byte("\xef\xbb\xbf")
+
+// LoadFile reads a catl.toml file from disk and parses its contents.
+func LoadFile(path string) (*File, error) {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return nil, fmt.Errorf("read config file: %w", err)
+	}
+	return Parse(data)
+}
+
+// Parse decodes raw TOML configuration bytes. It checks for a UTF-8 BOM, validates
+// with strict field checking, executes JSON Schema validation, and runs relational
+// Go validations.
+func Parse(data []byte) (*File, error) {
+	if bytes.HasPrefix(data, utf8BOM) {
+		return nil, errors.New("catl.toml: UTF-8 BOM is forbidden")
+	}
+
+	var file File
+	dec := toml.NewDecoder(bytes.NewReader(data))
+	dec.DisallowUnknownFields()
+
+	if err := dec.Decode(&file); err != nil {
+		var strictErr *toml.StrictMissingError
+		if errors.As(err, &strictErr) {
+			return nil, fmt.Errorf("%w: %s", ErrRequiresNewer, strictErr.String())
+		}
+		return nil, fmt.Errorf("decode catl.toml: %w", err)
+	}
+
+	var generic any
+	if err := toml.Unmarshal(data, &generic); err != nil {
+		return nil, fmt.Errorf("parse toml: %w", err)
+	}
+	if err := ValidateSchema(generic); err != nil {
+		return nil, err
+	}
+
+	if err := file.Validate(); err != nil {
+		return nil, err
+	}
+
+	return &file, nil
+}
+
+// Marshal serializes the configuration file into formatted TOML bytes.
+func (f *File) Marshal() ([]byte, error) {
+	if err := f.Validate(); err != nil {
+		return nil, fmt.Errorf("validate config before marshaling: %w", err)
+	}
+	return toml.Marshal(f)
+}
