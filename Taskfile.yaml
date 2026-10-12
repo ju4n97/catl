@@ -73,6 +73,10 @@ tasks:
     desc: Format documentation Markdown files
     cmd: bunx prettier@latest --write docs/content
 
+  fix:
+    desc: Apply Go fixes to all packages
+    cmd: go fix ./...
+
   gen:
     desc: Run all generators
     cmds:

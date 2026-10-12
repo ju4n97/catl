@@ -33,8 +33,7 @@ func Parse(data []byte) (*File, error) {
 	dec.DisallowUnknownFields()
 
 	if err := dec.Decode(&file); err != nil {
-		var strictErr *toml.StrictMissingError
-		if errors.As(err, &strictErr) {
+		if strictErr, ok := errors.AsType[*toml.StrictMissingError](err); ok {
 			return nil, fmt.Errorf("%w: %s", ErrRequiresNewer, strictErr.String())
 		}
 		return nil, fmt.Errorf("decode catl.toml: %w", err)

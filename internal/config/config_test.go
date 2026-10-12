@@ -6,8 +6,8 @@ import (
 	"github.com/ju4n97/catl/internal/config"
 )
 
-// TestDependencySource verifies pointer-union discrimination and validation
-// across GitSource, ArchiveSource, and PathSource.
+// TestDependencySource verifies that Source properly discriminates between flat dependency
+// fields and returns the expected validated concrete variant.
 func TestDependencySource(t *testing.T) {
 	t.Parallel()
 
@@ -20,62 +20,110 @@ func TestDependencySource(t *testing.T) {
 		{
 			name: "valid git source with tag",
 			dep: config.Dependency{
-				Git: &config.GitSource{Repo: "https://github.com/acme/infra", Tag: "v1.0.0"},
+				Git: "https://github.com/acme/infra",
+				Tag: "v1.0.0",
 			},
 			wantSource: config.GitSource{Repo: "https://github.com/acme/infra", Tag: "v1.0.0"},
 		},
 		{
+			name: "valid git source with branch and subdir",
+			dep: config.Dependency{
+				Git:    "https://github.com/acme/infra",
+				Branch: "main",
+				Subdir: "catalogs/base",
+			},
+			wantSource: config.GitSource{
+				Repo:   "https://github.com/acme/infra",
+				Branch: "main",
+				Subdir: "catalogs/base",
+			},
+		},
+		{
+			name: "valid git source with rev",
+			dep: config.Dependency{
+				Git: "https://github.com/acme/infra",
+				Rev: "d6e89a7123bf01c4a0b1e5f7a3c9d2e8b4f60718",
+			},
+			wantSource: config.GitSource{
+				Repo: "https://github.com/acme/infra",
+				Rev:  "d6e89a7123bf01c4a0b1e5f7a3c9d2e8b4f60718",
+			},
+		},
+		{
 			name: "valid archive source",
 			dep: config.Dependency{
-				Archive: &config.ArchiveSource{URL: "https://cdn.example.com/data.tar.gz", Digest: "sha256:123"},
+				URL:    "https://cdn.example.com/data.tar.gz",
+				Digest: "sha256:123",
 			},
-			wantSource: config.ArchiveSource{URL: "https://cdn.example.com/data.tar.gz", Digest: "sha256:123"},
+			wantSource: config.ArchiveSource{
+				URL:    "https://cdn.example.com/data.tar.gz",
+				Digest: "sha256:123",
+			},
 		},
 		{
 			name: "valid path source",
 			dep: config.Dependency{
-				Path: &config.PathSource{Dir: "../core"},
+				Path: "../core",
 			},
 			wantSource: config.PathSource{Dir: "../core"},
 		},
 		{
-			name:    "empty dependency with no variant set",
+			name:    "empty dependency has no source configured",
 			dep:     config.Dependency{},
 			wantErr: true,
 		},
 		{
-			name: "multiple variants set simultaneously",
+			name: "multiple source types configured simultaneously",
 			dep: config.Dependency{
-				Git:  &config.GitSource{Repo: "https://github.com/acme/infra", Tag: "v1.0.0"},
-				Path: &config.PathSource{Dir: "../core"},
+				Git:  "https://github.com/acme/infra",
+				Tag:  "v1.0.0",
+				Path: "../core",
 			},
 			wantErr: true,
 		},
 		{
-			name: "git missing repo",
+			name: "git missing reference target",
 			dep: config.Dependency{
-				Git: &config.GitSource{Tag: "v1.0.0"},
+				Git: "https://github.com/acme/infra",
 			},
 			wantErr: true,
 		},
 		{
 			name: "git with ambiguous ref targets",
 			dep: config.Dependency{
-				Git: &config.GitSource{Repo: "https://repo", Tag: "v1", Branch: "main"},
+				Git:    "https://github.com/acme/infra",
+				Tag:    "v1.0.0",
+				Branch: "main",
 			},
 			wantErr: true,
 		},
 		{
-			name: "archive with non-https url",
+			name: "git with invalid subdir",
 			dep: config.Dependency{
-				Archive: &config.ArchiveSource{URL: "http://insecure.example.com/data.tar.gz"},
+				Git:    "https://github.com/acme/infra",
+				Tag:    "v1.0.0",
+				Subdir: "../escapes",
+			},
+			wantErr: true,
+		},
+		{
+			name: "archive with insecure http url",
+			dep: config.Dependency{
+				URL: "http://insecure.example.com/archive.tar.gz",
 			},
 			wantErr: true,
 		},
 		{
 			name: "path with absolute directory",
 			dep: config.Dependency{
-				Path: &config.PathSource{Dir: "/absolute/path"},
+				Path: "/absolute/path/not/allowed",
+			},
+			wantErr: true,
+		},
+		{
+			name: "path containing backslashes",
+			dep: config.Dependency{
+				Path: "..\\core",
 			},
 			wantErr: true,
 		},
@@ -97,45 +145,35 @@ func TestDependencySource(t *testing.T) {
 	}
 }
 
-// TestNewDependency verifies helper constructor behavior for programmatic additions.
+// TestNewDependency verifies helper conversion from typed Source variants
+// back into flat Dependency structs for serialization.
 func TestNewDependency(t *testing.T) {
 	t.Parallel()
 
-	git := config.GitSource{Repo: "https://github.com/acme/infra", Tag: "v1.0.0"}
-	dep, err := config.NewDependency(git)
+	gitSrc := config.GitSource{Repo: "https://github.com/acme/infra", Tag: "v1.0.0"}
+	dep, err := config.NewDependency(gitSrc)
 	if err != nil {
 		t.Fatalf("NewDependency(GitSource) error = %v", err)
 	}
-	if dep.Git == nil || *dep.Git != git {
-		t.Errorf("expected wrapped GitSource, got %+v", dep)
+	if dep.Git != gitSrc.Repo || dep.Tag != gitSrc.Tag {
+		t.Errorf("unexpected dependency fields: %+v", dep)
 	}
 
-	path := config.PathSource{Dir: "../core"}
-	dep, err = config.NewDependency(path)
+	archSrc := config.ArchiveSource{URL: "https://cdn.example.com/p.tar.gz", Digest: "sha256:abc"}
+	dep, err = config.NewDependency(archSrc)
+	if err != nil {
+		t.Fatalf("NewDependency(ArchiveSource) error = %v", err)
+	}
+	if dep.URL != archSrc.URL || dep.Digest != archSrc.Digest {
+		t.Errorf("unexpected dependency fields: %+v", dep)
+	}
+
+	pathSrc := config.PathSource{Dir: "../core"}
+	dep, err = config.NewDependency(pathSrc)
 	if err != nil {
 		t.Fatalf("NewDependency(PathSource) error = %v", err)
 	}
-	if dep.Path == nil || *dep.Path != path {
-		t.Errorf("expected wrapped PathSource, got %+v", dep)
-	}
-}
-
-// TestDependencyClone verifies deep copying of dependency pointers.
-func TestDependencyClone(t *testing.T) {
-	t.Parallel()
-
-	orig := config.Dependency{
-		Git: &config.GitSource{Repo: "https://github.com/acme/infra", Tag: "v1.0.0"},
-	}
-
-	clone := orig.Clone()
-	if clone.Git == nil || clone.Git == orig.Git {
-		t.Fatal("clone did not create an independent pointer")
-	}
-
-	// Mutating original must not affect clone
-	orig.Git.Tag = "v2.0.0"
-	if clone.Git.Tag != "v1.0.0" {
-		t.Errorf("clone mutated with original: got %q, want v1.0.0", clone.Git.Tag)
+	if dep.Path != pathSrc.Dir {
+		t.Errorf("unexpected dependency fields: %+v", dep)
 	}
 }

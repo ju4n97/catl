@@ -8,61 +8,70 @@ import (
 	"strings"
 )
 
-// File models the root structure of a catl.toml file.
+// File models the root structure of a catl.toml configuration file.
 type File struct {
-	Catalog      *Catalog              `toml:"catalog,omitzero"`
-	Workspace    *Workspace            `toml:"workspace,omitzero"`
-	Collections  map[string]Collection `toml:"collections,omitzero"`
-	Dependencies map[string]Dependency `toml:"dependencies,omitzero"`
+	Catalog      *Catalog              `toml:"catalog,omitzero" json:"catalog,omitzero"`
+	Workspace    *Workspace            `toml:"workspace,omitzero" json:"workspace,omitzero"`
+	Collections  map[string]Collection `toml:"collections,omitzero" json:"collections,omitzero"`
+	Dependencies map[string]Dependency `toml:"dependencies,omitzero" json:"dependencies,omitzero"`
 }
 
 // Catalog names an individual catalog.
 type Catalog struct {
-	Name string `toml:"name"`
+	Name string `toml:"name" json:"name"`
 }
 
 // Workspace groups several catalog members in one repository.
 type Workspace struct {
-	Members []string `toml:"members"`
+	Members []string `toml:"members" json:"members"`
 }
 
 // Collection configures the schema and storage directory of a collection.
 type Collection struct {
-	Schema string `toml:"schema,omitzero"`
-	Dir    string `toml:"dir,omitzero"`
+	Schema string `toml:"schema,omitzero" json:"schema,omitzero"`
+	Dir    string `toml:"dir,omitzero" json:"dir,omitzero"`
 }
 
-// Dependency declares a direct external catalog source.
-// It is a pointer union keyed by variant name.
+// Dependency declares a direct external catalog source using the compact inline form:
 //
-//	git     = { repo = "https://...", tag = "v1" }
-//	archive = { url = "https://...", digest = "sha256:..." }
-//	path    = { dir = "../core" }
+//	shared-infra = { git = "https://...", tag = "v1" }
+//	policies     = { url = "https://...", digest = "sha256:..." }
+//	core         = { path = "../core" }
 //
-// Exactly one field must be set. Use Source to get the validated variant.
+// Exactly one source type must be configured. Use Source to obtain the validated variant.
 type Dependency struct {
-	Git     *GitSource     `toml:"git,omitzero"`
-	Archive *ArchiveSource `toml:"archive,omitzero"`
-	Path    *PathSource    `toml:"path,omitzero"`
+	Git    string `toml:"git,omitzero" json:"git,omitzero"`
+	Tag    string `toml:"tag,omitzero" json:"tag,omitzero"`
+	Branch string `toml:"branch,omitzero" json:"branch,omitzero"`
+	Rev    string `toml:"rev,omitzero" json:"rev,omitzero"`
+	Subdir string `toml:"subdir,omitzero" json:"subdir,omitzero"`
+
+	URL    string `toml:"url,omitzero" json:"url,omitzero"`
+	Digest string `toml:"digest,omitzero" json:"digest,omitzero"`
+
+	Path string `toml:"path,omitzero" json:"path,omitzero"`
 }
 
-// Source is a sealed sum type: GitSource, ArchiveSource or PathSource.
+// Source is a sealed sum type: GitSource, ArchiveSource, or PathSource.
 //
 //sumtype:decl
 type Source interface {
+	isSource()
 	validate() error
 }
 
-// GitSource is a remote Git repository.
+// GitSource is a remote Git repository dependency.
 type GitSource struct {
-	Repo   string `toml:"repo"`
-	Tag    string `toml:"tag,omitzero"`
-	Branch string `toml:"branch,omitzero"`
-	Rev    string `toml:"rev,omitzero"`
-	Subdir string `toml:"subdir,omitzero"`
+	Repo   string `json:"repo"`
+	Tag    string `json:"tag,omitzero"`
+	Branch string `json:"branch,omitzero"`
+	Rev    string `json:"rev,omitzero"`
+	Subdir string `json:"subdir,omitzero"`
 }
 
-// validate implements [Source].
+func (GitSource) isSource() {}
+
+// validate implements [Source] by verifying repository presence and target ref exclusivity.
 func (s GitSource) validate() error {
 	if s.Repo == "" {
 		return errors.New("git: 'repo' is required")
@@ -78,13 +87,15 @@ func (s GitSource) validate() error {
 	return nil
 }
 
-// ArchiveSource is a remote HTTPS tar archive.
+// ArchiveSource is a remote HTTPS tar archive dependency.
 type ArchiveSource struct {
-	URL    string `toml:"url"`
-	Digest string `toml:"digest,omitzero"`
+	URL    string `json:"url"`
+	Digest string `json:"digest,omitzero"`
 }
 
-// validate implements [Source].
+func (ArchiveSource) isSource() {}
+
+// validate implements [Source] by ensuring the archive endpoint uses secure HTTPS.
 func (s ArchiveSource) validate() error {
 	if s.URL == "" {
 		return errors.New("archive: 'url' is required")
@@ -101,10 +112,12 @@ func (s ArchiveSource) validate() error {
 
 // PathSource is a catalog on the local filesystem.
 type PathSource struct {
-	Dir string `toml:"dir"`
+	Dir string `json:"dir"`
 }
 
-// validate implements [Source].
+func (PathSource) isSource() {}
+
+// validate implements [Source] by rejecting absolute paths and Windows drive prefixes.
 func (p PathSource) validate() error {
 	switch {
 	case p.Dir == "":
@@ -117,26 +130,39 @@ func (p PathSource) validate() error {
 	return nil
 }
 
-// Source returns the validated variant, or an error unless exactly one
-// variant is set and valid.
-func (d *Dependency) Source() (Source, error) {
+// Source resolves the flat Dependency fields into a validated concrete Source variant.
+func (d Dependency) Source() (Source, error) {
 	var (
 		src   Source
 		names []string
 	)
-	if d.Git != nil {
-		src, names = *d.Git, append(names, "git")
+	if d.Git != "" {
+		src = GitSource{
+			Repo:   d.Git,
+			Tag:    d.Tag,
+			Branch: d.Branch,
+			Rev:    d.Rev,
+			Subdir: d.Subdir,
+		}
+		names = append(names, "git")
 	}
-	if d.Archive != nil {
-		src, names = *d.Archive, append(names, "archive")
+	if d.URL != "" {
+		src = ArchiveSource{
+			URL:    d.URL,
+			Digest: d.Digest,
+		}
+		names = append(names, "url")
 	}
-	if d.Path != nil {
-		src, names = *d.Path, append(names, "path")
+	if d.Path != "" {
+		src = PathSource{
+			Dir: d.Path,
+		}
+		names = append(names, "path")
 	}
 
 	switch len(names) {
 	case 0:
-		return nil, errors.New("must specify one of 'git', 'archive', or 'path'")
+		return nil, errors.New("must specify one of 'git', 'url', or 'path'")
 	case 1:
 		if err := src.validate(); err != nil {
 			return nil, err
@@ -147,38 +173,32 @@ func (d *Dependency) Source() (Source, error) {
 	}
 }
 
-// NewDependency wraps a Source for programmatic construction (e.g. `catl add`).
+// NewDependency converts a concrete Source variant into its flat Dependency representation.
 func NewDependency(src Source) (Dependency, error) {
 	switch s := src.(type) {
 	case GitSource:
-		return Dependency{Git: &s}, nil
+		return Dependency{
+			Git:    s.Repo,
+			Tag:    s.Tag,
+			Branch: s.Branch,
+			Rev:    s.Rev,
+			Subdir: s.Subdir,
+		}, nil
 	case ArchiveSource:
-		return Dependency{Archive: &s}, nil
+		return Dependency{
+			URL:    s.URL,
+			Digest: s.Digest,
+		}, nil
 	case PathSource:
-		return Dependency{Path: &s}, nil
+		return Dependency{
+			Path: s.Dir,
+		}, nil
 	default:
 		return Dependency{}, fmt.Errorf("unsupported source type %T", src)
 	}
 }
 
-// Clone returns a deep copy of a dependency.
-func (d Dependency) Clone() Dependency {
-	return Dependency{
-		Git:     clonePtr(d.Git),
-		Archive: clonePtr(d.Archive),
-		Path:    clonePtr(d.Path),
-	}
-}
-
-// clonePtr returns a deep copy of a pointer.
-func clonePtr[T any](p *T) *T {
-	if p == nil {
-		return nil
-	}
-	return new(*p)
-}
-
-// countSet returns the number of non-empty strings in the given slice.
+// countSet counts how many strings in the slice are non-empty.
 func countSet(ss ...string) (n int) {
 	for _, s := range ss {
 		if s != "" {

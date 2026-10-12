@@ -72,16 +72,14 @@ func TestValidateSchema(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name: "valid nested git dependency with tag",
+			name: "valid flat git dependency with tag",
 			data: map[string]any{
 				"catalog":     map[string]any{"name": "test-cat"},
 				"collections": map[string]any{"a": map[string]any{}},
 				"dependencies": map[string]any{
 					"infra": map[string]any{
-						"git": map[string]any{
-							"repo": "https://github.com/acme/infra",
-							"tag":  "v1.0.0",
-						},
+						"git": "https://github.com/acme/infra",
+						"tag": "v1.0.0",
 					},
 				},
 			},
@@ -93,11 +91,9 @@ func TestValidateSchema(t *testing.T) {
 				"collections": map[string]any{"a": map[string]any{}},
 				"dependencies": map[string]any{
 					"infra": map[string]any{
-						"git": map[string]any{
-							"repo":   "https://github.com/acme/infra",
-							"tag":    "v1.0.0",
-							"branch": "main",
-						},
+						"git":    "https://github.com/acme/infra",
+						"tag":    "v1.0.0",
+						"branch": "main",
 					},
 				},
 			},
@@ -110,13 +106,9 @@ func TestValidateSchema(t *testing.T) {
 				"collections": map[string]any{"a": map[string]any{}},
 				"dependencies": map[string]any{
 					"ambiguous": map[string]any{
-						"git": map[string]any{
-							"repo": "https://github.com/acme/infra",
-							"tag":  "v1.0.0",
-						},
-						"path": map[string]any{
-							"dir": "../local",
-						},
+						"git":  "https://github.com/acme/infra",
+						"tag":  "v1.0.0",
+						"path": "../local",
 					},
 				},
 			},

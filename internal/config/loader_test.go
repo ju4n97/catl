@@ -22,7 +22,7 @@ func TestParse(t *testing.T) {
 		check     func(t *testing.T, f *config.File)
 	}{
 		{
-			name: "valid catalog with nested dependency variants",
+			name: "valid catalog with flat inline dependencies",
 			toml: `
 [catalog]
 name = "platform-rules"
@@ -30,14 +30,10 @@ name = "platform-rules"
 [collections.rules]
 schema = "schemas/rules.json"
 
-[dependencies.infra]
-git = { repo = "https://github.com/acme/infra", tag = "v2.0.0" }
-
-[dependencies.policies]
-archive = { url = "https://cdn.example.com/p.tar.gz", digest = "sha256:ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad" }
-
-[dependencies.core]
-path = { dir = "../core" }
+[dependencies]
+infra = { git = "https://github.com/acme/infra", tag = "v2.0.0" }
+policies = { url = "https://cdn.example.com/p.tar.gz", digest = "sha256:ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad" }
+core = { path = "../core" }
 `,
 			check: func(t *testing.T, f *config.File) {
 				t.Helper()
@@ -47,17 +43,17 @@ path = { dir = "../core" }
 				if len(f.Dependencies) != 3 {
 					t.Fatalf("got %d dependencies, want 3", len(f.Dependencies))
 				}
-				gitDep := f.Dependencies["infra"]
-				if gitDep.Git == nil || gitDep.Git.Repo != "https://github.com/acme/infra" {
-					t.Errorf("unexpected git dependency: %+v", gitDep.Git)
+				infra := f.Dependencies["infra"]
+				if infra.Git != "https://github.com/acme/infra" || infra.Tag != "v2.0.0" {
+					t.Errorf("unexpected infra dependency: %+v", infra)
 				}
-				archDep := f.Dependencies["policies"]
-				if archDep.Archive == nil || archDep.Archive.URL != "https://cdn.example.com/p.tar.gz" {
-					t.Errorf("unexpected archive dependency: %+v", archDep.Archive)
+				policies := f.Dependencies["policies"]
+				if policies.URL != "https://cdn.example.com/p.tar.gz" {
+					t.Errorf("unexpected policies dependency: %+v", policies)
 				}
-				pathDep := f.Dependencies["core"]
-				if pathDep.Path == nil || pathDep.Path.Dir != "../core" {
-					t.Errorf("unexpected path dependency: %+v", pathDep.Path)
+				core := f.Dependencies["core"]
+				if core.Path != "../core" {
+					t.Errorf("unexpected core dependency: %+v", core)
 				}
 			},
 		},
@@ -100,7 +96,7 @@ name = "my-cat"
 [collections.rules]
 
 [dependencies.infra]
-git = { repo = "https://github.com/acme/infra", tag = "v1", extra = true }
+infra = { git = "https://github.com/acme/infra", tag = "v1", extra = true }
 `,
 			wantErr:   true,
 			targetErr: config.ErrRequiresNewer,
@@ -184,8 +180,8 @@ name = "roundtrip-cat"
 dir = "rules"
 schema = "schemas/rules.json"
 
-[dependencies.infra]
-git = { repo = "https://github.com/acme/infra", tag = "v1.0.0" }
+[dependencies]
+infra = { git = "https://github.com/acme/infra", tag = "v1.0.0" }
 `
 
 	f, err := config.Parse([]byte(original))
