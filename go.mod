@@ -3,6 +3,7 @@ module github.com/ju4n97/catl
 go 1.27.1
 
 require (
+	github.com/goccy/go-yaml v1.19.2
 	github.com/pelletier/go-toml/v2 v2.4.3
 	github.com/rogpeppe/go-internal v1.16.0
 	github.com/santhosh-tekuri/jsonschema/v6 v6.0.3
