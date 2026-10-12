@@ -2,7 +2,10 @@ package main
 
 import (
 	"context"
+	"errors"
 
+	"github.com/ju4n97/catl"
+	"github.com/ju4n97/catl/internal/schema"
 	"github.com/urfave/cli/v3"
 )
 
@@ -10,7 +13,6 @@ import (
 func newCheckCommand() *cli.Command {
 	return &cli.Command{
 		Name:      "check",
-		Aliases:   []string{"c", "validate"},
 		Category:  categoryCatalog,
 		Usage:     "Validate schemas, paths, and lockfile integrity",
 		UsageText: "catl check [flags]",
@@ -18,6 +20,15 @@ func newCheckCommand() *cli.Command {
 invariants, verifies tree hashes, and validates vendor directories.
 Exits 0 with no output on success (Unix rule of silence).`,
 		Action: func(ctx context.Context, cmd *cli.Command) error {
+			_, err := catl.Open(ctx, ".", catl.Options{
+				Offline: cmd.Bool("offline"),
+			})
+			if err != nil {
+				if valErr, ok := errors.AsType[*schema.ValidationError](err); ok {
+					return cli.Exit(valErr.Error(), 1)
+				}
+				return cli.Exit(err.Error(), 1)
+			}
 			return nil
 		},
 	}

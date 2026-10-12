@@ -96,8 +96,7 @@ func OpenFS(ctx context.Context, fsys fs.FS, opts Options) (*Catalog, error) {
 			}
 
 			if err := validator.ValidateManifest(manifest, coll.Schema, &se, bundleFS); err != nil {
-				var valErr *schema.ValidationError
-				if errors.As(err, &valErr) {
+				if valErr, ok := errors.AsType[*schema.ValidationError](err); ok {
 					allDiags = append(allDiags, valErr.Diagnostics...)
 				} else {
 					return nil, err

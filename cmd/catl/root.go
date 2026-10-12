@@ -1,6 +1,10 @@
 package main
 
 import (
+	"context"
+	"fmt"
+	"os"
+
 	"github.com/urfave/cli/v3"
 )
 
@@ -42,6 +46,14 @@ func newRootCommand() *cli.Command {
 				Aliases: []string{"v"},
 				Usage:   "Print detailed diagnostics and progress to stderr",
 			},
+		},
+		Before: func(ctx context.Context, cmd *cli.Command) (context.Context, error) {
+			if dir := cmd.String("cwd"); dir != "" {
+				if err := os.Chdir(dir); err != nil {
+					return ctx, fmt.Errorf("change directory to %q: %w", dir, err)
+				}
+			}
+			return ctx, nil
 		},
 		Commands: []*cli.Command{
 			// Catalog lifecycle
