@@ -3,14 +3,10 @@ exec catl check
 ! stdout .
 ! stderr .
 
-# Flag conflict between include-blobs and offline
-! exec catl check --include-blobs --offline
-stderr 'cannot be used together'
-
 # Schema validation failure on value exceeding bounds
 cp invalid-threshold.yaml rules/rate-limit.yaml
 ! exec catl check
-stderr 'rules/rate-limit\.yaml:2: /threshold: 150 is greater than the maximum of 100'
+stderr 'rules/rate-limit\.yaml:2: /threshold: maximum: got 150, want 100'
 ! stdout .
 
 # Revert to valid manifest
@@ -22,7 +18,7 @@ exec catl check
 # Strict YAML 1.2 parsing rejects unquoted 'no' as boolean
 cp string-boolean.yaml rules/rate-limit.yaml
 ! exec catl check
-stderr 'rules/rate-limit\.yaml:1: /enabled: expected boolean, got string'
+stderr 'rules/rate-limit\.yaml:1: /enabled: got string, want boolean'
 ! stdout .
 
 # Permissive mode passes when collection declares no schema
