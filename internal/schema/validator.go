@@ -81,12 +81,16 @@ func (v *Validator) Compile(schemaPath string) error {
 
 // ValidateManifest validates a decoded manifest against its collection's schema.
 func (v *Validator) ValidateManifest(m *Manifest, schemaPath string, entity *scan.Entity, bundleFS fs.FS) error {
+	if schemaPath == "" {
+		return nil
+	}
+
 	sch, ok := v.schemas[schemaPath]
 	if !ok {
 		if err := v.Compile(schemaPath); err != nil {
 			return err
 		}
-		sch, ok = v.schemas[schemaPath]
+		sch = v.schemas[schemaPath]
 	}
 
 	v.validateMu.Lock()
