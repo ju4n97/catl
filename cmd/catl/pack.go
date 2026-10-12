@@ -25,6 +25,7 @@ Examples:
 				Name:    "output",
 				Aliases: []string{"o"},
 				Usage:   "Write tar archive to file instead of stdout",
+				Config:  cli.StringConfig{TrimSpace: true},
 			},
 		},
 		Action: func(ctx context.Context, cmd *cli.Command) error {

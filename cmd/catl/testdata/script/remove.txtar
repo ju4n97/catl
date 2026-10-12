@@ -1,0 +1,25 @@
+# Remove declared dependency and update configuration
+cd my-app
+exec catl remove shared-lib
+stdout 'remove shared-lib'
+stdout 'update catl.toml'
+cmp catl.toml expected-clean-catl.toml
+
+# Reject removing non-existent dependency
+! exec catl remove non-existent
+stderr 'catl: dependency "non-existent" not found in catl.toml'
+
+-- my-app/catl.toml --
+[catalog]
+name = "my-app"
+
+[collections.services]
+
+[dependencies]
+shared-lib = { path = "../shared-lib" }
+
+-- my-app/expected-clean-catl.toml --
+[catalog]
+name = "my-app"
+
+[collections.services]

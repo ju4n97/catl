@@ -4,25 +4,27 @@ exec catl check
 ! stderr .
 
 # Schema validation failure on value exceeding bounds
-cp invalid-threshold.yaml rules/rate-limit.yaml
+cp .invalid-threshold.yaml rules/rate-limit.yaml
 ! exec catl check
 stderr 'rules/rate-limit\.yaml:2: /threshold: maximum: got 150, want 100'
 ! stdout .
 
 # Revert to valid manifest
-cp valid-threshold.yaml rules/rate-limit.yaml
+cp .valid-threshold.yaml rules/rate-limit.yaml
 exec catl check
 ! stdout .
 ! stderr .
 
 # Strict YAML 1.2 parsing rejects unquoted 'no' as boolean
-cp string-boolean.yaml rules/rate-limit.yaml
+cp .string-boolean.yaml rules/rate-limit.yaml
 ! exec catl check
 stderr 'rules/rate-limit\.yaml:1: /enabled: got string, want boolean'
 ! stdout .
 
 # Permissive mode passes when collection declares no schema
-cp catl-no-schema.toml catl.toml
+rm schemas/rules.json
+rm schemas
+cp .catl-no-schema.toml catl.toml
 exec catl check
 ! stdout .
 ! stderr .
@@ -34,7 +36,7 @@ name = "platform-rules"
 [collections.rules]
 schema = "schemas/rules.json"
 
--- catl-no-schema.toml --
+-- .catl-no-schema.toml --
 [catalog]
 name = "platform-rules"
 
@@ -56,14 +58,14 @@ name = "platform-rules"
 enabled: true
 threshold: 50
 
--- valid-threshold.yaml --
+-- .valid-threshold.yaml --
 enabled: true
 threshold: 50
 
--- invalid-threshold.yaml --
+-- .invalid-threshold.yaml --
 enabled: true
 threshold: 150
 
--- string-boolean.yaml --
+-- .string-boolean.yaml --
 enabled: no
 threshold: 50

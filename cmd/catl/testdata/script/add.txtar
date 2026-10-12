@@ -1,0 +1,31 @@
+# Add local path dependency
+cd my-app
+exec catl add ../shared-lib
+stdout 'add shared-lib'
+stdout 'update catl.toml'
+cmp catl.toml expected-catl-with-dep.toml
+
+# Reject duplicate dependency addition
+! exec catl add ../shared-lib
+stderr 'catl: dependency "shared-lib" already exists'
+
+-- shared-lib/catl.toml --
+[catalog]
+name = "shared-lib"
+
+[collections.tools]
+
+-- my-app/catl.toml --
+[catalog]
+name = "my-app"
+
+[collections.services]
+
+-- my-app/expected-catl-with-dep.toml --
+[catalog]
+name = "my-app"
+
+[collections.services]
+
+[dependencies]
+shared-lib = { path = "../shared-lib" }

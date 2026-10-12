@@ -21,11 +21,13 @@ cmp platform-ws/catl.toml expected-workspace-catl.toml
 
 # Append member when initializing inside an existing workspace
 exec catl init -C platform-ws --name billing --collection invoices billing-catalog
-stdout 'create platform-ws/billing-catalog/catl.toml'
-stdout 'update platform-ws/catl.toml'
+stdout 'create billing-catalog/catl.toml'
+stdout 'update catl.toml'
 cmp platform-ws/catl.toml expected-updated-workspace-catl.toml
 
 -- expected-catalog-catl.toml --
+#:schema https://ju4n97.github.io/catl/schema/v1/catl.schema.json
+
 [catalog]
 name = "app-rules"
 
@@ -33,10 +35,14 @@ name = "app-rules"
 schema = "schemas/rules.json"
 
 -- expected-workspace-catl.toml --
+#:schema https://ju4n97.github.io/catl/schema/v1/catl.schema.json
+
 [workspace]
 members = []
 
 -- expected-updated-workspace-catl.toml --
+#:schema https://ju4n97.github.io/catl/schema/v1/catl.schema.json
+
 [workspace]
 members = [
   "billing-catalog",

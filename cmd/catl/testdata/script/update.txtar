@@ -1,0 +1,25 @@
+# Reject updating force-moved tag without explicit flag
+cd my-app
+! exec catl update shared-lib
+stderr 'catl: remote tag "v1.0.0" moved from d6e89a71 to 4fe2c9b0; use --force to accept'
+
+# Update moved tag with force flag
+exec catl update --force shared-lib
+stdout 'update shared-lib: d6e89a71 -> 4fe2c9b0'
+
+-- my-app/catl.toml --
+[catalog]
+name = "my-app"
+
+[collections.services]
+
+[dependencies]
+shared-lib = { git = "https://github.com/acme/shared-lib", tag = "v1.0.0" }
+
+-- my-app/catl.lock --
+version = 1
+
+[[dependency]]
+requested = "git+https://github.com/acme/shared-lib#tag=v1.0.0"
+resolved = "d6e89a7123bf01c4a0b1e5f7a3c9d2e8b4f60718"
+tree = "sha256:9f2c1a7b8e4f5a6b7c8d9e0f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b"

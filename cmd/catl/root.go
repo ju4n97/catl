@@ -26,11 +26,13 @@ func newRootCommand() *cli.Command {
 				Name:    "cwd",
 				Aliases: []string{"C"},
 				Usage:   "Change working directory before executing",
+				Config:  cli.StringConfig{TrimSpace: true},
 			},
 			&cli.StringSliceFlag{
 				Name:    "member",
 				Aliases: []string{"m"},
 				Usage:   "Target a specific workspace member (can be repeated)",
+				Config:  cli.StringConfig{TrimSpace: true},
 			},
 			&cli.BoolFlag{
 				Name:  "offline",

@@ -24,6 +24,7 @@ Examples:
 				Name:      "source",
 				UsageText: "<source>",
 				Required:  true,
+				Config:    cli.StringConfig{TrimSpace: true},
 			},
 		},
 		Action: func(ctx context.Context, cmd *cli.Command) error {

@@ -21,6 +21,7 @@ prunes its corresponding pin from catl.lock.`,
 				Name:      "name",
 				UsageText: "<name>",
 				Required:  true,
+				Config:    cli.StringConfig{TrimSpace: true},
 			},
 		},
 		Action: func(ctx context.Context, cmd *cli.Command) error {

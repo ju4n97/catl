@@ -29,8 +29,8 @@ func TestScript(t *testing.T) {
 		Dir: filepath.Join("testdata", "script"),
 		Setup: func(env *testscript.Env) error {
 			// Guarantee sandbox hermeticity so host files are never touched
-			homeDir := filepath.Join(env.WorkDir, "home")
-			cacheDir := filepath.Join(env.WorkDir, "cache")
+			homeDir := filepath.Join(env.WorkDir, ".home")
+			cacheDir := filepath.Join(env.WorkDir, ".cache")
 
 			if err := os.MkdirAll(homeDir, 0o755); err != nil {
 				return err

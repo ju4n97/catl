@@ -1,0 +1,40 @@
+# Stream flat manifest contents to standard output
+exec catl show flags app-flags.dark-mode
+stdout 'enabled: true'
+stdout 'rollout: 100'
+
+# Stream bundle manifest when path argument is omitted
+exec catl show flags app-flags.new-checkout
+stdout 'enabled: false'
+stdout 'rollout: 10'
+
+# Stream companion file from bundle entity
+exec catl show flags app-flags.new-checkout notes.md
+stdout '# Experiment Notes'
+stdout 'Targeted staging cohort\.'
+
+# Flat entity rejects companion file requests
+! exec catl show flags app-flags.dark-mode notes.md
+stderr 'catl: entity "dark-mode" is a flat entity and has no companion files'
+
+# Reject bare identifier with helpful suggestion
+! exec catl show flags dark-mode
+stderr 'catl: "dark-mode" is not a qualified ID \(want namespace\.id\); did you mean "app-flags\.dark-mode"\?'
+
+-- catl.toml --
+[catalog]
+name = "app-flags"
+
+[collections.flags]
+
+-- flags/dark-mode.yaml --
+enabled: true
+rollout: 100
+
+-- flags/new-checkout/manifest.yaml --
+enabled: false
+rollout: 10
+
+-- flags/new-checkout/notes.md --
+# Experiment Notes
+Targeted staging cohort.
