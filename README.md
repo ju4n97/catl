@@ -6,16 +6,7 @@
 
 `catl` is a package manager for declarative data. It's like `cargo` or `go mod`, but for directories of structured files instead of source code. It validates YAML and JSON manifests against JSON Schema, pins remote dependencies with cryptographic tree hashes, and gives you verified, offline access to catalog contents through a CLI or an embeddable Go library.
 
-It is a lightweight substrate for anything built on declarative data, such as AI agent runtimes, feature flag evaluators, headless CMSs, and policy engines, so you don't have to reinvent validation, locking, and integrity for every project.
-
-## Features
-
-- Validates manifests, schemas, and catalog structure.
-- Pins dependencies and verifies content using cryptographic hashes.
-- Packages reproducible catalogs into deterministic PAX tar archives.
-- Supports companion files and offline vendoring.
-- Provides a standalone CLI and an embeddable Go library.
-- Requires no daemon or database.
+It's as a lightweight substrate for anything built on declarative data, such as AI agent runtimes, feature flag evaluators, headless CMSs, and policy engines, so you don't have to reinvent validation, locking, and integrity for every project.
 
 ## Quick start
 
