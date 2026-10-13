@@ -54,6 +54,21 @@ catl [flags] <command> [args...]
 
 
 .SH COMMANDS
+.SH version
+.PP
+Print catl version and build information
+
+.PP
+.RS
+
+.PP
+catl version [flags]
+
+.RE
+
+.PP
+\fB--verbose, -v\fP: Print extended build and runtime diagnostics
+
 .SH init
 .PP
 Initialize a new catalog or workspace
@@ -73,9 +88,12 @@ catl init [flags] [dir]
 \fB--name\fP="": Catalog namespace (defaults to directory base name)
 
 .PP
+\fB--template, -t\fP="": Starter template to scaffold
+
+.PP
 \fB--workspace\fP: Initialize a workspace root instead of a catalog
 
-.SH check, c, validate
+.SH check
 .PP
 Validate schemas, paths, and lockfile integrity
 

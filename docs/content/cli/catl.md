@@ -29,6 +29,7 @@ catl [flags] <command> [args...]
 
 | Command                        | Description                                           |
 | :----------------------------- | :---------------------------------------------------- |
+| [`version`](./catl-version.md) | Print catl version and build information              |
 | [`init`](./catl-init.md)       | Initialize a new catalog or workspace                 |
 | [`check`](./catl-check.md)     | Validate schemas, paths, and lockfile integrity       |
 | [`clean`](./catl-clean.md)     | Clear local download and build cache                  |

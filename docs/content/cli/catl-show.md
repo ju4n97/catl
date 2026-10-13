@@ -11,7 +11,6 @@ Stream a manifest or companion file to stdout
 
 Streams verified content to standard output for piping into Unix utilities.
 If [path] is omitted, outputs the entity manifest.
-If [path] is a .blob pointer, downloads and verifies the blob before streaming.
 
 **Category:** Entities
 

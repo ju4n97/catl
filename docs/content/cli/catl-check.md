@@ -13,8 +13,7 @@ Validates all manifests against their collection schemas, checks path
 invariants, verifies tree hashes, and validates vendor directories.
 Exits 0 with no output on success (Unix rule of silence).
 
-**Category:** Catalog \
-**Aliases:** `catl c`, `catl validate`
+**Category:** Catalog
 
 ## Usage
 

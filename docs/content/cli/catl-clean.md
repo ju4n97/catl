@@ -9,7 +9,7 @@ description: Clear local download and build cache
 
 Clear local download and build cache
 
-Empties the local user cache directory ($XDG_CACHE_HOME/catl).
+Empties the local user cache directory ($CATL_CACHE_DIR or $XDG_CACHE_HOME/catl).
 Does not modify .catl/vendor/ directories inside catalogs.
 
 **Category:** Catalog
