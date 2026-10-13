@@ -1,3 +1,6 @@
+> [!IMPORTANT]
+> The core catalog functionality is implemented. Dependency management, workspaces, packaging, integrity checks, and cache hardening are still in progress.
+
 # catl
 
 [![Go Reference](https://img.shields.io/badge/Go_Reference-pkg.go.dev-007D9C?style=flat-square&logo=go&logoColor=white)](https://pkg.go.dev/github.com/ju4n97/catl)
