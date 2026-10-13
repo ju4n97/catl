@@ -6,6 +6,7 @@ import (
 	"slices"
 
 	"github.com/goccy/go-yaml"
+
 	"github.com/ju4n97/catl/internal/scan"
 )
 

@@ -105,7 +105,10 @@ func TestCopy(t *testing.T) {
 
 		schemaPath := filepath.Join(tmpDir, "schemas", "invoices.json")
 		if _, err := os.Stat(schemaPath); err != nil {
-			t.Errorf("expected placeholder __collection__ to be replaced with invoices.json: %v", err)
+			t.Errorf(
+				"expected placeholder __collection__ to be replaced with invoices.json: %v",
+				err,
+			)
 		}
 	})
 

@@ -223,7 +223,11 @@ func scanBundle(fsys fs.FS, collName, collDir, id string) (Entity, error) {
 		if relInside == "manifest.yaml" || relInside == "manifest.json" {
 			ext := path.Ext(name)
 			if manifestPath != "" && manifestFormat != ext {
-				return fmt.Errorf("%w: %q contains both manifest.yaml and manifest.json", ErrAmbiguousManifest, bundleDir)
+				return fmt.Errorf(
+					"%w: %q contains both manifest.yaml and manifest.json",
+					ErrAmbiguousManifest,
+					bundleDir,
+				)
 			}
 			manifestPath = p
 			manifestFormat = ext

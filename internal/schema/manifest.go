@@ -58,7 +58,12 @@ func DecodeManifest(data []byte, relPath string) (*Manifest, error) {
 		}, nil
 	}
 	if len(file.Docs) > 1 {
-		return nil, fmt.Errorf("%w: %s contains %d documents", ErrMultiDocument, relPath, len(file.Docs))
+		return nil, fmt.Errorf(
+			"%w: %s contains %d documents",
+			ErrMultiDocument,
+			relPath,
+			len(file.Docs),
+		)
 	}
 
 	// Reject merge keys ('<<') and custom tags ('!') across the AST
@@ -99,7 +104,8 @@ func (m *Manifest) FindLine(pointer string) int {
 			var next ast.Node
 			var matchedLine int
 			for _, entry := range n.Values {
-				if entry.Key != nil && entry.Key.GetToken() != nil && entry.Key.GetToken().Value == part {
+				if entry.Key != nil && entry.Key.GetToken() != nil &&
+					entry.Key.GetToken().Value == part {
 					matchedLine = entry.Key.GetToken().Position.Line
 					next = entry.Value
 					break

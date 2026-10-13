@@ -97,7 +97,12 @@ func TestValidateIdent(t *testing.T) {
 			}
 
 			if tt.wantErr && !errors.Is(err, config.ErrInvalidIdent) {
-				t.Errorf("ValidateIdent(%q) error = %v, want %v", tt.input, err, config.ErrInvalidIdent)
+				t.Errorf(
+					"ValidateIdent(%q) error = %v, want %v",
+					tt.input,
+					err,
+					config.ErrInvalidIdent,
+				)
 			}
 		})
 	}

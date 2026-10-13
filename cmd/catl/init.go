@@ -9,9 +9,10 @@ import (
 	"slices"
 	"strings"
 
+	"github.com/urfave/cli/v3"
+
 	"github.com/ju4n97/catl/internal/config"
 	"github.com/ju4n97/catl/internal/skel"
-	"github.com/urfave/cli/v3"
 )
 
 // newInitCommand scaffolds a new catalog or workspace.
@@ -123,7 +124,7 @@ func appendWorkspaceMember(wsFile, member string) error {
 
 	cfg, err := config.Parse(data)
 	if err != nil || cfg.Workspace == nil {
-		return nil // File exists but is a catalog, not a workspace
+		return nil //nolint:nilerr // File exists but is a catalog, not a workspace
 	}
 
 	cleanMember := filepath.ToSlash(filepath.Clean(member))

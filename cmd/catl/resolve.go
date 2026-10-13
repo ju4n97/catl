@@ -5,8 +5,9 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/ju4n97/catl"
 	"github.com/urfave/cli/v3"
+
+	"github.com/ju4n97/catl"
 )
 
 // newResolveCommand prints the absolute filesystem path of an entity manifest.
@@ -51,7 +52,14 @@ Examples:
 			if err != nil {
 				if errors.Is(err, catl.ErrNotQualified) {
 					suggested := fmt.Sprintf("%s.%s", cat.Name(), qualifiedID)
-					return cli.Exit(fmt.Sprintf("%q is not a qualified ID (want namespace.id); did you mean %q?", qualifiedID, suggested), 1)
+					return cli.Exit(
+						fmt.Sprintf(
+							"%q is not a qualified ID (want namespace.id); did you mean %q?",
+							qualifiedID,
+							suggested,
+						),
+						1,
+					)
 				}
 				return cli.Exit(err.Error(), 1)
 			}

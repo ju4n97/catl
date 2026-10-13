@@ -18,7 +18,9 @@ func TestTreeScan(t *testing.T) {
 		t.Parallel()
 
 		fsys := fstest.MapFS{
-			"catl.toml":      &fstest.MapFile{Data: []byte("[catalog]\nname = \"my-cat\"\n[collections.services]\n")},
+			"catl.toml": &fstest.MapFile{
+				Data: []byte("[catalog]\nname = \"my-cat\"\n[collections.services]\n"),
+			},
 			"catl.lock":      &fstest.MapFile{Data: []byte("version = 1\n")},
 			".gitattributes": &fstest.MapFile{Data: []byte("* text=auto\n")},
 
@@ -48,18 +50,21 @@ func TestTreeScan(t *testing.T) {
 		}
 
 		auth := services[0]
-		if auth.ID != "auth" || auth.Shape != scan.EntityShapeFlat || auth.ManifestPath != "services/auth.yaml" {
+		if auth.ID != "auth" || auth.Shape != scan.EntityShapeFlat ||
+			auth.ManifestPath != "services/auth.yaml" {
 			t.Errorf("unexpected auth entity: %+v", auth)
 		}
 
 		billing := services[1]
-		if billing.ID != "billing" || billing.Shape != scan.EntityShapeBundle || billing.ManifestPath != "services/billing/manifest.yaml" {
+		if billing.ID != "billing" || billing.Shape != scan.EntityShapeBundle ||
+			billing.ManifestPath != "services/billing/manifest.yaml" {
 			t.Errorf("unexpected billing entity: %+v", billing)
 		}
 		if len(billing.CompanionFiles) != 2 {
 			t.Fatalf("companion files count = %d, want 2", len(billing.CompanionFiles))
 		}
-		if billing.CompanionFiles[0] != "runbook.md" || billing.CompanionFiles[1] != "steps/step1.md" {
+		if billing.CompanionFiles[0] != "runbook.md" ||
+			billing.CompanionFiles[1] != "steps/step1.md" {
 			t.Errorf("unexpected companion files: %v", billing.CompanionFiles)
 		}
 

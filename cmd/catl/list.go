@@ -7,8 +7,9 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/ju4n97/catl"
 	"github.com/urfave/cli/v3"
+
+	"github.com/ju4n97/catl"
 )
 
 // jsonEntity models the JSON output representation for an entity.
@@ -96,9 +97,21 @@ Examples:
 						return err
 					}
 				} else if useNull {
-					fmt.Fprintf(os.Stdout, "%s\t%s\t%s\x00", ent.Collection(), ent.QualifiedID(), ent.ManifestPath())
+					fmt.Fprintf(
+						os.Stdout,
+						"%s\t%s\t%s\x00",
+						ent.Collection(),
+						ent.QualifiedID(),
+						ent.ManifestPath(),
+					)
 				} else {
-					fmt.Fprintf(os.Stdout, "%s\t%s\t%s\n", ent.Collection(), ent.QualifiedID(), ent.ManifestPath())
+					fmt.Fprintf(
+						os.Stdout,
+						"%s\t%s\t%s\n",
+						ent.Collection(),
+						ent.QualifiedID(),
+						ent.ManifestPath(),
+					)
 				}
 			}
 

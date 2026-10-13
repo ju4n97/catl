@@ -40,10 +40,15 @@ linters:
       - path: "_test\\.go$"
         linters:
           - errcheck
-      
+
       - linters:
           - errcheck
         text: "Error return value of `.*\\.Close` is not checked"
+      
+      - path: '.*\.go'
+        text: 'blank-imports'
+        linters:
+          - revive
 
   settings:
     errcheck:
@@ -154,6 +159,8 @@ formatters:
       custom-order: true
 
     golines:
+      max-len: 140
+      tab-len: 4
       shorten-comments: false
       reformat-tags: true
       chain-split-dots: true

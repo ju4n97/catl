@@ -203,6 +203,10 @@ infra = { git = "https://github.com/acme/infra", tag = "v1.0.0" }
 		t.Errorf("roundtrip name = %q, want %q", reparsed.Catalog.Name, f.Catalog.Name)
 	}
 	if len(reparsed.Dependencies) != len(f.Dependencies) {
-		t.Errorf("roundtrip dependency count = %d, want %d", len(reparsed.Dependencies), len(f.Dependencies))
+		t.Errorf(
+			"roundtrip dependency count = %d, want %d",
+			len(reparsed.Dependencies),
+			len(f.Dependencies),
+		)
 	}
 }

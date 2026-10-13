@@ -10,9 +10,9 @@ import (
 
 // File models the root structure of a catl.toml configuration file.
 type File struct {
-	Catalog      *Catalog              `toml:"catalog,omitzero" json:"catalog,omitzero"`
-	Workspace    *Workspace            `toml:"workspace,omitzero" json:"workspace,omitzero"`
-	Collections  map[string]Collection `toml:"collections,omitzero" json:"collections,omitzero"`
+	Catalog      *Catalog              `toml:"catalog,omitzero"      json:"catalog,omitzero"`
+	Workspace    *Workspace            `toml:"workspace,omitzero"    json:"workspace,omitzero"`
+	Collections  map[string]Collection `toml:"collections,omitzero"  json:"collections,omitzero"`
 	Dependencies map[string]Dependency `toml:"dependencies,omitzero" json:"dependencies,omitzero"`
 }
 
@@ -29,7 +29,7 @@ type Workspace struct {
 // Collection configures the schema and storage directory of a collection.
 type Collection struct {
 	Schema string `toml:"schema,omitzero" json:"schema,omitzero"`
-	Dir    string `toml:"dir,omitzero" json:"dir,omitzero"`
+	Dir    string `toml:"dir,omitzero"    json:"dir,omitzero"`
 }
 
 // Dependency declares a direct external catalog source using the compact inline form:
@@ -40,13 +40,13 @@ type Collection struct {
 //
 // Exactly one source type must be configured. Use Source to obtain the validated variant.
 type Dependency struct {
-	Git    string `toml:"git,omitzero" json:"git,omitzero"`
-	Tag    string `toml:"tag,omitzero" json:"tag,omitzero"`
+	Git    string `toml:"git,omitzero"    json:"git,omitzero"`
+	Tag    string `toml:"tag,omitzero"    json:"tag,omitzero"`
 	Branch string `toml:"branch,omitzero" json:"branch,omitzero"`
-	Rev    string `toml:"rev,omitzero" json:"rev,omitzero"`
+	Rev    string `toml:"rev,omitzero"    json:"rev,omitzero"`
 	Subdir string `toml:"subdir,omitzero" json:"subdir,omitzero"`
 
-	URL    string `toml:"url,omitzero" json:"url,omitzero"`
+	URL    string `toml:"url,omitzero"    json:"url,omitzero"`
 	Digest string `toml:"digest,omitzero" json:"digest,omitzero"`
 
 	Path string `toml:"path,omitzero" json:"path,omitzero"`
@@ -169,7 +169,10 @@ func (d Dependency) Source() (Source, error) {
 		}
 		return src, nil
 	default:
-		return nil, fmt.Errorf("multiple sources specified (%s); choose exactly one", strings.Join(names, ", "))
+		return nil, fmt.Errorf(
+			"multiple sources specified (%s); choose exactly one",
+			strings.Join(names, ", "),
+		)
 	}
 }
 

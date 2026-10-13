@@ -23,15 +23,27 @@ func ValidatePathComponent(name string) error {
 		return fmt.Errorf("%w: path component %q is not valid UTF-8", ErrInvalidPath, name)
 	}
 	if !norm.NFC.IsNormalString(name) {
-		return fmt.Errorf("%w: path component %q must be Unicode NFC normalized", ErrInvalidPath, name)
+		return fmt.Errorf(
+			"%w: path component %q must be Unicode NFC normalized",
+			ErrInvalidPath,
+			name,
+		)
 	}
 	if strings.ContainsAny(name, "/\\") {
-		return fmt.Errorf("%w: path component %q cannot contain slashes or backslashes", ErrInvalidPath, name)
+		return fmt.Errorf(
+			"%w: path component %q cannot contain slashes or backslashes",
+			ErrInvalidPath,
+			name,
+		)
 	}
 	for i := range len(name) {
 		c := name[i]
 		if (c <= 0x1F) || c == 0x7F {
-			return fmt.Errorf("%w: path component %q contains ASCII control characters", ErrInvalidPath, name)
+			return fmt.Errorf(
+				"%w: path component %q contains ASCII control characters",
+				ErrInvalidPath,
+				name,
+			)
 		}
 	}
 	return nil
@@ -64,7 +76,12 @@ func ValidateRelativePath(p string) error {
 
 	for segment := range strings.SplitSeq(cleaned, "/") {
 		if strings.HasPrefix(segment, ".") {
-			return fmt.Errorf("%w: segment %q in %q cannot be dot-prefixed", ErrInvalidPath, segment, p)
+			return fmt.Errorf(
+				"%w: segment %q in %q cannot be dot-prefixed",
+				ErrInvalidPath,
+				segment,
+				p,
+			)
 		}
 		if err := ValidatePathComponent(segment); err != nil {
 			return err

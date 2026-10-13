@@ -18,7 +18,9 @@ func TestOpenFS(t *testing.T) {
 
 	validFS := fstest.MapFS{
 		"catl.toml": &fstest.MapFile{
-			Data: []byte("[catalog]\nname = \"app-flags\"\n\n[collections.flags]\nschema = \"schemas/flags.json\"\n"),
+			Data: []byte(
+				"[catalog]\nname = \"app-flags\"\n\n[collections.flags]\nschema = \"schemas/flags.json\"\n",
+			),
 		},
 		"schemas/flags.json": &fstest.MapFile{
 			Data: []byte(`{
@@ -145,7 +147,9 @@ func TestOpenFS(t *testing.T) {
 
 		invalidFS := fstest.MapFS{
 			"catl.toml": &fstest.MapFile{
-				Data: []byte("[catalog]\nname = \"app-flags\"\n\n[collections.flags]\nschema = \"schemas/flags.json\"\n"),
+				Data: []byte(
+					"[catalog]\nname = \"app-flags\"\n\n[collections.flags]\nschema = \"schemas/flags.json\"\n",
+				),
 			},
 			"schemas/flags.json": &fstest.MapFile{
 				Data: []byte(`{"type": "object", "properties": {"rollout": {"maximum": 100}}}`),

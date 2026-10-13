@@ -41,14 +41,23 @@ func TestValidatePathComponent(t *testing.T) {
 
 			err := config.ValidatePathComponent(tt.input)
 			if (err != nil) != tt.wantErr {
-				t.Fatalf("ValidatePathComponent(%q) error = %v, wantErr %t", tt.input, err, tt.wantErr)
+				t.Fatalf(
+					"ValidatePathComponent(%q) error = %v, wantErr %t",
+					tt.input,
+					err,
+					tt.wantErr,
+				)
 			}
 			if tt.wantErr && !errors.Is(err, config.ErrInvalidPath) {
-				t.Errorf("ValidatePathComponent(%q) error = %v, want %v", tt.input, err, config.ErrInvalidPath)
+				t.Errorf(
+					"ValidatePathComponent(%q) error = %v, want %v",
+					tt.input,
+					err,
+					config.ErrInvalidPath,
+				)
 			}
 		})
 	}
-
 }
 
 // TestValidateRelativePath checks relative path validation.
@@ -88,7 +97,11 @@ func TestValidateRelativePath(t *testing.T) {
 		{name: "invalid UTF-8", input: "schemas/\xff\xfe/service.json", wantErr: true},
 		{name: "non-NFC Unicode", input: "cafe\u0301/manifest.yaml", wantErr: true},
 		{name: "exceeds length limit", input: strings.Repeat("a", 256), wantErr: true},
-		{name: "nested component exceeds length limit", input: "valid/" + strings.Repeat("b", 256), wantErr: true},
+		{
+			name:    "nested component exceeds length limit",
+			input:   "valid/" + strings.Repeat("b", 256),
+			wantErr: true,
+		},
 	}
 
 	for _, tt := range tests {
@@ -97,10 +110,20 @@ func TestValidateRelativePath(t *testing.T) {
 
 			err := config.ValidateRelativePath(tt.input)
 			if (err != nil) != tt.wantErr {
-				t.Fatalf("ValidateRelativePath(%q) error = %v, wantErr %t", tt.input, err, tt.wantErr)
+				t.Fatalf(
+					"ValidateRelativePath(%q) error = %v, wantErr %t",
+					tt.input,
+					err,
+					tt.wantErr,
+				)
 			}
 			if tt.wantErr && !errors.Is(err, config.ErrInvalidPath) {
-				t.Errorf("ValidateRelativePath(%q) error = %v, want %v", tt.input, err, config.ErrInvalidPath)
+				t.Errorf(
+					"ValidateRelativePath(%q) error = %v, want %v",
+					tt.input,
+					err,
+					config.ErrInvalidPath,
+				)
 			}
 		})
 	}

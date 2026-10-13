@@ -9,8 +9,9 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/ju4n97/catl/internal/scan"
 	"github.com/santhosh-tekuri/jsonschema/v6"
+
+	"github.com/ju4n97/catl/internal/scan"
 )
 
 // Validator compiles collection schemas and validates entity manifests against them.
@@ -80,7 +81,12 @@ func (v *Validator) Compile(schemaPath string) error {
 }
 
 // ValidateManifest validates a decoded manifest against its collection's schema.
-func (v *Validator) ValidateManifest(m *Manifest, schemaPath string, entity *scan.Entity, bundleFS fs.FS) error {
+func (v *Validator) ValidateManifest(
+	m *Manifest,
+	schemaPath string,
+	entity *scan.Entity,
+	bundleFS fs.FS,
+) error {
 	if schemaPath == "" {
 		return nil
 	}
@@ -153,7 +159,10 @@ func (v *Validator) validateCatlFile(val any) error {
 }
 
 // formatValidationError flattens the jsonschema error hierarchy into structured Diagnostics.
-func (v *Validator) formatValidationError(m *Manifest, schemaErr *jsonschema.ValidationError) error {
+func (v *Validator) formatValidationError(
+	m *Manifest,
+	schemaErr *jsonschema.ValidationError,
+) error {
 	unit := schemaErr.BasicOutput()
 	var diags []Diagnostic
 

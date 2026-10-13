@@ -6,8 +6,9 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/ju4n97/catl/schema"
 	"github.com/santhosh-tekuri/jsonschema/v6"
+
+	"github.com/ju4n97/catl/schema"
 )
 
 const schemaURL = "https://ju4n97.github.io/catl/schema/v1/catl.schema.json"
@@ -59,7 +60,12 @@ func (f *File) Validate() error {
 		}
 
 		if existing, exists := seenDirs[dir]; exists {
-			return fmt.Errorf("collections %q and %q share the same directory %q", existing, name, dir)
+			return fmt.Errorf(
+				"collections %q and %q share the same directory %q",
+				existing,
+				name,
+				dir,
+			)
 		}
 		seenDirs[dir] = name
 	}

@@ -4,9 +4,10 @@ import (
 	"context"
 	"errors"
 
+	"github.com/urfave/cli/v3"
+
 	"github.com/ju4n97/catl"
 	"github.com/ju4n97/catl/internal/schema"
-	"github.com/urfave/cli/v3"
 )
 
 // newCheckCommand validates manifests, schemas, and dependency locks.

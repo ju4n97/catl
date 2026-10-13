@@ -71,7 +71,10 @@ func TestValidatorSchemaEnforcement(t *testing.T) {
 		}
 
 		formatted := valErr.Error()
-		if !strings.Contains(formatted, "rules/rate-limit.yaml:2: /threshold: maximum: got 150, want 100") {
+		if !strings.Contains(
+			formatted,
+			"rules/rate-limit.yaml:2: /threshold: maximum: got 150, want 100",
+		) {
 			t.Errorf("diagnostic output mismatch: %s", formatted)
 		}
 	})
@@ -97,7 +100,10 @@ func TestValidatorSchemaEnforcement(t *testing.T) {
 		}
 
 		formatted := valErr.Error()
-		if !strings.Contains(formatted, "rules/rate-limit.yaml:1: /enabled: got string, want boolean") {
+		if !strings.Contains(
+			formatted,
+			"rules/rate-limit.yaml:1: /enabled: got string, want boolean",
+		) {
 			t.Errorf("diagnostic output mismatch: %s", formatted)
 		}
 	})
@@ -154,7 +160,11 @@ func TestValidatorCatlFileFormat(t *testing.T) {
 			t.Fatalf("DecodeManifest() failed: %v", err)
 		}
 
-		ent := &scan.Entity{ID: "billing", Shape: scan.EntityShapeBundle, BundleDir: "services/billing"}
+		ent := &scan.Entity{
+			ID:        "billing",
+			Shape:     scan.EntityShapeBundle,
+			BundleDir: "services/billing",
+		}
 		if err := val.ValidateManifest(m, "schemas/bundle.json", ent, bundleFS); err != nil {
 			t.Fatalf("ValidateManifest() failed: %v", err)
 		}
@@ -171,7 +181,11 @@ func TestValidatorCatlFileFormat(t *testing.T) {
 			t.Fatalf("DecodeManifest() failed: %v", err)
 		}
 
-		ent := &scan.Entity{ID: "billing", Shape: scan.EntityShapeBundle, BundleDir: "services/billing"}
+		ent := &scan.Entity{
+			ID:        "billing",
+			Shape:     scan.EntityShapeBundle,
+			BundleDir: "services/billing",
+		}
 		err = val.ValidateManifest(m, "schemas/bundle.json", ent, bundleFS)
 		if err == nil {
 			t.Fatal("expected error for missing companion file, got nil")

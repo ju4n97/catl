@@ -8,8 +8,9 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/ju4n97/catl/internal/schema"
 	"github.com/urfave/cli/v3"
+
+	"github.com/ju4n97/catl/internal/schema"
 )
 
 func main() {

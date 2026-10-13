@@ -7,9 +7,10 @@ import (
 	"io"
 	"os"
 
+	"github.com/urfave/cli/v3"
+
 	"github.com/ju4n97/catl"
 	"github.com/ju4n97/catl/internal/scan"
-	"github.com/urfave/cli/v3"
 )
 
 // newShowCommand streams an entity manifest or companion file to standard output.
@@ -61,7 +62,14 @@ Examples:
 			if err != nil {
 				if errors.Is(err, catl.ErrNotQualified) {
 					suggested := fmt.Sprintf("%s.%s", cat.Name(), qualifiedID)
-					return cli.Exit(fmt.Sprintf("%q is not a qualified ID (want namespace.id); did you mean %q?", qualifiedID, suggested), 1)
+					return cli.Exit(
+						fmt.Sprintf(
+							"%q is not a qualified ID (want namespace.id); did you mean %q?",
+							qualifiedID,
+							suggested,
+						),
+						1,
+					)
 				}
 				return cli.Exit(err.Error(), 1)
 			}
@@ -73,7 +81,10 @@ Examples:
 			}
 
 			if ent.Shape() != scan.EntityShapeBundle {
-				return cli.Exit(fmt.Sprintf("entity %q is a flat entity and has no companion files", ent.ID()), 1)
+				return cli.Exit(
+					fmt.Sprintf("entity %q is a flat entity and has no companion files", ent.ID()),
+					1,
+				)
 			}
 
 			bundleFS, err := ent.FS(ctx)
@@ -83,7 +94,10 @@ Examples:
 
 			file, err := bundleFS.Open(filePath)
 			if err != nil {
-				return cli.Exit(fmt.Sprintf("companion file %q not found in bundle: %v", filePath, err), 1)
+				return cli.Exit(
+					fmt.Sprintf("companion file %q not found in bundle: %v", filePath, err),
+					1,
+				)
 			}
 			defer file.Close()
 

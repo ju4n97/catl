@@ -18,7 +18,9 @@ var (
 	ErrMissingManifest = errors.New("bundle entity missing manifest.yaml or manifest.json")
 
 	// ErrAmbiguousManifest indicates a bundle entity contains both manifest.yaml and manifest.json.
-	ErrAmbiguousManifest = errors.New("bundle entity cannot contain both manifest.yaml and manifest.json")
+	ErrAmbiguousManifest = errors.New(
+		"bundle entity cannot contain both manifest.yaml and manifest.json",
+	)
 
 	// ErrInvalidManifestType is returned when an entity file does not use a supported extension (.yaml or .json).
 	ErrInvalidManifestType = errors.New("manifest file must have .yaml or .json extension")

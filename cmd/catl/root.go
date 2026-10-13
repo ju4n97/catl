@@ -6,18 +6,21 @@ import (
 	"os"
 
 	"github.com/urfave/cli/v3"
-)
 
-// Version is populated at build time via -ldflags.
-var Version = "dev"
+	"github.com/ju4n97/catl/internal/version"
+)
 
 // newRootCommand initializes the top-level catl CLI application.
 func newRootCommand() *cli.Command {
+	cli.VersionPrinter = func(cmd *cli.Command) {
+		_, _ = fmt.Fprintln(cmd.Root().Writer, version.String())
+	}
+
 	return &cli.Command{
 		Name:                   "catl",
 		Usage:                  "Package manager and validator for declarative entity catalogs",
 		UsageText:              "catl [flags] <command> [args...]",
-		Version:                Version,
+		Version:                version.Version(),
 		Suggest:                true,
 		EnableShellCompletion:  true,
 		UseShortOptionHandling: true,
@@ -58,6 +61,8 @@ func newRootCommand() *cli.Command {
 			return ctx, nil
 		},
 		Commands: []*cli.Command{
+			newVersionCommand(),
+
 			// Catalog lifecycle
 			newInitCommand(),
 			newCheckCommand(),
