@@ -1,6 +1,6 @@
 {
     "$schema": "https://json-schema.org/draft/2020-12/schema",
-    "$id": "https://ju4n97.github.io/catl/schema/v1/catl.schema.json",
+    "$id": "https://raw.githubusercontent.com/ju4n97/catl/refs/heads/main/schema/catl.schema.json",
     "title": "catl.toml",
     "description": "Validation schema for catl catalog and workspace configuration files.",
     "type": "object",

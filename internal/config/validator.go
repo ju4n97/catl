@@ -11,7 +11,7 @@ import (
 	"github.com/ju4n97/catl/schema"
 )
 
-const schemaURL = "https://ju4n97.github.io/catl/schema/v1/catl.schema.json"
+const schemaURL = "https://raw.githubusercontent.com/ju4n97/catl/refs/heads/main/schema/catl.schema.json"
 
 // getCompiledSchema parses and compiles catl.schema.json exactly once.
 var getCompiledSchema = sync.OnceValues(func() (*jsonschema.Schema, error) {

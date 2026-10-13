@@ -37,7 +37,7 @@ func TestCopy(t *testing.T) {
 			t.Fatalf("read catl.toml failed: %v", err)
 		}
 
-		wantTOMLPrefix := "#:schema https://ju4n97.github.io/catl/schema/v1/catl.schema.json"
+		wantTOMLPrefix := "#:schema https://raw.githubusercontent.com/ju4n97/catl/refs/heads/main/schema/catl.schema.json"
 		if !strings.Contains(string(catlData), wantTOMLPrefix) {
 			t.Errorf("expected catl.toml to contain schema header")
 		}
