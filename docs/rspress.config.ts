@@ -10,6 +10,7 @@ export default defineConfig({
   lang: "en",
   logoText: "catl",
   base: "/catl/",
+  outDir: "dist",
   siteOrigin: "https://ju4n97.github.io",
   globalStyles: path.join(__dirname, "theme/index.css"),
   head: [["meta", { name: "theme-color", content: "#d97706" }]],
