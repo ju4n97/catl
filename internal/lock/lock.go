@@ -280,7 +280,7 @@ func validateGitCommit(sha string) error {
 
 	for i := range len(sha) {
 		c := sha[i]
-		if !((c >= '0' && c <= '9') || (c >= 'a' && c <= 'f')) {
+		if (c < '0' || c > '9') && (c < 'a' || c > 'f') {
 			return fmt.Errorf("contains non-hex character %q at index %d", c, i)
 		}
 	}
@@ -296,7 +296,7 @@ func validateTreeHash(h string) error {
 
 	for i := 7; i < len(h); i++ {
 		c := h[i]
-		if !((c >= '0' && c <= '9') || (c >= 'a' && c <= 'f')) {
+		if (c < '0' || c > '9') && (c < 'a' || c > 'f') {
 			return fmt.Errorf("contains non-lowercase-hex character %q at index %d", c, i)
 		}
 	}
