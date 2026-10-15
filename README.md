@@ -4,57 +4,45 @@
 [![Release](https://img.shields.io/github/v/release/ju4n97/catl?style=flat-square&color=FFB000&labelColor=1A1A1A)](https://github.com/ju4n97/catl/releases)
 [![CI](https://img.shields.io/github/actions/workflow/status/ju4n97/catl/ci.yaml?style=flat-square&label=CI&labelColor=1A1A1A)](https://github.com/ju4n97/catl/actions/workflows/ci.yaml)
 
-`catl` is a package manager and verified runtime substrate for declarative data stored in filesystem directories.
+`catl` is a package manager and runtime for structured YAML and JSON data stored in the filesystem.
 
-It organizes YAML and JSON manifests into collections, validates them against JSON Schema Draft 2020-12 using strict YAML 1.2 parsing, binds companion files into bundle directories, and computes deterministic SHA-256 tree hashes for content integrity.
+It groups manifests into collections, validates them against JSON Schema Draft 2020-12 using strict YAML 1.2 parsing, and keeps companion files alongside their manifests in bundle directories. External Git dependencies are pinned in a lockfile, and deterministic SHA-256 tree hashes let you verify catalog contents.
 
-Catalogs can be queried via a CLI, embedded in Go applications, served over a local HTTP daemon with atomic reloads, or mounted as a Model Context Protocol (MCP) server. Multiple isolated catalogs can be managed through a single registry.
+The CLI is a single static binary. You don't need a database or background daemon, and schema validation runs entirely offline.
 
-Everything runs offline as a single static binary with no database, background daemon, or CGO dependencies.
+[Documentation](https://ju4n97.github.io/catl/) · [Layout and manifests](https://ju4n97.github.io/catl/guide/spec/layout-and-manifests) · [Embedding in Go](https://ju4n97.github.io/catl/guide/reference/embedding) · [HTTP API](https://ju4n97.github.io/catl/guide/reference/http)
 
-[Documentation](https://ju4n97.github.io/catl/) · [Specification](https://ju4n97.github.io/catl/guide/spec/layout-and-manifests) · [Embedding in Go](https://ju4n97.github.io/catl/guide/reference/embedding) · [HTTP API](https://ju4n97.github.io/catl/guide/reference/http) · [Examples](./examples)
+## Why catl?
 
-## Why catl? Building a Git-backed Headless CMS
+Git works well as a source of truth for structured content, but reading files is only part of the process. A production application still needs to validate manifests, check that referenced assets exist, resolve dependencies, and make sure different runtimes interpret the data consistently.
 
-Git-backed CMSs like TinaCMS and Decap CMS use Git repositories as their content store. The editor UI and publishing workflows sit on top, but underneath, you need a deterministic data layer.
+`catl` provides that data layer. You can build the editing UI, publishing workflow, and rendering logic yourself without having to implement the validation and filesystem rules around them.
 
-Building that data layer from scratch requires solving several non-trivial problems:
+A CMS is just one use case. The same approach works for service catalogs, feature flag registries, policy repositories, knowledge bases, AI agent registries, and many other use cases. Any system that stores structured data in Git can use the same model.
 
-- Enforcing required fields, types, and constraints before content reaches consumers.
-- Applying strict YAML 1.2 parsing rules to avoid quirks (such as unquoted `no` or `off` evaluating to boolean `false`).
-- Binding companion assets (Markdown bodies, images, runbooks) directly to structured metadata without losing relative path safety.
-- Preventing path traversal attacks (`../`) and forbidden symlinks.
-- Exposing the same verified content to Go services, frontend frameworks, shell scripts, and AI tools without duplicating parsing logic.
-- Computing deterministic content hashes to verify that on-disk files match expected states.
+See the [quick start](https://ju4n97.github.io/catl/guide/quick-start) for a walkthrough.
 
-`catl` handles this layer with a single, verified catalog model. You build the editing UI, publishing workflows, and previews; `catl` handles the data layer.
+## Catalog layout
 
-## Catalog structure
-
-A catalog consists of a configuration file, collection schemas, and entity manifests:
+A catalog starts with `catl.toml`, which declares its identity, collections, and dependencies. Collections contain entities, each represented by a manifest file or a bundle directory.
 
 ```text
 content/
-├── catl.toml                 # Catalog identity and collection bindings
+├── catl.toml                 # Catalog identity, collections, and dependencies
+├── catl.lock                 # Pinned dependency revisions and tree hashes
 ├── schemas/
 │   └── article.json          # JSON Schema Draft 2020-12
 └── articles/
-    ├── hello-world.yaml      # Flat entity (ID: hello-world)
-    └── getting-started/      # Bundle entity (ID: getting-started)
-        ├── manifest.yaml     # Entity manifest
-        ├── body.md           # Companion Markdown file
-        └── diagram.png       # Companion asset
+    ├── hello-world.yaml      # Flat entity: ID "hello-world"
+    └── release-v1/           # Bundle entity: ID "release-v1"
+        ├── manifest.yaml
+        ├── body.md
+        └── banner.svg
 ```
 
-Entities take one of two shapes:
-
-- **Flat entities:** Single manifest files placed directly in a collection directory. The filename without extension is the entity identifier.
-- **Bundle entities:** Directories containing a `manifest.yaml` (or `manifest.json`) alongside arbitrary companion files. The directory name is the entity identifier.
-
-Configure collections in `catl.toml`:
+For example, this configuration declares an `articles` collection with a schema:
 
 ```toml
-# content/catl.toml
 [catalog]
 name = "blog"
 
@@ -62,245 +50,129 @@ name = "blog"
 schema = "schemas/article.json"
 ```
 
-## Walkthrough
+Flat entities contain only a manifest. Use a bundle when an entity needs companion files such as images, Markdown documents, PDFs, etc. See [Layout and manifests](https://ju4n97.github.io/catl/guide/spec/layout-and-manifests) for the full rules.
 
-### 1. Define the schema
+## Quick start
 
-Define the content type using standard JSON Schema Draft 2020-12:
+### 1. Use the CLI
 
-```json
-{
-  "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "type": "object",
-  "required": ["title", "author", "published"],
-  "properties": {
-    "title": { "type": "string" },
-    "author": { "type": "string" },
-    "published": { "type": "boolean" },
-    "reading_time_minutes": {
-      "type": "integer",
-      "minimum": 1
-    }
-  },
-  "additionalProperties": false
-}
-```
-
-### 2. Author content
-
-Create a bundle entity in `content/articles/getting-started/manifest.yaml`:
-
-```yaml
-title: Getting started with catl
-author: Juan
-published: true
-reading_time_minutes: 5
-```
-
-The article body lives in `body.md` alongside the manifest. Assets such as diagrams can live in the same directory.
-
-### 3. Validate
-
-Validate the catalog:
+Run these commands against the catalog in `./content`:
 
 ```bash
+# Validate manifests and catalog layout. Silent on success.
 catl -C ./content check
-```
 
-Validation runs offline and exits `0` with no output on success. Syntax errors, unknown fields, schema bounds violations, and path escapes fail immediately with source file locations and JSON pointers.
-
-## Four interfaces in a unified engine
-
-The same catalog can be consumed across four interfaces:
-
-### 1. From the CLI
-
-```bash
-# List all entities across collections
+# List entities in deterministic order.
 catl -C ./content list
 
-# Print the absolute filesystem path of a manifest
-catl -C ./content resolve articles blog.getting-started
+# Resolve an entity to its manifest path.
+catl -C ./content resolve articles blog.release-v1
 
-# Stream manifest content to stdout
-catl -C ./content show articles blog.getting-started
-
-# Stream a companion file to stdout (pipe into renderers, pagers, etc.)
-catl -C ./content show articles blog.getting-started body.md
+# Print the manifest or a companion file.
+catl -C ./content show articles blog.release-v1
+catl -C ./content show articles blog.release-v1 body.md
 ```
 
-### 2. In Go applications
+The CLI can validate catalogs, resolve entities, and read manifests or companion files.
 
-Import `github.com/ju4n97/catl`. Manifests unmarshal into typed structs, and bundle files are accessible via standard `io/fs.FS`:
+### 2. Embed it in Go
+
+Import `github.com/ju4n97/catl` to load a catalog and work with its entities directly. Manifests can be decoded into your own structs, and bundle files are accessible through the standard `io/fs` interface.
 
 ```go
 package main
 
 import (
-  "context"
-  "fmt"
-  "io/fs"
-  "log"
+    "context"
+    "fmt"
+    "io/fs"
+    "log"
 
-  "github.com/ju4n97/catl"
+    "github.com/ju4n97/catl"
 )
 
 type Article struct {
-  Title     string `json:"title"`
-  Author    string `json:"author"`
-  Published bool   `json:"published"`
+    Title     string `json:"title"`
+    Author    string `json:"author"`
+    Published bool   `json:"published"`
 }
 
 func main() {
-  ctx := context.Background()
+    ctx := context.Background()
 
-  cat, err := catl.Open(ctx, "./content", catl.Options{Offline: true})
-  if err != nil {
-    log.Fatalf("failed to open catalog: %v", err)
-  }
-
-  // Resolve entity by collection and qualified ID ("<namespace>.<id>")
-  entity, err := cat.Resolve("articles", "blog.getting-started")
-  if err != nil {
-    log.Fatalf("resolve error: %v", err)
-  }
-
-  var article Article
-  if err := entity.Unmarshal(&article); err != nil {
-    log.Fatalf("unmarshal error: %v", err)
-  }
-  fmt.Printf("%s by %s\n", article.Title, article.Author)
-
-  // Access companion files through standard io/fs.FS
-  if entity.IsBundle() {
-    bundleFS, err := entity.FS(ctx)
+    cat, err := catl.Open(ctx, "./content")
     if err != nil {
-      log.Fatal(err)
+        log.Fatal(err)
     }
 
-    body, err := fs.ReadFile(bundleFS, "body.md")
+    entity, err := cat.Resolve("articles", "blog.release-v1")
     if err != nil {
-      log.Fatal(err)
+        log.Fatal(err)
     }
-    fmt.Println(string(body))
-  }
+
+    var article Article
+    if err := entity.Unmarshal(&article); err != nil {
+        log.Fatal(err)
+    }
+
+    fmt.Printf("%s by %s\n", article.Title, article.Author)
+
+    if entity.IsBundle() {
+        bundleFS, err := entity.FS(ctx)
+        if err != nil {
+            log.Fatal(err)
+        }
+
+        body, err := fs.ReadFile(bundleFS, "body.md")
+        if err != nil {
+            log.Fatal(err)
+        }
+
+        fmt.Println(string(body))
+    }
 }
 ```
 
-### 3. Over HTTP (`catl serve`)
+`Resolve` takes a collection name and a qualified entity ID in the form `namespace.id`. For bundle entities, `Entity.FS` gives you access to companion files without having to manage their paths yourself.
 
-Run the read-only HTTP daemon for services written in other languages:
+See [Embedding in Go](https://ju4n97.github.io/catl/guide/reference/embedding) for more examples.
+
+### 3. Run the HTTP server
+
+The HTTP server exposes a loaded catalog to other runtimes. Start it locally with:
 
 ```bash
 catl serve ./content --addr 127.0.0.1:8080
 ```
 
-The daemon provides RESTful endpoints, and atomic reloads:
+You can then query entities and stream companion files over HTTP:
 
 ```bash
-# Get complete entity resource (metadata + parsed manifest JSON)
-curl http://127.0.0.1:8080/v1/collections/articles/entities/blog.getting-started
+# Get the entity metadata and manifest.
+curl http://127.0.0.1:8080/v1/collections/articles/entities/blog.release-v1
 
-# Stream raw manifest file as stored on disk
-curl http://127.0.0.1:8080/v1/collections/articles/entities/blog.getting-started/manifest
+# Read a companion file.
+curl http://127.0.0.1:8080/v1/collections/articles/entities/blog.release-v1/files/body.md
 
-# List companion files in the bundle
-curl http://127.0.0.1:8080/v1/collections/articles/entities/blog.getting-started/files
-
-# Stream companion file
-curl http://127.0.0.1:8080/v1/collections/articles/entities/blog.getting-started/files/body.md
-
-# Trigger atomic hot-reload from disk
+# Reload the catalog from disk.
 curl -X POST http://127.0.0.1:8080/v1/catalog/reload
 ```
 
-Go services can also mount the handler directly into an existing `http.ServeMux` via `catlhttp.New(cat)`.
+Catalog reloads use atomic replacement, so readers don't have to observe a partially loaded catalog. The [HTTP API reference](https://ju4n97.github.io/catl/guide/reference/http) documents the available endpoints.
 
-### 4. Over Model Context Protocol (MCP)
+### 4. Connect through MCP
 
-`catl` exposes catalog entities and companion files directly to MCP-compatible clients (such as Claude Desktop and Cursor):
+You can also expose catalog manifests, companion files, and validation tools to MCP-compatible editors and assistants:
 
 ```bash
 catl mcp ./content
 ```
 
-Configure the MCP client:
-
-```json
-{
-  "mcpServers": {
-    "blog": {
-      "command": "catl",
-      "args": ["mcp", "/path/to/content"]
-    }
-  }
-}
-```
-
-- **MCP Resources:** Manifests and companion files map to read-only URI resources (`catl://articles/blog.getting-started/body.md`).
-- **MCP Prompts:** Bundle entities containing prompt templates can be inspected and invoked directly by models.
-
-## Multi-catalog registries
-
-When managing multiple independent catalogs (such as distinct customer repositories, clinics, or environments), organize them as siblings within a registry directory:
-
-```text
-registry.d/
-├── tenant-a/
-│   ├── catl.toml             # name = "tenant-a"
-│   └── articles/
-└── tenant-b/
-    ├── catl.toml             # name = "tenant-b"
-    └── articles/
-```
-
-### In Go
-
-```go
-// Open all catalogs within a registry directory
-reg, err := catl.OpenRegistry(ctx, "./registry.d", catl.Options{Offline: true})
-if err != nil {
-  log.Fatal(err)
-}
-
-// Access isolated catalogs by namespace
-tenantA, ok := reg.Catalog("tenant-a")
-if ok {
-  article, err := tenantA.Resolve("articles", "tenant-a.getting-started")
-  if err == nil {
-    fmt.Println("Found article:", article.QualifiedID)
-  }
-}
-```
-
-### Over HTTP
-
-Run a single daemon to serve all tenants without identifier collisions:
-
-```bash
-catl serve ./registry.d --addr 127.0.0.1:8080
-```
-
-```http
-GET /v1/catalogs
-GET /v1/catalogs/tenant-a/collections/articles/entities/tenant-a.getting-started
-GET /v1/catalogs/tenant-b/collections/articles/entities/tenant-b.getting-started
-POST /v1/catalogs/reload
-```
+Manifests and companion files are exposed as read-only `catl://` resources.
 
 ## Installation
 
-### Prebuilt binaries
-
-Download static binaries for Linux, macOS, and Windows from the [releases page](https://github.com/ju4n97/catl/releases).
-
-### Install via Go
-
-Requires Go 1.27+:
-
-```bash
-go install github.com/ju4n97/catl/cmd/catl@latest
-```
+<https://ju4n97.github.io/catl/guide/installation/>
 
 ## Documentation
 

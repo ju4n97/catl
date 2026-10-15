@@ -1,93 +1,143 @@
 ---
 title: Quick start
-description: Create a catalog, write a schema, add entities, and validate them from scratch.
+description: Build a Git-backed data layer with schemas, bundle assets, and manifest validation.
 ---
+
+import { Steps } from "@rspress/core/theme";
 
 # Quick start
 
-This guide creates a feature flag catalog, writes a JSON Schema, adds flat and bundle entities, and inspects them using the hierarchical CLI.
+This guide walks through building a data layer for a Git-backed CMS. You'll define a schema, add articles and companion assets, catch validation errors without going online, and query the catalog through the CLI.
 
-## 1. Create the catalog
+## Why use catl?
 
-Run `catl init` to scaffold a new catalog directory:
+Reading YAML files from Git sounds simple. You can load them with `os.ReadFile` and parse them, but that is just a small part. Once the content is used in production, you also need to validate it, keep file references from breaking, and make sure different tools interpret it the same way.
+
+For example, some YAML 1.1 parsers treat unquoted values like `no`, `on`, and `off` as booleans. A country code such as `country: no` can end up with the wrong type. Parsers in different programming languages can also disagree, which makes it harder to keep validation consistent across your Go backend, Python scripts, and frontend.
+
+Then there are companion files. An article might reference `cover.png` or a bundle might contain an OpenAPI spec, but parsing the manifest doesn't tell you whether those files actually exist. File paths need validation too, so content can't reference files outside the intended directory. And if you need to verify that a catalog hasn't changed, you need a deterministic way to hash its contents across different operating systems.
+
+`catl` handles these checks in one place. You define schemas, validate manifests, check references to companion files, and compute deterministic tree hashes. Your application can focus on the editing UI, publishing workflow, and rendering instead of reimplementing the data layer.
+
+## Use cases
+
+A CMS is a convenient way to see how `catl` works, but the same model applies anywhere structured data lives in Git.
+
+You can use it for service catalogs that keep ownership metadata and OpenAPI specs together, feature-flag registries that version rollout rules, or policy repositories that validate OPA/Rego policies before deployment. It also works for AI agent registries that store prompt templates, system instructions, tool definitions, and many other use cases.
+
+The core idea is to keep structured data in files, define what those files should look like using JSON Schema, and validate them before the application uses them.
+
+<Steps>
+
+### Create a catalog
+
+Scaffold a new catalog using `catl init`:
 
 ```bash
-catl init --name app-flags --collection flags flags-catalog
-cd flags-catalog
+catl init --name blog --collection articles blog-cms
+cd blog-cms
 ```
 
-The command writes the catalog configuration, a schema stub, and Git line-ending attributes:
+The command creates the catalog configuration, a starter schema, and line-ending attributes:
 
 ```text
-create flags-catalog/catl.toml
-create flags-catalog/schemas/flags.json
-create flags-catalog/.gitattributes
+create blog-cms/catl.toml
+create blog-cms/schemas/articles.schema.json
+create blog-cms/.gitattributes
 ```
 
-The generated `catl.toml` binds the `flags` collection to its schema:
+`catl.toml` binds the `articles` collection to its schema:
 
 ```toml title="catl.toml"
 [catalog]
-name = "app-flags"
+name = "blog"
 
-[collections.flags]
-schema = "schemas/flags.json"
+[collections.articles]
+schema = "schemas/articles.schema.json"
 ```
 
-## 2. Define the schema
+### Define the content schema
 
-Replace `schemas/flags.json` with this JSON Schema Draft 2020-12 definition:
+Replace `schemas/articles.schema.json` with this definition:
 
-```json title="schemas/flags.json"
+```json title="schemas/articles.schema.json"
 {
     "$schema": "https://json-schema.org/draft/2020-12/schema",
     "type": "object",
-    "required": ["enabled"],
+    "required": ["title", "author", "published", "reading_time_minutes"],
     "properties": {
-        "enabled": { "type": "boolean" },
-        "rollout": { "type": "integer", "minimum": 0, "maximum": 100 }
+        "title": { "type": "string" },
+        "author": { "type": "string" },
+        "published": { "type": "boolean" },
+        "reading_time_minutes": {
+            "type": "integer",
+            "minimum": 1
+        },
+        "cover_image": {
+            "type": "string",
+            "format": "catl-file"
+        }
     },
     "additionalProperties": false
 }
 ```
 
-This requires every flag manifest to have a boolean `enabled` field, allows an optional `rollout` percentage between 0 and 100, and rejects unrecognized fields.
+This enforces four required properties, requires `reading_time_minutes` to be at least 1, and rejects unrecognized fields (`additionalProperties: false`).
 
-## 3. Add entities
+The `"format": "catl-file"` constraint on `cover_image` tells `catl` to verify that the value points to an existing companion file inside the entity bundle. If the path leaves the bundle or the file doesn't exist, validation fails.
 
-An entity is either a standalone file (flat entity) or a directory with companion files (bundle entity).
+### Author content
 
-### Add a flat entity
+Entities inside a collection take one of two shapes: flat files or directory bundles.
 
-Create `flags/dark-mode.yaml`. The filename without its extension defines the entity identifier (`dark-mode`):
+**Flat entity: Standalone announcement**
 
-```yaml title="flags/dark-mode.yaml"
-enabled: true
-rollout: 100
+Create `articles/welcome.yaml`. The filename without its extension becomes the entity ID (`welcome`):
+
+```yaml title="articles/welcome.yaml"
+title: Welcome to the new blog
+author: Editorial Team
+published: true
+reading_time_minutes: 1
 ```
 
-### Add a bundle entity
+Flat entities are single manifest files. They can't contain companion assets.
 
-Create a directory when an entity requires companion files. The directory name becomes the identifier (`new-checkout`), and the manifest must be named `manifest.yaml` or `manifest.json`:
+**Bundle entity: Article with companion Markdown and images**
+
+When content requires companion files (such as Markdown copy, diagrams, or cover images), create a directory named after the entity ID:
 
 ```bash
-mkdir -p flags/new-checkout
+mkdir -p articles/release-v1
 ```
 
-```yaml title="flags/new-checkout/manifest.yaml"
-enabled: false
-rollout: 10
+Create the manifest (`manifest.yaml`):
+
+```yaml title="articles/release-v1/manifest.yaml"
+title: Launching version 1.0
+author: Engineering
+published: true
+reading_time_minutes: 4
+cover_image: banner.svg
 ```
 
-Add a Markdown companion file inside the bundle directory:
+Add the companion files inside `articles/release-v1`:
 
-```markdown title="flags/new-checkout/notes.md"
-# Checkout experiment notes
+```markdown title="articles/release-v1/body.md"
+# Launching version 1.0
 
-Targeted only at staging accounts during the phase 1 rollout.
+Today we are releasing our core platform. All services are live.
 ```
 
-## 4. Validate
+Create an SVG placeholder for the banner image:
+
+```xml title="articles/release-v1/banner.svg"
+<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100"><rect width="100%" height="100%" fill="#000"/></svg>
+```
+
+The manifest stores structured metadata for filtering and indexing, while `body.md` and `banner.svg` are companion files tracked by the catalog.
+
+### Validate the catalog
 
 Run `catl check` from the catalog root:
 
@@ -100,21 +150,27 @@ echo "Exit code: $?"
 Exit code: 0
 ```
 
-`catl check` is silent when everything passes.
+`catl check` follows the Unix rule of silence: it exits with code 0 and produces no output when everything passes.
 
-To see what happens when validation fails, edit `flags/new-checkout/manifest.yaml` and change `rollout` to `150`:
+To see how `catl` enforces constraints, edit `articles/release-v1/manifest.yaml` and reference an image that doesn't exist:
+
+```yaml
+cover_image: missing.png
+```
+
+Run validation again:
 
 ```bash
 catl check
 ```
 
 ```text
-flags/new-checkout/manifest.yaml:2: /rollout: 150 is greater than the maximum of 100
+articles/release-v1/manifest.yaml:5: /cover_image: file "missing.png" not found in bundle
 ```
 
-`catl` outputs the file path, line number, JSON Pointer, and error message to standard error, exiting with status 1. Change the value back to `10` before proceeding.
+`catl` reports the file, line number, JSON pointer, and error reason, then exits with code 1. Revert `cover_image` back to `banner.svg` before continuing.
 
-## 5. List and resolve
+### Query and stream content
 
 List all entities in the catalog:
 
@@ -123,51 +179,63 @@ catl list
 ```
 
 ```text
-flags	app-flags.dark-mode	flags/dark-mode.yaml
-flags	app-flags.new-checkout	flags/new-checkout/manifest.yaml
+articles	blog.release-v1	articles/release-v1/manifest.yaml
+articles	blog.welcome	articles/welcome.yaml
 ```
 
-Every entity is identified by its qualified ID: `namespace.id`. Here the namespace is the catalog name (`app-flags`).
+Entities are printed in tab-separated columns (`COLLECTION  QUALIFIED-ID  PATH`). Every entity is identified by its qualified ID: `namespace.id`.
 
-To get the absolute path to a manifest from a script or editor, use `catl resolve`:
+Locate a manifest on disk using `catl resolve`:
 
 ```bash
-catl resolve flags app-flags.dark-mode
+catl resolve articles blog.release-v1
 ```
 
 ```text
-/home/user/flags-catalog/flags/dark-mode.yaml
+articles/release-v1/manifest.yaml
 ```
 
-Because IDs are scoped to collections, `resolve` requires both the collection name and the qualified ID. If you pass a bare ID without a namespace, `catl` rejects it and suggests the right qualified ID:
+Lookups strictly require both the collection name and the qualified ID. If you pass a bare ID without a namespace, `catl` rejects it with a hint:
 
 ```bash
-catl resolve flags dark-mode
+catl resolve articles release-v1
 ```
 
 ```text
-catl: "dark-mode" is not a qualified ID (want namespace.id); did you mean "app-flags.dark-mode"?
+catl: "release-v1" is not a qualified ID (want namespace.id); did you mean "blog.release-v1"?
 ```
 
-To view the raw contents of a manifest, use `catl show`:
+Stream raw manifest contents to stdout using `catl show`:
 
 ```bash
-catl show flags app-flags.dark-mode
+catl show articles blog.welcome
 ```
 
 ```yaml
-enabled: true
-rollout: 100
+title: Welcome to the new blog
+author: Editorial Team
+published: true
+reading_time_minutes: 1
 ```
 
-For bundle entities, you can also stream companion files by passing their path inside the bundle:
+For bundle entities, pass the relative path of a companion file to stream its contents directly to stdout:
 
 ```bash
-catl show flags app-flags.new-checkout notes.md
+catl show articles blog.release-v1 body.md
 ```
 
 ```markdown
-# Checkout experiment notes
+# Launching version 1.0
 
-Targeted only at staging accounts during the phase 1 rollout.
+Today we are releasing our core platform. All services are live.
 ```
+
+This output can be piped directly into Unix utilities, Markdown renderers, or static site generators.
+
+</Steps>
+
+## What's next?
+
+You can now use `catl` to validate and query structured data stored in Git. From here, you can [embed it in a Go application](/guide/reference/embedding), expose the catalog over the [HTTP API](/guide/reference/http), or look into [dependency management](/guide/spec/dependencies) if your catalog needs to import entities from other catalogs.
+
+For the full set of layout rules, manifest formats, and schema constraints, see [Layout and manifests](/guide/spec/layout-and-manifests).

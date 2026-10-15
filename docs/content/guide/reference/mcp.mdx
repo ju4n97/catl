@@ -1,68 +1,62 @@
 ---
 title: Model Context Protocol (MCP)
-description: Exposing catalog entities, companion files, and validation tools over stdio using the official Model Context Protocol Go SDK.
+description: Expose catalog entities, companion files, and validation tools over stdio.
 ---
 
 # Model Context Protocol (MCP)
 
-`catl` implements the [Model Context Protocol (MCP)](https://modelcontextprotocol.io), an open standard for connecting development tools and language models to verified local context.
+`catl` implements the [Model Context Protocol (MCP)](https://modelcontextprotocol.io), an open standard for connecting development tools and language models to local context.
 
-The MCP server communicates over standard input/output (`stdio`) using the official [`github.com/modelcontextprotocol/go-sdk`](https://github.com/modelcontextprotocol/go-sdk). It exposes catalog entities and bundle companion files as **MCP Resources** and verification routines as **MCP Tools**.
+The MCP server communicates over standard input/output (`stdio`). It exposes catalog entities and bundle companion files as **MCP Resources** and verification routines as **MCP Tools**.
 
 ```bash
 # Run MCP server for a single catalog
 catl mcp ./compliance-catalog
 
-# Run MCP server for a multi-tenant registry directory
+# Run MCP server for a multi-catalog registry directory
 catl mcp ./registry.d
 ```
 
 ## Client configuration
 
-`catl` can be connected to any MCP-compatible client that supports the `stdio` transport.
-
-Configure your client to launch `catl` with the `mcp` command and the path to your catalog:
+Configure your MCP client to launch `catl` with the `mcp` command and the path to your catalog:
 
 ```bash
 catl mcp /absolute/path/to/catalog
 ```
 
-For a multi-tenant registry, provide the registry directory instead:
+For a multi-catalog registry, pass the registry directory instead:
 
 ```bash
 catl mcp /absolute/path/to/registry.d
 ```
 
-In your client's MCP server settings, register `catl` as a local **stdio server**, using `catl` as the command and the relevant path as an argument following `mcp`. Ensure `catl` is available on the client's `PATH`, or specify the full path to the executable.
+In your client's MCP server settings, register `catl` as a local **stdio server**, using `catl` as the command and `["mcp", "/absolute/path/to/catalog"]` as arguments. Ensure `catl` is on the client's `PATH`, or specify the absolute path to the binary.
 
-Refer to your corresponding client's documentation for its configuration format and instructions.
+## MCP resources
 
-## MCP Resources
+All catalog manifests and companion files are mapped to read-only URI resources under the `catl://` scheme:
 
-All catalog manifests and companion files are mapped to read-only URI resources under the `catl://` scheme.
+| Target         | URI pattern                                       | MIME type                                           |
+| -------------- | ------------------------------------------------- | --------------------------------------------------- |
+| Manifest       | `catl://{collection}/{qualified_id}/manifest`     | `application/yaml` or `application/json`            |
+| Companion file | `catl://{collection}/{qualified_id}/files/{path}` | Inferred from file extension (e.g. `text/markdown`) |
 
-### Resource URI syntax
-
-| Target             | URI Pattern                                       | MIME Type                                                         |
-| :----------------- | :------------------------------------------------ | :---------------------------------------------------------------- |
-| **Manifest**       | `catl://{collection}/{qualified_id}/manifest`     | `application/yaml` or `application/json`                          |
-| **Companion file** | `catl://{collection}/{qualified_id}/files/{path}` | Inferred from file extension (e.g. `text/markdown`, `text/plain`) |
-
-### Examples
+Examples:
 
 - `catl://services/platform.auth/manifest`
 - `catl://services/platform.billing/files/runbook.md`
 - `catl://monitors/network.latency/manifest`
 
-When a client requests `resources/list`, `catl` returns all manifests and companion files discovered across active collections. When a resource is read via `resources/read`, the server streams the content directly from memory.
+When a client calls `resources/list`, `catl` returns all discovered manifests and companion files. When read via `resources/read`, content streams directly from memory.
 
-## MCP Tools
+## MCP tools
 
 The server registers tools for discovery, inspection, and dry-run validation:
 
-### 1. `catl_list_collections`
+### 1. catl_list_collections
 
-Lists all declared collections across active catalogs along with their current entity counts.
+Lists all declared collections across active catalogs along with their entity counts:
 
 - **Parameters:** None (`{}`)
 - **Returns:**
@@ -78,9 +72,9 @@ Lists all declared collections across active catalogs along with their current e
     }
     ```
 
-### 2. `catl_list_entities`
+### 2. catl_list_entities
 
-Returns a formatted inventory of entities across all collections, or filtered by collection name.
+Returns an inventory of entities across all collections, or filtered by collection name:
 
 - **Parameters:**
     - `collection` (string, optional): Restrict output to a specific collection (e.g. `services`).
@@ -94,18 +88,18 @@ Returns a formatted inventory of entities across all collections, or filtered by
     }
     ```
 
-### 3. `catl_get_entity`
+### 3. catl_get_entity
 
-Retrieves the complete entity resource representation, including identity metadata, companion file listing, and parsed manifest content.
+Retrieves the entity resource representation, including identity metadata, companion file listing, and parsed manifest content:
 
 - **Parameters:**
     - `collection` (string, required): Collection name (e.g. `services`).
     - `qualified_id` (string, required): Canonical entity identifier (e.g. `platform.billing`).
 - **Returns:** Full JSON entity envelope with unmarshaled manifest fields.
 
-### 4. `catl_get_schema`
+### 4. catl_get_schema
 
-Retrieves the raw JSON Schema Draft 2020-12 definition configured for a collection. Use this to inspect valid fields, types, and constraints before generating or editing manifests.
+Retrieves the raw JSON Schema Draft 2020-12 definition configured for a collection. Use this to inspect valid fields, types, and constraints before generating or editing manifests:
 
 - **Parameters:**
     - `collection` (string, required): Collection name (e.g. `services`).
@@ -120,9 +114,9 @@ Retrieves the raw JSON Schema Draft 2020-12 definition configured for a collecti
     }
     ```
 
-### 5. `catl_read_file`
+### 5. catl_read_file
 
-Reads an individual companion file (such as a runbook, documentation, or template) from a bundle entity.
+Reads an individual companion file (such as a runbook, documentation, or template) from a bundle entity:
 
 - **Parameters:**
     - `collection` (string, required): Collection name (e.g. `services`).
@@ -137,9 +131,9 @@ Reads an individual companion file (such as a runbook, documentation, or templat
     }
     ```
 
-### 6. `catl_validate_manifest`
+### 6. catl_validate_manifest
 
-Dry-run validates an uncommitted YAML or JSON manifest string in memory against a collection's configured schema without touching the filesystem.
+Dry-run validates an uncommitted YAML or JSON manifest string in memory against a collection's configured schema without touching the filesystem:
 
 - **Parameters:**
     - `collection` (string, required): Target collection name.
@@ -160,9 +154,9 @@ Dry-run validates an uncommitted YAML or JSON manifest string in memory against 
     }
     ```
 
-### 7. `catl_check`
+### 7. catl_check
 
-Validates that all catalog manifests conform to collection schemas and verifies path invariants and content tree hashes.
+Validates that all catalog manifests conform to collection schemas and verifies path invariants and content tree hashes:
 
 - **Parameters:** None (`{}`)
 - **Returns:**
@@ -178,12 +172,12 @@ Validates that all catalog manifests conform to collection schemas and verifies 
 
 ## Operational modes
 
-- **Single-catalog mode:** Active when target directory contains `catl.toml`. Resources are scoped directly to that catalog's namespace.
-- **Registry mode:** Active when target directory contains multiple catalog subdirectories (e.g. `registry.d/`). All tenant catalogs are served simultaneously without identifier collisions.
+- **Single-catalog mode:** Active when the target directory contains `catl.toml`. Resources are scoped directly to that catalog's namespace.
+- **Registry mode:** Active when the target directory contains multiple catalog subdirectories (for example, `registry.d/`). All tenant catalogs are served simultaneously without identifier collisions.
 
 ## Embedding in Go
 
-Go applications can embed `catlmcp` directly using the official SDK:
+Go applications can embed `catlmcp` directly using the official Model Context Protocol Go SDK:
 
 ```go
 package main
@@ -201,7 +195,7 @@ import (
 func main() {
 	ctx := context.Background()
 
-	cat, err := catl.Open(ctx, "./catalog", catl.Options{Offline: true})
+	cat, err := catl.Open(ctx, "./catalog")
 	if err != nil {
 		log.Fatalf("failed to open catalog: %v", err)
 	}

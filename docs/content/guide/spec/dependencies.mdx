@@ -1,11 +1,11 @@
 ---
 title: Dependencies
-description: Declaring, pinning, and updating remote dependencies from Git, HTTPS, and local paths.
+description: Git and local path dependencies, lockfile behavior, and vendoring.
 ---
 
 # Dependencies
 
-A catalog can depend on other catalogs to import shared entities, schemas, and companion files. Dependencies are declared in `catl.toml` under the `[dependencies]` table.
+A catalog can depend on other catalogs to import shared entities, schemas, and companion files. Dependencies are declared in `catl.toml` under the `[dependencies]` table:
 
 ```toml title="catl.toml"
 [dependencies]
@@ -13,15 +13,15 @@ infra = { git = "https://github.com/acme/infra", tag = "v2.0.0" }
 core  = { path = "../core" }
 ```
 
-Every dependency has a namespace matching the table key. This key must strictly match the `catalog.name` declared in the target catalog's own `catl.toml`. Entities from `infra` are resolved using that namespace (for example, `infra.postgres`).
+Every dependency has a namespace matching its table key. This key must strictly match the `catalog.name` declared in the target catalog's own `catl.toml`. Entities from `infra` are resolved using that namespace (for example, `infra.postgres`).
 
 ## Source types
 
 A dependency must specify exactly one source type: Git or Local Path.
 
-### Git
+### Git repositories
 
-Git dependencies are resolved and cloned using the host system `git` binary (Git 2.30+ required):
+Git dependencies are resolved using the system `git` binary (Git 2.30+ required):
 
 ```toml
 [dependencies]
@@ -29,36 +29,24 @@ infra    = { git = "https://github.com/acme/infra", tag = "v2.0.0" }
 monorepo = { git = "https://github.com/acme/monorepo", rev = "d6e89a7123bf01c4a0b1e5f7a3c9d2e8b4f60718", subdir = "catalogs/infra" }
 ```
 
-A Git source requires exactly one of `tag`, `branch`, or `rev`. Commits (`rev`) must be full 40 character hexadecimal strings. Annotated tags are automatically peeled to their target commits.
+A Git source requires exactly one of `tag`, `branch`, or `rev`. Commits (`rev`) must be full 40-character hexadecimal strings. Annotated tags are automatically peeled to their target commits.
 
-The optional `subdir` field specifies a subdirectory inside the repository that contains the target catalog. Git submodules (gitlinks) inside the target tree cause an error, and Git LFS pointers are treated as plain text files rather than resolved.
+The optional `subdir` field specifies a subdirectory inside the repository that contains the target catalog. Git submodules inside the target tree cause an error, and Git LFS pointers are treated as plain text files rather than resolved.
 
 ### Local paths
 
-Catalogs residing on the local filesystem (such as sibling directories) use `path`:
+Catalogs residing on the local filesystem (such as sibling directories in a monorepo) use `path`:
 
 ```toml
 [dependencies]
 core = { path = "../core" }
 ```
 
-Local path dependencies are read in place. Because they can change independently of the lockfile and don't have a commit to pin, path dependencies are not recorded in `catl.lock`, are never cached, and are never hashed.
+Local path dependencies are read in place. Because they change independently and have no commit hash to pin, path dependencies are never cached, never hashed, and not recorded in `catl.lock`.
 
-## Source string syntax
+## The lockfile (catl.lock)
 
-CLI commands like `catl add` accept canonical source strings:
-
-```bash
-catl add 'git+https://github.com/acme/infra#tag=v2.0.0'
-catl add 'git+https://github.com/acme/monorepo#tag=v1.0.0&subdir=catalogs/infra'
-catl add ../core
-```
-
-Characters like `#` and `&` inside branch or tag names must be URL percent encoded.
-
-## The lockfile (`catl.lock`)
-
-When remote dependencies are added or updated, `catl` writes `catl.lock` at the catalog root. This file pins the immutable identity and content tree hash for every non path dependency.
+When remote dependencies are updated, `catl` writes `catl.lock` at the catalog root. This file pins the resolved commit hash and content tree hash for every non-path dependency:
 
 ```toml title="catl.lock"
 version = 1
@@ -69,9 +57,9 @@ resolved = "d6e89a7123bf01c4a0b1e5f7a3c9d2e8b4f60718"
 tree = "sha256:9f2c1a7b8e4f5a6b7c8d9e0f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b"
 ```
 
-Entries are sorted by `requested`. The `resolved` key holds the exact 40-character commit hash for Git dependencies. The `tree` key records the cryptographic tree hash of the fetched catalog files.
+Entries are sorted by `requested`. The `resolved` key holds the exact 40-character commit hash. The `tree` key records the SHA-256 tree hash of the fetched catalog files.
 
-Only `catl add`, `catl remove`, and `catl update` modify `catl.lock`. All other commands (including `check`, `list`, and Go library calls to `catl.Open`) treat the lockfile as read only. If `catl.lock` is missing an entry or does not match `catl.toml`, operations fail with `ErrLockStale`:
+`catl.lock` is modified only by `catl update`. All other commands (including `check`, `list`, and Go library calls to `catl.Open`) treat the lockfile as read-only. If `catl.lock` is missing an entry or doesn't match `catl.toml`, operations fail with `ErrLockStale`:
 
 ```text
 catl: catl.lock is out of date; run 'catl update'
@@ -79,40 +67,40 @@ catl: catl.lock is out of date; run 'catl update'
 
 ## Updating dependencies
 
-To re-resolve dependencies to their latest remote revisions, use `catl update`:
+To resolve dependencies to their latest remote revisions, run `catl update`:
 
 ```bash
-# Re-resolve all remote dependencies
+# Update all remote dependencies
 catl update
 
-# Re-resolve a single dependency
+# Update a single dependency
 catl update infra
 ```
 
 `catl` fetches the remote source, checks whether `resolved` or `tree` has changed, and writes the updated lockfile.
 
-If an existing Git tag has moved to a different commit, `catl update` aborts with an error because force moving a published release tag is a security risk. To accept a moved tag intentionally, supply the `--force` flag:
+If an existing Git tag has moved to a different commit, `catl update` aborts with an error because moving a published release tag is unsafe. To accept a moved tag intentionally, pass the `--force` flag:
 
 ```bash
 catl update --force infra
 ```
 
-## Direct dependencies without transitive imports
+## Non-transitive dependencies
 
-Dependencies are strictly direct. `catl` only downloads and validates the dependencies declared in your own `catl.toml`.
+Dependencies are strictly direct. `catl` only downloads and validates dependencies declared in your own `catl.toml`.
 
-If catalog A depends on catalog B, and catalog B declares a dependency on catalog C, catalog A does not download, lock, or resolve catalog C. If catalog A needs an entity from catalog C, catalog A must declare catalog C in its own `catl.toml`.
+If catalog A depends on catalog B, and catalog B declares a dependency on catalog C, catalog A doesn't download, lock, or resolve catalog C. If catalog A needs an entity from catalog C, catalog A must declare catalog C directly in its own `catl.toml`.
 
-This prevents version conflicts and eliminates diamond dependency graph resolution entirely.
+This eliminates diamond dependency resolution and prevents transitive version conflicts.
 
-## Vendoring for offline environments
+## Vendoring for offline use
 
-To create a fully self contained repository that requires no network access in CI or production, vendor dependencies into the local catalog:
+To create a self-contained repository that requires no network access in CI or air-gapped environments, vendor dependencies into the local catalog:
 
 ```bash
 catl vendor
 ```
 
-This copies all remote dependencies into `.catl/vendor/`, verified against `catl.lock`. Local `path` dependencies are not copied because they already exist on disk.
+This copies all remote dependencies into `.catl/vendor/`, verified against `catl.lock`. Local `path` dependencies are not copied because they already live on disk.
 
-When running in offline mode (`--offline` or `CATL_OFFLINE=1`), `catl` reads dependencies directly from `.catl/vendor` or the local cache without opening network connections.
+When `.catl/vendor/` exists, `catl` enters strict vendor mode: it only reads remote dependencies from `.catl/vendor/` and never falls back to the global cache.

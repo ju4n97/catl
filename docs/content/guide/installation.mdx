@@ -1,18 +1,19 @@
 ---
 title: Installation
-description: Installing the static catl binary, container images, and source builds.
+description: Install the static catl binary, container image, or build from source.
 ---
 
 # Installation
 
-`catl` is distributed as a single static binary with no CGO or libc dependencies.
+`catl` is distributed as a single static binary with no external libc or runtime dependencies.
 
-Prebuilt binaries are available for Linux, macOS, and Windows on x86_64 and arm64 on the [GitHub releases page](https://github.com/ju4n97/catl/releases).
+Prebuilt binaries for Linux, macOS, and Windows on x86_64 and arm64 are available on the [GitHub releases page](https://github.com/ju4n97/catl/releases).
 
 ## System requirements
 
-- **Core operations:** Zero external runtime dependencies. Commands that operate locally, such as `catl check`, `catl list`, `catl resolve`, and the Go library API, run hermetically in scratch or distroless containers without external utilities.
-- **Git dependencies (optional):** If you fetch or update remote Git dependencies using `catl add` or `catl update`, the system `git` CLI (2.30+) must be available in your `PATH`. If `git` is missing, only those remote mutation commands fail; offline validation and inspection remain fully functional.
+Local operations have zero external runtime dependencies. Commands that run locally (`catl check`, `catl list`, `catl resolve`, `catl show`, and the Go library) run in scratch or distroless containers without external utilities.
+
+If you update remote Git dependencies with `catl update`, the system `git` binary (version 2.30+) must be available on your `PATH`. If `git` is missing, only remote mutation commands fail; offline validation and inspection remain functional.
 
 ## Linux and macOS
 
@@ -44,19 +45,19 @@ shasum -a 256 --ignore-missing -c checksums.txt
 
 ## Build from source
 
-### Build using Go install
+### Using Go install
 
-Requires Go 1.27+ installed:
+Requires Go 1.27+:
 
 ```bash
 go install github.com/ju4n97/catl/cmd/catl@latest
 ```
 
-Ensure `$GOPATH/bin` or `$HOME/go/bin` is present in your `PATH`.
+Ensure `$GOPATH/bin` or `$HOME/go/bin` is in your `PATH`.
 
-### Build locally from git
+### From source with Task
 
-Requires [Task](https://taskfile.dev) installed:
+Requires [Task](https://taskfile.dev):
 
 ```bash
 git clone https://github.com/ju4n97/catl.git
@@ -65,43 +66,40 @@ task build
 # Binary is generated at bin/catl
 ```
 
-## Container image
+## Container images
 
-Run `catl` in CI pipelines or automated workflows using the official container image:
+Two container variants are published to GitHub Container Registry for `linux/amd64` and `linux/arm64`:
+
+| Image tag                 | Base              | Included tools                 | Best for                                                          |
+| ------------------------- | ----------------- | ------------------------------ | ----------------------------------------------------------------- |
+| `latest` (or `<version>`) | Distroless static | Only `catl` binary             | CI checks (`catl check`), HTTP servers (`catl serve`), Kubernetes |
+| `latest-alpine`           | Alpine Linux      | `catl`, `git`, CA certificates | Containerized CI runners executing `catl update`                  |
+
+### Default distroless image
+
+The default image has no shell or package manager, keeping image sizes small (~18 MB) with zero CVE footprint:
 
 ```bash
-# Run with a pinned release tag
 docker run --rm -v "$(pwd):/catalog" ghcr.io/ju4n97/catl:latest -C /catalog check
-
-# Or pin directly by digest
-docker run --rm -v "$(pwd):/catalog" \
-  ghcr.io/ju4n97/catl@sha256:77d1a3c9e0b4f5a6b7c8d9e0f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0 \
-  -C /catalog check
 ```
 
-The container image includes the system `git` client so CI jobs can run `catl update` or fetch remote dependencies without additional setup.
+This image supports all local validation and inspection commands (`check`, `list`, `resolve`, `show`, `serve`).
 
-## Verifying the binary
+### Alpine image with Git
 
-Check that the binary is installed correctly and verify its reported version:
-
-```bash
-catl version
-```
-
-Display CLI command usage:
+If your CI pipeline runs entirely inside Docker and needs to fetch or update remote Git dependencies, use the `latest-alpine` image:
 
 ```bash
-catl --help
+docker run --rm -v "$(pwd):/catalog" ghcr.io/ju4n97/catl:latest-alpine -C /catalog update
 ```
 
 ## Shell autocompletion
 
-catl supports dynamic completion for subcommands and flags.
+`catl` supports completion for subcommands and flags.
 
 ### Bash
 
-Add completion to `~/.bashrc`:
+Add this to `~/.bashrc`:
 
 ```bash
 echo 'complete -o default -C catl catl' >> ~/.bashrc
@@ -110,7 +108,7 @@ source ~/.bashrc
 
 ### Zsh
 
-Add the following to `~/.zshrc`:
+Add this to `~/.zshrc`:
 
 ```zsh
 autoload -Uz +X compinit && compinit
@@ -120,7 +118,7 @@ complete -o default -C catl catl
 
 ### Fish
 
-Add the following to `~/.config/fish/completions/catl.fish`:
+Save completion to `~/.config/fish/completions/catl.fish`:
 
 ```fish
 complete -c catl -f -a '(catl --generate-shell-completion (commandline -cop))'
@@ -130,7 +128,7 @@ complete -c catl -f -a '(catl --generate-shell-completion (commandline -cop))'
 
 Package manager installations (`.deb`, `.rpm`, `.pkg.tar.zst`) install man pages automatically.
 
-### Manual installation
+To install the man page manually:
 
 ```bash
 sudo mkdir -p /usr/local/share/man/man1

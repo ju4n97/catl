@@ -1,0 +1,36 @@
+---
+title: Introduction
+description: What a catalog contains, and how catl validates, pins, and hashes it.
+---
+
+# Introduction
+
+`catl` reads and validates declarative YAML and JSON files stored in directories. A catalog is a directory with a root `catl.toml`, JSON Schema files, and collection directories that hold manifests and optional companion files such as templates, runbooks, or diagrams.
+
+`catl` loads these files, validates manifests against JSON Schema Draft 2020-12, pins remote dependencies in a lockfile, and verifies on-disk contents with SHA-256 tree hashes.
+
+```bash
+catalog/
+├── catl.toml                 # Catalog name, collections, and dependencies
+├── catl.lock                 # Pinned commits and tree hashes for remote dependencies
+├── schemas/
+│   └── service.json          # JSON Schema Draft 2020-12
+└── services/
+    ├── auth.yaml             # Flat entity (ID: auth)
+    └── billing/              # Bundle entity (ID: billing)
+        ├── manifest.yaml     # Validated against service.json
+        ├── runbook.md        # Companion file
+        └── diagram.png       # Companion file
+```
+
+`catl` ships as a standalone CLI binary and as a Go library. Both use the same parser and validation rules.
+
+## How it works
+
+Validation runs locally and synchronously. It doesn't need a database and doesn't make network calls.
+
+Data is split into collections declared in `catl.toml`. Manifests are strict YAML 1.2 or JSON. Companion files sit inside bundle directories next to their manifest and are covered by the catalog's tree hash.
+
+Dependencies come from local directories or remote Git repositories. When you run `catl update`, `catl` records the resolved commit and tree hash of each remote dependency in `catl.lock`. Only direct dependencies are loaded; a dependency's own dependencies are ignored.
+
+Everything validation needs must already be on disk: schemas, companion files, and dependencies in `.catl/vendor` or the local cache. If a file is missing, malformed, or doesn't match its recorded hash, validation fails.

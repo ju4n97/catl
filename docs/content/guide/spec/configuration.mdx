@@ -5,7 +5,7 @@ description: Syntax and table specification for catl.toml in catalogs.
 
 # Configuration
 
-Every catalog has a `catl.toml` file at its root. The file is written in TOML and must be UTF-8 encoded without a Byte Order Mark (BOM).
+Every catalog has a `catl.toml` file at its root. The file is written in TOML, must use Unix LF line endings (`\n`), and must be UTF-8 encoded without a Byte Order Mark (BOM). Files containing CRLF line endings are rejected.
 
 ```toml title="catl.toml"
 #:schema https://raw.githubusercontent.com/ju4n97/catl/refs/heads/main/schema/catl.schema.json
@@ -14,80 +14,72 @@ Every catalog has a `catl.toml` file at its root. The file is written in TOML an
 name = "clinical"
 
 [collections.protocols]
-schema = "schemas/protocols.json"
+schema = "schemas/protocols.schema.json"
 
 [collections.monitors]
-schema = "schemas/monitors.json"
+schema = "schemas/monitors.schema.json"
 dir = "telemetry/monitors"
 
 [dependencies]
 shared-infra = { git = "https://github.com/acme/shared-infra", tag = "v2.0.0" }
+core         = { path = "../core" }
 ```
 
 ## Unknown keys and versioning
 
-Unknown keys at any level in `catl.toml` are treated as errors. If an older `catl` binary encounters a configuration file written for a newer version with new fields or tables, it rejects the unknown keys and reports that a newer version of `catl` is required:
+Unknown keys at any level in `catl.toml` are treated as errors. If an older `catl` binary encounters a configuration file written for a newer version with unrecognized fields or tables, it rejects the file:
 
 ```text
 catl.toml: unknown key "feature_flag" (requires newer catl version)
 ```
 
-```toml
-[catalog]
-name = "clinical"
-```
+## The [catalog] table
 
-```text
-catl.toml: requires catl 0.2 or later (running 0.1.0)
-```
-
-## The `[catalog]` table
-
-The `[catalog]` table defines the identity and namespace of the catalog:
+The `[catalog]` table defines the identity and primary namespace of the catalog:
 
 | Key    | Type   | Required | Description                                                 |
-| :----- | :----- | :------: | :---------------------------------------------------------- |
+| ------ | ------ | :------: | ----------------------------------------------------------- |
 | `name` | string |   Yes    | The catalog's namespace. Must match the identifier grammar. |
 
-## The `[collections.<name>]` table
+## The [collections.\<name\>] table
 
 A catalog must define at least one collection. Each collection is declared under `[collections.<name>]`, where `<name>` is the collection name:
 
 ```toml
 [collections.protocols]
-schema = "schemas/protocols.json"
+schema = "schemas/protocols.schema.json"
 
 [collections.drafts]
-# Omitted schema: validated for YAML/JSON syntax only
+# Omitted schema: validated for syntax only
 ```
 
 | Key      | Type   | Required | Description                                                                                                               |
-| :------- | :----- | :------: | :------------------------------------------------------------------------------------------------------------------------ |
+| -------- | ------ | :------: | ------------------------------------------------------------------------------------------------------------------------- |
 | `schema` | string |    No    | Path to the collection's JSON Schema file, relative to catalog root. If omitted, manifests are validated for syntax only. |
-| `dir`    | string |    No    | Path to the collection directory, relative to the catalog root. Defaults to `<name>`.                                     |
+| `dir`    | string |    No    | Path to the collection directory, relative to catalog root. Defaults to `<name>`.                                         |
 
-### Optional schemas and permissive mode
+### Permissive collections
 
 Declaring a `schema` is optional:
 
-- **With a schema:** Manifests are strictly validated against JSON Schema Draft 2020-12, and fields annotated with `"format": "catl-file"` are verified against companion files on disk.
-- **Without a schema:** `catl` uses an empty permissive schema (`{}`). Manifests are validated for valid YAML 1.2 or JSON syntax, unique keys, and layout invariants, but no field-level checks occur. Companion files are still tracked by the tree hash, but field-level `catl-file` verification doesn't run.
+- **With a schema:** Manifests are strictly validated against JSON Schema Draft 2020-12, and fields annotated with `"format": "catl-file"` are checked against companion files on disk.
+- **Without a schema:** `catl` uses an empty permissive schema (`{}`). Manifests are checked for valid YAML 1.2 or JSON syntax, unique keys, and layout rules, but field-level checks are skipped.
 
 ### Path rules for collections
 
 The values for `schema` and `dir` must follow these rules:
 
 - Paths must use forward slashes (`/`). Backslashes are rejected.
-- Paths can't be absolute and can't have a leading slash (e.g., `/schemas` is invalid).
-- Paths can't contain `.` or `..` segments (e.g., `../schemas` or `./schemas` is invalid).
-- Paths can't contain trailing slashes.
-- Paths can't contain dot-prefixed components (e.g., `.schemas/protocols.json` is invalid).
+- Paths can't be absolute and can't have a leading slash (for example, `/schemas` is invalid).
+- Paths can't contain `.` or `..` segments (`../schemas` is invalid).
+- Paths can't have trailing slashes.
+- Paths can't contain dot-prefixed components (`.schemas/protocols.json` is invalid).
 - `dir = "."` is forbidden. A collection can't occupy the catalog root.
-- Two collections can't declare the same directory or have overlapping paths.
+- Two collections can't share the same directory or have overlapping paths.
 
-## The `[dependencies]` table
+## The [dependencies] table
 
-The `[dependencies]` table declares remote catalogs that this catalog relies on. Each key is the dependency's namespace, and the value is an inline table defining the source:
+The `[dependencies]` table declares external catalogs this catalog relies on. Each key is the dependency's namespace, and the value is an inline table defining the source:
 
 ```toml
 [dependencies]
@@ -95,4 +87,4 @@ shared-infra = { git = "https://github.com/acme/shared-infra", tag = "v2.0.0" }
 local-core   = { path = "../core" }
 ```
 
-The key must match the `catalog.name` of the target catalog. See [Dependencies](./dependencies.mdx) for full source syntax and lockfile behavior.
+The table key must match the `catalog.name` of the target catalog. See [Dependencies](./dependencies.mdx) for source options and lockfile rules.

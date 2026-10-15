@@ -48,16 +48,6 @@
   },
   {
     "type": "file",
-    "name": "catl-add",
-    "label": "catl add"
-  },
-  {
-    "type": "file",
-    "name": "catl-remove",
-    "label": "catl remove"
-  },
-  {
-    "type": "file",
     "name": "catl-update",
     "label": "catl update"
   },

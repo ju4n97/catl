@@ -1,6 +1,6 @@
 ---
 title: Glossary
-description: Definitions of core catl terms, containment hierarchy, and domain vocabulary.
+description: Core terms, containment hierarchy, and domain vocabulary in catl.
 ---
 
 # Glossary
@@ -10,20 +10,20 @@ This page defines the vocabulary used across `catl` commands, configuration file
 ## Containment hierarchy
 
 ```text
-registry (optional multi-tenant directory)
+registry (optional multi-catalog directory)
 └── catalog (primary namespace)
     ├── dependencies (external catalogs)
     └── collections
         └── entities
             ├── manifest (validated data)
-            └── companion files (local files)
+            └── companion files (supplementary files)
 ```
 
 ## Terms
 
 ### Registry
 
-A directory containing one or more isolated catalog subdirectories (e.g. `registry.d/`), each with its own `catl.toml`. A registry serves multiple independent catalogs concurrently without identifier collisions.
+A directory containing one or more isolated catalog subdirectories (for example, `registry.d/`), each with its own `catl.toml`. A registry serves multiple independent catalogs concurrently without identifier collisions.
 
 ### Catalog
 
@@ -39,11 +39,11 @@ A single declarative item in a collection. An entity has an identifier and takes
 
 ### Flat entity
 
-An entity represented by a single file directly inside a collection directory (e.g., `services/auth.yaml`). The filename without the extension is the entity identifier. Flat entities cannot contain companion files.
+An entity represented by a single manifest file placed directly in a collection directory (such as `services/auth.yaml`). The filename without the extension is the entity identifier. Flat entities cannot contain companion files.
 
 ### Bundle entity
 
-An entity represented by a directory directly inside a collection directory (e.g., `services/billing/`). The directory name is the entity identifier. It contains exactly one manifest file (`manifest.yaml` or `manifest.json`) and may contain arbitrary companion files or subdirectories.
+An entity represented by a directory placed directly in a collection directory (such as `services/billing/`). The directory name is the entity identifier. It contains exactly one manifest file (`manifest.yaml` or `manifest.json`) and optional companion files or subdirectories.
 
 ### Manifest
 
@@ -55,7 +55,7 @@ Any file inside a bundle entity directory that is not the primary manifest (for 
 
 ### Dependency
 
-An external catalog declared under `[dependencies]` in `catl.toml` and pinned in `catl.lock`. Dependencies can originate from Git repositories, HTTPS tarballs, or local filesystem paths. Dependencies are strictly non-transitive.
+An external catalog declared under `[dependencies]` in `catl.toml` and pinned in `catl.lock`. Dependencies originate from remote Git repositories or local filesystem paths. Dependencies are strictly direct and non-transitive.
 
 ### Namespace
 
@@ -67,16 +67,16 @@ The canonical identifier for an entity, written as `namespace.id`. `catl` requir
 
 ### Tree hash
 
-A deterministic SHA-256 hash identifying the complete content of a catalog. It hashes the sorted relative paths and file digests of all non-dot regular files in the tree, excluding root `catl.lock` files.
+A deterministic SHA-256 hash identifying the complete content of a catalog. It hashes the sorted relative paths and file digests of all non-dot regular files in the tree, excluding the root `catl.lock` file.
 
-### Lockfile (`catl.lock`)
+### Lockfile (catl.lock)
 
-A TOML file at the root of a catalog that records immutable pins (`resolved` commits or digests) and `tree` hashes for all remote dependencies. It is written only by `catl add`, `catl remove`, and `catl update`.
+A TOML file at the root of a catalog that records immutable pins (`resolved` commits) and `tree` hashes for all remote dependencies. It is written and updated only by `catl update`.
 
-### Vendor directory (`.catl/vendor`)
+### Vendor directory (.catl/vendor)
 
-A local directory where dependencies are copied using `catl vendor` to allow completely offline execution in air-gapped environments or CI pipelines.
+A local directory where remote dependencies are copied using `catl vendor` to allow completely offline execution in air-gapped environments or CI pipelines. When present, `catl` enters strict vendor mode and ignores the global cache.
 
 ### Model Context Protocol (MCP)
 
-An open standard developed by Anthropic for exposing local data, context, and capabilities to language models. In `catl`, the MCP daemon (`catl mcp` / `catlmcp`) maps catalog entities and companion files to `catl://` URI resources and exposes validation and resolution operations as tools over `stdio`.
+An open standard developed by Anthropic for exposing local data, context, and capabilities to language models. In `catl`, the MCP daemon (`catl mcp`) maps catalog entities and companion files to `catl://` URI resources and exposes validation tools over `stdio`.

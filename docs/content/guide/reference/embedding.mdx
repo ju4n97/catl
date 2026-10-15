@@ -1,13 +1,13 @@
 ---
 title: Embedding in Go
-description: Reading, validating, and reloading catalogs using the github.com/ju4n97/catl Go module.
+description: Read, validate, and query catalogs in Go using the catl package.
 ---
 
 # Embedding in Go
 
 The `catl` Go module provides programmatic read access to catalogs and multi-catalog registries. It contains no CGO dependencies, uses no background threads, and executes validation offline.
 
-Complete type signatures, interfaces, and methods are maintained in GoDoc. See the [pkg.go.dev reference for github.com/ju4n97/catl](https://pkg.go.dev/github.com/ju4n97/catl) for auto-generated API documentation.
+Install the module:
 
 ```bash
 go get github.com/ju4n97/catl@latest
@@ -40,20 +40,18 @@ type Policy struct {
 func main() {
 	ctx := context.Background()
 
-	cat, err := catl.Open(ctx, "./compliance-catalog", catl.Options{
-		Offline: true, // Forbid network calls; read from vendor or cache only
-	})
+	cat, err := catl.Open(ctx, "./compliance-catalog")
 	if err != nil {
 		log.Fatalf("failed to open catalog: %v", err)
 	}
 
-	// Resolve an entity by collection and qualified ID
+	// Resolve an entity by collection and qualified ID ("namespace.id")
 	entity, err := cat.Resolve("policies", "compliance.require-mfa")
 	if err != nil {
 		log.Fatalf("failed to resolve entity: %v", err)
 	}
 
-	// Decode the manifest into your application's struct
+	// Decode the manifest into your struct
 	var p Policy
 	if err := entity.Unmarshal(&p); err != nil {
 		log.Fatalf("manifest decode error: %v", err)
@@ -63,16 +61,17 @@ func main() {
 }
 ```
 
-`catl.Open` performs the following steps:
+`catl.Open` executes these steps during boot:
 
 1. Parses and validates `catl.toml`.
-2. Computes the catalog tree hash and checks integrity.
-3. Validates all manifests against their respective collection JSON Schemas.
-4. Returns a `*catl.Catalog` instance that is immutable and safe for concurrent use across goroutines.
+2. Verifies `catl.lock` freshness if dependencies are declared.
+3. Resolves direct dependencies from local paths, `.catl/vendor`, or the global cache.
+4. Validates all manifests against their collection JSON Schemas.
+5. Returns an immutable `*catl.Catalog` safe for concurrent use across goroutines.
 
-## Verifying catalog tree hashes
+## Verifying tree hashes
 
-To verify catalog content integrity or check for drift, compute the deterministic tree hash:
+To verify catalog content integrity or check for drift, compute the deterministic SHA-256 tree hash:
 
 ```go
 treeHash, err := cat.TreeHash()
@@ -84,7 +83,7 @@ fmt.Println("Catalog SHA-256 tree hash:", treeHash)
 
 ## Reading companion files
 
-For bundle entities, access companion files using standard `io/fs.FS` interfaces through `entity.FS(ctx)`:
+For bundle entities, access companion files using `entity.FS(ctx)`:
 
 ```go
 package main
@@ -105,31 +104,30 @@ func readRunbook(ctx context.Context, cat *catl.Catalog, qualifiedID string) err
 	}
 
 	if !entity.IsBundle() {
-		return fmt.Errorf("entity %q is not a bundle", entity.ID)
+		return fmt.Errorf("entity %q is a flat entity and has no companion files", entity.ID)
 	}
 
-	// entity.FS returns a read-only io/fs.FS scoped to the bundle directory
-	fsys, err := entity.FS(ctx)
+	// Returns an io/fs.FS scoped to the bundle directory
+	bundleFS, err := entity.FS(ctx)
 	if err != nil {
 		return err
 	}
 
-	// Read a companion file
-	data, err := fs.ReadFile(fsys, "mitigation.md")
+	data, err := fs.ReadFile(bundleFS, "mitigation.md")
 	if err != nil {
 		return fmt.Errorf("could not read companion file: %w", err)
 	}
 
-	fmt.Printf("Runbook:\n%s\n", string(data))
+	fmt.Println(string(data))
 	return nil
 }
 ```
 
-The returned filesystem adheres to standard Go `fs.ValidPath` rules: paths escaping the bundle directory with `..` are rejected, and dot-prefixed files are hidden.
+The returned filesystem follows standard Go `fs.ValidPath` rules: paths escaping the bundle directory with `..` are rejected, and dot-prefixed files are hidden.
 
-## Managing registries with `OpenRegistry`
+## Working with registries
 
-When an application manages multiple catalogs concurrently (such as a directory of tenant catalogs), use `catl.OpenRegistry`:
+When an application manages multiple independent catalogs concurrently (such as customer tenants or isolated environments), use `catl.OpenRegistry`:
 
 ```go
 package main
@@ -145,7 +143,7 @@ import (
 func main() {
 	ctx := context.Background()
 
-	reg, err := catl.OpenRegistry(ctx, "./registry.d", catl.Options{Offline: true})
+	reg, err := catl.OpenRegistry(ctx, "./registry.d")
 	if err != nil {
 		log.Fatalf("failed to open registry: %v", err)
 	}
@@ -153,10 +151,10 @@ func main() {
 	// List discovered catalog namespaces
 	for _, name := range reg.Names() {
 		cat, _ := reg.Catalog(name)
-		fmt.Printf("Tenant: %s (%d collections)\n", cat.Name(), len(cat.Collections()))
+		fmt.Printf("Catalog: %s (%d collections)\n", cat.Name(), len(cat.Collections()))
 	}
 
-	// Query an entity directly within a specific catalog
+	// Query an entity directly within a specific tenant catalog
 	compliance, ok := reg.Catalog("compliance")
 	if ok {
 		ent, err := compliance.Resolve("rules", "compliance.require-mfa")
@@ -167,9 +165,9 @@ func main() {
 }
 ```
 
-## In-memory testing with `OpenFS`
+## In-memory testing with OpenFS
 
-To test applications without touching the local disk, use `catl.OpenFS` with `testing/fstest.MapFS` or Go's standard `embed.FS`:
+To test catalogs without touching the disk, pass a `testing/fstest.MapFS` or Go's standard `embed.FS` to `catl.OpenFS`:
 
 ```go
 package main
@@ -194,7 +192,7 @@ func TestCatalogIntegration(t *testing.T) {
 		t.Fatalf("sub fs error: %v", err)
 	}
 
-	cat, err := catl.OpenFS(ctx, subFS, catl.Options{})
+	cat, err := catl.OpenFS(ctx, subFS)
 	if err != nil {
 		t.Fatalf("OpenFS failed: %v", err)
 	}
@@ -210,9 +208,9 @@ func TestCatalogIntegration(t *testing.T) {
 }
 ```
 
-## Atomic catalog swapping in servers
+## Atomic swapping in servers
 
-Services can reload updated catalogs without restarting the process using Go's standard `sync/atomic`:
+Long-running services can reload catalogs on disk without restarting by using `sync/atomic`:
 
 ```go
 package main
@@ -229,9 +227,9 @@ type Server struct {
 }
 
 func (s *Server) Reload(ctx context.Context, dir string) error {
-	next, err := catl.Open(ctx, dir, catl.Options{Offline: true})
+	next, err := catl.Open(ctx, dir)
 	if err != nil {
-		return err // Validation failed; keep existing catalog active
+		return err // Validation failed; keep current catalog active
 	}
 
 	s.catalog.Store(next)
@@ -251,24 +249,26 @@ Inspect failure reasons using standard `errors.Is`:
 if err != nil {
 	switch {
 	case errors.Is(err, catl.ErrNotFound):
-		// The entity, collection, or catalog namespace doesn't exist
+		// Entity, collection, or catalog namespace does not exist
 	case errors.Is(err, catl.ErrNotQualified):
-		// The caller passed a bare ID without a namespace
+		// Caller passed a bare ID without a namespace ("id" instead of "namespace.id")
 	case errors.Is(err, catl.ErrLockStale):
-		// catl.lock doesn't match catl.toml; needs 'catl update'
+		// catl.lock is missing or out of sync with catl.toml; run 'catl update'
 	case errors.Is(err, catl.ErrTamperedVendor):
-		// Files inside .catl/vendor don't match the tree hash
+		// Files inside .catl/vendor do not match the recorded tree hash
+	case errors.Is(err, catl.ErrCRLFForbidden):
+		// Structured file contains CRLF line endings instead of LF
 	case errors.Is(err, catl.ErrRequiresNewer):
-		// The catalog requires a newer version of the catl library
+		// catl.toml requires a newer version of the catl tool
 	}
 }
 ```
 
-To extract structured line-by-line schema validation failures, inspect `*schema.ValidationError` using `errors.AsType`:
+To inspect line-by-line schema validation failures, extract `*catl.ValidationError` using `errors.As`:
 
 ```go
 var valErr *catl.ValidationError
-if errors.AsType[*catl.ValidationError](err) {
+if errors.As(err, &valErr) {
 	for _, d := range valErr.Diagnostics {
 		log.Printf("%s:%d: [%s] %s\n", d.Path, d.Line, d.Pointer, d.Message)
 	}
