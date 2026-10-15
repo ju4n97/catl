@@ -34,7 +34,7 @@ Outputs tab-separated columns: COLLECTION  QUALIFIED-ID  PATH
 Examples:
   $ catl list
   $ catl list services
-  $ catl list --json`,
+  $ catl list --all --json`,
 		Arguments: []cli.Argument{
 			&cli.StringArg{
 				Name:      "collection",
@@ -44,6 +44,11 @@ Examples:
 			},
 		},
 		Flags: []cli.Flag{
+			&cli.BoolFlag{
+				Name:    "all",
+				Aliases: []string{"a"},
+				Usage:   "Include entities imported from declared dependencies",
+			},
 			&cli.BoolFlag{
 				Name:  "json",
 				Usage: "Output entities as newline-delimited JSON objects",

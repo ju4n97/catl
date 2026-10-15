@@ -15,6 +15,41 @@ type File struct {
 	Dependencies map[string]Dependency `toml:"dependencies,omitzero" json:"dependencies,omitzero"`
 }
 
+// ValidateCollections checks relative path invariants and storage directory
+// uniqueness across declared collections.
+func (f *File) ValidateCollections() error {
+	seenDirs := make(map[string]string, len(f.Collections))
+
+	for name, coll := range f.Collections {
+		if coll.Schema != "" {
+			if err := ValidateRelativePath(coll.Schema); err != nil {
+				return fmt.Errorf("collection %q schema: %w", name, err)
+			}
+		}
+
+		dir := coll.Dir
+		if dir == "" {
+			dir = name
+		} else {
+			if err := ValidateRelativePath(dir); err != nil {
+				return fmt.Errorf("collection %q dir: %w", name, err)
+			}
+		}
+
+		if existing, exists := seenDirs[dir]; exists {
+			return fmt.Errorf(
+				"collections %q and %q share the same directory %q",
+				existing,
+				name,
+				dir,
+			)
+		}
+		seenDirs[dir] = name
+	}
+
+	return nil
+}
+
 // Catalog defines the primary identity and namespace of a catalog.
 type Catalog struct {
 	Name string `toml:"name" json:"name"`

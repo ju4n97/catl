@@ -7,6 +7,8 @@ import (
 	"os"
 
 	"github.com/pelletier/go-toml/v2"
+
+	"github.com/ju4n97/catl/schema"
 )
 
 var utf8BOM = []byte("\xef\xbb\xbf")
@@ -21,8 +23,7 @@ func LoadFile(path string) (*File, error) {
 }
 
 // Parse decodes raw TOML configuration bytes. It checks for a UTF-8 BOM, validates
-// with strict field checking, executes JSON Schema validation, and runs relational
-// Go validations.
+// with strict field checking, executes JSON Schema validation, and runs relational validations.
 func Parse(data []byte) (*File, error) {
 	if bytes.HasPrefix(data, utf8BOM) {
 		return nil, errors.New("catl.toml: UTF-8 BOM is forbidden")
@@ -31,7 +32,6 @@ func Parse(data []byte) (*File, error) {
 	var file File
 	dec := toml.NewDecoder(bytes.NewReader(data))
 	dec.DisallowUnknownFields()
-
 	if err := dec.Decode(&file); err != nil {
 		if strictErr, ok := errors.AsType[*toml.StrictMissingError](err); ok {
 			return nil, fmt.Errorf("%w: %s", ErrRequiresNewer, strictErr.String())
@@ -43,11 +43,11 @@ func Parse(data []byte) (*File, error) {
 	if err := toml.Unmarshal(data, &generic); err != nil {
 		return nil, fmt.Errorf("parse toml: %w", err)
 	}
-	if err := ValidateSchema(generic); err != nil {
+	if err := schema.ValidateCatl(generic); err != nil {
 		return nil, err
 	}
 
-	if err := file.Validate(); err != nil {
+	if err := file.ValidateCollections(); err != nil {
 		return nil, err
 	}
 
@@ -56,7 +56,7 @@ func Parse(data []byte) (*File, error) {
 
 // Marshal serializes the configuration file into formatted TOML bytes.
 func (f *File) Marshal() ([]byte, error) {
-	if err := f.Validate(); err != nil {
+	if err := f.ValidateCollections(); err != nil {
 		return nil, fmt.Errorf("validate config before marshaling: %w", err)
 	}
 	return toml.Marshal(f)

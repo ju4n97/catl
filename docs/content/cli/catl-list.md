@@ -31,6 +31,7 @@ catl list [flags] [collection]
 
 | Flag         | Description                                           |
 | :----------- | :---------------------------------------------------- |
+| `-a, --all`  | Include entities imported from declared dependencies  |
 | `--json`     | Output entities as newline-delimited JSON objects     |
 | `-z, --null` | Delimit records with ASCII NUL characters for scripts |
 
@@ -39,5 +40,5 @@ catl list [flags] [collection]
 ```bash
 catl list
 catl list services
-catl list --json
+catl list --all --json
 ```

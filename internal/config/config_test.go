@@ -6,6 +6,71 @@ import (
 	"github.com/ju4n97/catl/internal/config"
 )
 
+// TestFile_ValidateCollections verifies relational checks that cannot be expressed in JSON Schema,
+// such as duplicate effective directory paths across collections.
+func TestFile_ValidateCollections(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name    string
+		file    config.File
+		wantErr bool
+	}{
+		{
+			name: "distinct explicit directories",
+			file: config.File{
+				Catalog: config.Catalog{Name: "my-cat"},
+				Collections: map[string]config.Collection{
+					"coll-a": {Dir: "dir-a"},
+					"coll-b": {Dir: "dir-b"},
+				},
+			},
+		},
+		{
+			name: "distinct default directories",
+			file: config.File{
+				Catalog: config.Catalog{Name: "my-cat"},
+				Collections: map[string]config.Collection{
+					"coll-a": {},
+					"coll-b": {},
+				},
+			},
+		},
+		{
+			name: "collision between explicit directory and default directory",
+			file: config.File{
+				Catalog: config.Catalog{Name: "my-cat"},
+				Collections: map[string]config.Collection{
+					"services": {},
+					"other":    {Dir: "services"},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "schema path with directory traversal",
+			file: config.File{
+				Catalog: config.Catalog{Name: "my-cat"},
+				Collections: map[string]config.Collection{
+					"services": {Schema: "../escapes/schema.json"},
+				},
+			},
+			wantErr: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			err := tt.file.ValidateCollections()
+			if gotErr := err != nil; gotErr != tt.wantErr {
+				t.Fatalf("Validate() error = %v, wantErr %t", err, tt.wantErr)
+			}
+		})
+	}
+}
+
 // TestDependencySource verifies that Source properly discriminates between flat dependency
 // fields and returns the expected validated concrete variant.
 func TestDependencySource(t *testing.T) {
