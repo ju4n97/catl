@@ -9,24 +9,6 @@ import { Steps } from "@rspress/core/theme";
 
 This guide walks through building a data layer for a Git-backed CMS. You'll define a schema, add articles and companion assets, catch validation errors without going online, and query the catalog through the CLI.
 
-## Why use catl?
-
-Reading YAML files from Git sounds simple. You can load them with `os.ReadFile` and parse them, but that is just a small part. Once the content is used in production, you also need to validate it, keep file references from breaking, and make sure different tools interpret it the same way.
-
-For example, some YAML 1.1 parsers treat unquoted values like `no`, `on`, and `off` as booleans. A country code such as `country: no` can end up with the wrong type. Parsers in different programming languages can also disagree, which makes it harder to keep validation consistent across your Go backend, Python scripts, and frontend.
-
-Then there are companion files. An article might reference `cover.png` or a bundle might contain an OpenAPI spec, but parsing the manifest doesn't tell you whether those files actually exist. File paths need validation too, so content can't reference files outside the intended directory. And if you need to verify that a catalog hasn't changed, you need a deterministic way to hash its contents across different operating systems.
-
-`catl` handles these checks in one place. You define schemas, validate manifests, check references to companion files, and compute deterministic tree hashes. Your application can focus on the editing UI, publishing workflow, and rendering instead of reimplementing the data layer.
-
-## Use cases
-
-A CMS is a convenient way to see how `catl` works, but the same model applies anywhere structured data lives in Git.
-
-You can use it for service catalogs that keep ownership metadata and OpenAPI specs together, feature-flag registries that version rollout rules, or policy repositories that validate OPA/Rego policies before deployment. It also works for AI agent registries that store prompt templates, system instructions, tool definitions, and many other use cases.
-
-The core idea is to keep structured data in files, define what those files should look like using JSON Schema, and validate them before the application uses them.
-
 <Steps>
 
 ### Create a catalog

@@ -52,10 +52,10 @@ archives:
 nfpms:
   - id: packages
     package_name: catl
-    file_name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+    file_name_template: "{{ .ProjectName }}_{{ .Os }}_{{ .Arch }}"
     homepage: "https://github.com/ju4n97/catl"
     maintainer: "Juan <https://github.com/ju4n97>"
-    description: "Lightweight package manager for validated catalogs of declarative data."
+    description: "Package manager, validator, and reader for declarative data."
     license: "MIT"
     formats:
       - deb
@@ -63,7 +63,7 @@ nfpms:
       - apk
       - archlinux
     bindir: /usr/bin
-    section: default
+    section: utils
     priority: optional
     contents:
       - src: ./man/catl.1
@@ -76,7 +76,7 @@ checksum:
   algorithm: sha256
 
 dockers_v2:
-  - id: catl-distroless
+  - id: distroless
     images:
       - ghcr.io/ju4n97/catl
     tags:
@@ -88,22 +88,24 @@ dockers_v2:
     dockerfile: Dockerfile
     labels:
       org.opencontainers.image.title: "{{ .ProjectName }}"
+      org.opencontainers.image.description: "Package manager, validator, and reader for declarative data."
       org.opencontainers.image.created: "{{ .Date }}"
       org.opencontainers.image.revision: "{{ .FullCommit }}"
       org.opencontainers.image.version: "{{ .Version }}"
 
-  - id: catl-alpine
+  - id: alpine
     images:
       - ghcr.io/ju4n97/catl
     tags:
       - "{{ .Version }}-alpine"
-      - "{{ if not .Prerelease }}latest-alpine{{ end }}"   
+      - "{{ if not .Prerelease }}latest-alpine{{ end }}"
     platforms:
       - linux/amd64
       - linux/arm64
     dockerfile: Dockerfile.alpine
     labels:
-      org.opencontainers.image.title: "{{ .ProjectName }} (with Git)"
+      org.opencontainers.image.title: "{{ .ProjectName }} (Alpine with Git)"
+      org.opencontainers.image.description: "catl container with Git and CA certificates for automated CI workflows"
       org.opencontainers.image.created: "{{ .Date }}"
       org.opencontainers.image.revision: "{{ .FullCommit }}"
       org.opencontainers.image.version: "{{ .Version }}"
@@ -134,25 +136,20 @@ changelog:
       - '(?i)^chore(\(.*\))?:'
       - '(?i)^style(\(.*\))?:'
   groups:
-    - title: "⚠️ Breaking changes"
+    - title: "Breaking changes"
       regexp: '(?i)^(\w+)(\(.*\))?!:|^breaking[- ]change:'
       order: 0
-
     - title: "Features and enhancements"
       regexp: '(?i)^feat(\(.*\))?!?:'
       order: 1
-
     - title: "Bug fixes and stability"
       regexp: '(?i)^fix(\(.*\))?!?:'
       order: 2
-
     - title: "Performance improvements"
       regexp: '(?i)^perf(\(.*\))?!?:'
       order: 3
-
     - title: "Refactoring and maintenance"
       regexp: '(?i)^refactor(\(.*\))?!?:'
       order: 4
-
     - title: "Other changes"
       order: 999
