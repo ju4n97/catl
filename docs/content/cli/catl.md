@@ -33,6 +33,7 @@ catl [flags] <command> [args...]
 | [`check`](./catl-check.md)     | Validate schemas, paths, and lockfile integrity               |
 | [`clean`](./catl-clean.md)     | Clear local download and build cache                          |
 | [`serve`](./catl-serve.md)     | Start a local read-only HTTP server for a catalog or registry |
+| [`mcp`](./catl-mcp.md)         | Start a Model Context Protocol (MCP) server over stdio        |
 | [`list`](./catl-list.md)       | List entities across collections                              |
 | [`resolve`](./catl-resolve.md) | Print the filesystem path of a manifest                       |
 | [`show`](./catl-show.md)       | Stream a manifest or companion file to stdout                 |

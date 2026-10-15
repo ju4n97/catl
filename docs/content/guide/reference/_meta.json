@@ -11,7 +11,12 @@
   },
   {
     "type": "file",
-    "name": "http-api",
-    "label": "HTTP API"
+    "name": "http",
+    "label": "HTTP"
+  },
+  {
+    "type": "file",
+    "name": "mcp",
+    "label": "Model Context Protocol (MCP)"
   }
 ]

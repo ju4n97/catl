@@ -10,8 +10,13 @@
     "activeMatch": "^/cli/"
   },
   {
-    "text": "HTTP API",
-    "link": "/guide/reference/http-api",
-    "activeMatch": "^/guide/reference/http-api"
+    "text": "HTTP",
+    "link": "/guide/reference/http",
+    "activeMatch": "^/guide/reference/http"
+  },
+  {
+    "text": "MCP",
+    "link": "/guide/reference/mcp",
+    "activeMatch": "^/guide/reference/mcp"
   }
 ]

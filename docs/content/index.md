@@ -45,4 +45,14 @@ features:
     details: Use the standalone binary or embed catl in a Go application. Both use the same parsing and validation rules.
     icon: 🛠️
     link: /guide/reference/embedding
+
+  - title: HTTP server
+    details: Serve a catalog over a local HTTP API with atomic reloads, so edits on disk are reflected without restarting.
+    icon: 🌐
+    link: /guide/reference/http
+
+  - title: Model Context Protocol
+    details: Expose catalog manifests, companion files, and validation tools directly to development environments via MCP.
+    icon: 🤖
+    link: /guide/reference/mcp
 ---

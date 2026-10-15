@@ -10,7 +10,7 @@ cmp catalog-a/catl.toml expected-catalog-catl.toml
 
 # Refuse to re-initialize an existing catalog
 ! exec catl init -C catalog-a
-stderr 'catl: catl\.toml already exists'
+stderr 'catl\.toml already exists'
 
 -- expected-catalog-catl.toml --
 #:schema https://raw.githubusercontent.com/ju4n97/catl/refs/heads/main/schema/catl.schema.json

@@ -76,3 +76,7 @@ A TOML file at the root of a catalog that records immutable pins (`resolved` com
 ### Vendor directory (`.catl/vendor`)
 
 A local directory where dependencies are copied using `catl vendor` to allow completely offline execution in air-gapped environments or CI pipelines.
+
+### Model Context Protocol (MCP)
+
+An open standard developed by Anthropic for exposing local data, context, and capabilities to language models. In `catl`, the MCP daemon (`catl mcp` / `catlmcp`) maps catalog entities and companion files to `catl://` URI resources and exposes validation and resolution operations as tools over `stdio`.

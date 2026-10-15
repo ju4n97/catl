@@ -11,9 +11,10 @@ import (
 	"testing/fstest"
 
 	"github.com/ju4n97/catl"
-	"github.com/ju4n97/catl/internal/manifest"
 )
 
+// validCatalogFS returns an in-memory catalog filesystem with multiple collections,
+// explicit directory overrides, flat and bundle entities, companion files, and schemas.
 func validCatalogFS() fstest.MapFS {
 	return fstest.MapFS{
 		"catl.toml": &fstest.MapFile{
@@ -27,6 +28,9 @@ schema = "schemas/monitor.json"
 [collections.services]
 schema = "schemas/service.json"
 dir = "svcs"
+
+[collections.drafts]
+# Permissive collection without a schema
 `),
 		},
 		"schemas/service.json": &fstest.MapFile{
@@ -36,7 +40,8 @@ dir = "svcs"
 				"required": ["tier"],
 				"properties": {
 					"tier": { "type": "string" },
-					"active": { "type": "boolean" }
+					"active": { "type": "boolean" },
+					"threshold": { "type": "integer", "maximum": 100 }
 				},
 				"additionalProperties": false
 			}`),
@@ -53,7 +58,7 @@ dir = "svcs"
 			}`),
 		},
 		"svcs/auth.yaml": &fstest.MapFile{
-			Data: []byte("tier: core\nactive: true\n"),
+			Data: []byte("tier: core\nactive: true\nthreshold: 50\n"),
 		},
 		"svcs/billing/manifest.yaml": &fstest.MapFile{
 			Data: []byte("tier: critical\nactive: true\n"),
@@ -95,7 +100,7 @@ func TestOpenFS(t *testing.T) {
 			t.Fatal("cat.FS() returned nil")
 		}
 
-		wantColls := []string{"monitors", "services"}
+		wantColls := []string{"drafts", "monitors", "services"}
 		if !slices.Equal(cat.Collections(), wantColls) {
 			t.Errorf("cat.Collections() = %v, want %v", cat.Collections(), wantColls)
 		}
@@ -145,9 +150,9 @@ func TestOpenFS(t *testing.T) {
 			t.Fatal("expected schema validation error, got nil")
 		}
 
-		var valErr *manifest.ValidationError
+		var valErr *catl.ValidationError
 		if !errors.As(err, &valErr) {
-			t.Fatalf("expected *schema.ValidationError, got %T", err)
+			t.Fatalf("expected *catl.ValidationError, got %T: %v", err, err)
 		}
 		if len(valErr.Diagnostics) != 1 {
 			t.Errorf("got %d diagnostics, want 1", len(valErr.Diagnostics))
@@ -301,7 +306,7 @@ func TestCatalogEntities(t *testing.T) {
 		}
 	})
 
-	t.Run("filter with nonexistent collection", func(t *testing.T) {
+	t.Run("filter with nonexistent collection returns empty", func(t *testing.T) {
 		t.Parallel()
 
 		ents := cat.Entities("nonexistent")
@@ -364,6 +369,18 @@ func TestCatalogResolve(t *testing.T) {
 		if ent.IsBundle() {
 			t.Error("IsBundle() = true, want false for flat entity")
 		}
+
+		type serviceManifest struct {
+			Tier   string `json:"tier"`
+			Active bool   `json:"active"`
+		}
+		var m serviceManifest
+		if err := ent.Unmarshal(&m); err != nil {
+			t.Fatalf("Unmarshal() failed: %v", err)
+		}
+		if m.Tier != "core" || !m.Active {
+			t.Errorf("unexpected unmarshaled manifest: %+v", m)
+		}
 	})
 
 	t.Run("resolve bundle entity", func(t *testing.T) {
@@ -383,6 +400,14 @@ func TestCatalogResolve(t *testing.T) {
 		if len(ent.CompanionFiles) != 1 || ent.CompanionFiles[0] != "runbook.md" {
 			t.Errorf("unexpected companion files: %v", ent.CompanionFiles)
 		}
+
+		bundleFS, err := ent.FS(ctx)
+		if err != nil {
+			t.Fatalf("FS() failed: %v", err)
+		}
+		data, _ := os.ReadFile(filepath.Join(t.TempDir(), "dummy")) // compile check
+		_ = data
+		_ = bundleFS
 	})
 
 	t.Run("bare identifier fails with err not qualified", func(t *testing.T) {
@@ -430,6 +455,122 @@ func TestCatalogResolve(t *testing.T) {
 		}
 		if !errors.Is(err, catl.ErrNotFound) {
 			t.Errorf("got error %v, want ErrNotFound", err)
+		}
+	})
+}
+
+// TestCatalogSchema verifies retrieval of collection schemas and permissive mode handling.
+func TestCatalogSchema(t *testing.T) {
+	t.Parallel()
+
+	ctx := context.Background()
+	cat, err := catl.OpenFS(ctx, validCatalogFS(), catl.Options{})
+	if err != nil {
+		t.Fatalf("OpenFS() failed: %v", err)
+	}
+
+	t.Run("existing collection returns raw schema bytes", func(t *testing.T) {
+		t.Parallel()
+
+		schemaBytes, err := cat.Schema("services")
+		if err != nil {
+			t.Fatalf("Schema('services') unexpected error: %v", err)
+		}
+		if !strings.Contains(string(schemaBytes), "monitor") && !strings.Contains(string(schemaBytes), "tier") {
+			t.Errorf("unexpected schema content: %s", string(schemaBytes))
+		}
+	})
+
+	t.Run("permissive collection without schema returns nil bytes with no error", func(t *testing.T) {
+		t.Parallel()
+
+		schemaBytes, err := cat.Schema("drafts")
+		if err != nil {
+			t.Fatalf("Schema('drafts') unexpected error: %v", err)
+		}
+		if schemaBytes != nil {
+			t.Errorf("expected nil schema bytes for permissive collection, got %s", string(schemaBytes))
+		}
+	})
+
+	t.Run("non-existent collection returns err not found", func(t *testing.T) {
+		t.Parallel()
+
+		_, err := cat.Schema("nonexistent")
+		if err == nil {
+			t.Fatal("expected error for non-existent collection, got nil")
+		}
+		if !errors.Is(err, catl.ErrNotFound) {
+			t.Errorf("got %v, want ErrNotFound", err)
+		}
+	})
+}
+
+// TestCatalogValidateManifest verifies in-memory dry-run manifest linting.
+func TestCatalogValidateManifest(t *testing.T) {
+	t.Parallel()
+
+	ctx := context.Background()
+	cat, err := catl.OpenFS(ctx, validCatalogFS(), catl.Options{})
+	if err != nil {
+		t.Fatalf("OpenFS() failed: %v", err)
+	}
+
+	t.Run("valid manifest passes validation", func(t *testing.T) {
+		t.Parallel()
+
+		validYAML := "tier: standard\nactive: true\nthreshold: 80\n"
+		if err := cat.ValidateManifest("services", []byte(validYAML)); err != nil {
+			t.Fatalf("ValidateManifest() unexpected error: %v", err)
+		}
+	})
+
+	t.Run("schema violation returns validation error with diagnostics", func(t *testing.T) {
+		t.Parallel()
+
+		invalidYAML := "tier: standard\nthreshold: 150\n" // threshold maximum is 100
+		err := cat.ValidateManifest("services", []byte(invalidYAML))
+		if err == nil {
+			t.Fatal("expected validation error, got nil")
+		}
+
+		var valErr *catl.ValidationError
+		if !errors.As(err, &valErr) {
+			t.Fatalf("expected *catl.ValidationError, got %T: %v", err, err)
+		}
+		if len(valErr.Diagnostics) == 0 {
+			t.Fatal("expected diagnostics in validation error, got 0")
+		}
+	})
+
+	t.Run("malformed yaml syntax returns decode error", func(t *testing.T) {
+		t.Parallel()
+
+		malformed := "tier: [unclosed\n"
+		err := cat.ValidateManifest("services", []byte(malformed))
+		if err == nil {
+			t.Fatal("expected syntax error on unclosed yaml mapping, got nil")
+		}
+	})
+
+	t.Run("permissive collection passes arbitrary valid yaml", func(t *testing.T) {
+		t.Parallel()
+
+		arbitrary := "custom_field: 42\nnested:\n  ok: true\n"
+		if err := cat.ValidateManifest("drafts", []byte(arbitrary)); err != nil {
+			t.Fatalf("expected permissive collection to pass, got: %v", err)
+		}
+	})
+
+	t.Run("non-existent collection returns err not found", func(t *testing.T) {
+		t.Parallel()
+
+		err := cat.ValidateManifest("nonexistent", []byte("a: b\n"))
+		if err == nil {
+			t.Fatal("expected error on non-existent collection, got nil")
+		}
+		if !errors.Is(err, catl.ErrNotFound) {
+			t.Errorf("got %v, want ErrNotFound", err)
 		}
 	})
 }
