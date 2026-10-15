@@ -1,10 +1,10 @@
-package schema_test
+package manifest_test
 
 import (
 	"errors"
 	"testing"
 
-	"github.com/ju4n97/catl/internal/schema"
+	"github.com/ju4n97/catl/internal/manifest"
 )
 
 // TestDecodeManifest verifies YAML 1.2 core decoding rules, syntax limits,
@@ -16,7 +16,7 @@ func TestDecodeManifest(t *testing.T) {
 		t.Parallel()
 
 		raw := "enabled: no\nthreshold: 50\n"
-		m, err := schema.DecodeManifest([]byte(raw), "rules/test.yaml")
+		m, err := manifest.Decode([]byte(raw), "rules/test.yaml")
 		if err != nil {
 			t.Fatalf("unexpected decode error: %v", err)
 		}
@@ -44,7 +44,7 @@ endpoints:
   - primary.internal
   - secondary.internal
 `
-		m, err := schema.DecodeManifest([]byte(raw), "test.yaml")
+		m, err := manifest.Decode([]byte(raw), "test.yaml")
 		if err != nil {
 			t.Fatalf("unexpected decode error: %v", err)
 		}
@@ -76,7 +76,7 @@ endpoints:
 		t.Parallel()
 
 		raw := "title: A\ntitle: B\n"
-		_, err := schema.DecodeManifest([]byte(raw), "dup.yaml")
+		_, err := manifest.Decode([]byte(raw), "dup.yaml")
 		if err == nil {
 			t.Fatal("expected error on duplicate keys, got nil")
 		}
@@ -86,11 +86,11 @@ endpoints:
 		t.Parallel()
 
 		raw := "title: Doc1\n---\ntitle: Doc2\n"
-		_, err := schema.DecodeManifest([]byte(raw), "multi.yaml")
+		_, err := manifest.Decode([]byte(raw), "multi.yaml")
 		if err == nil {
 			t.Fatal("expected error on multi-document yaml, got nil")
 		}
-		if !errors.Is(err, schema.ErrMultiDocument) {
+		if !errors.Is(err, manifest.ErrMultiDocument) {
 			t.Errorf("got %v, want ErrMultiDocument", err)
 		}
 	})
@@ -103,11 +103,11 @@ endpoints:
 server:
   <<: *base
 `
-		_, err := schema.DecodeManifest([]byte(raw), "merge.yaml")
+		_, err := manifest.Decode([]byte(raw), "merge.yaml")
 		if err == nil {
 			t.Fatal("expected error on merge keys, got nil")
 		}
-		if !errors.Is(err, schema.ErrMergeKeyForbidden) {
+		if !errors.Is(err, manifest.ErrMergeKeyForbidden) {
 			t.Errorf("got %v, want ErrMergeKeyForbidden", err)
 		}
 	})
@@ -115,12 +115,12 @@ server:
 	t.Run("rejects manifest exceeding size limit", func(t *testing.T) {
 		t.Parallel()
 
-		huge := make([]byte, schema.MaxManifestSize+1)
-		_, err := schema.DecodeManifest(huge, "huge.yaml")
+		huge := make([]byte, manifest.MaxManifestSize+1)
+		_, err := manifest.Decode(huge, "huge.yaml")
 		if err == nil {
 			t.Fatal("expected error on manifest exceeding 4 MiB, got nil")
 		}
-		if !errors.Is(err, schema.ErrManifestTooLarge) {
+		if !errors.Is(err, manifest.ErrManifestTooLarge) {
 			t.Errorf("got %v, want ErrManifestTooLarge", err)
 		}
 	})

@@ -7,7 +7,7 @@ import (
 	"github.com/urfave/cli/v3"
 
 	"github.com/ju4n97/catl"
-	"github.com/ju4n97/catl/internal/schema"
+	"github.com/ju4n97/catl/internal/manifest"
 )
 
 // newCheckCommand validates manifests, schemas, and dependency locks.
@@ -25,7 +25,7 @@ Exits 0 with no output on success (Unix rule of silence).`,
 				Offline: cmd.Bool("offline"),
 			})
 			if err != nil {
-				if valErr, ok := errors.AsType[*schema.ValidationError](err); ok {
+				if valErr, ok := errors.AsType[*manifest.ValidationError](err); ok {
 					return cli.Exit(valErr.Error(), 1)
 				}
 				return cli.Exit(err.Error(), 1)

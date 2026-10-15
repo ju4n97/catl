@@ -1,4 +1,4 @@
-package schema
+package manifest
 
 import (
 	"bytes"
@@ -80,8 +80,8 @@ func (v *Validator) Compile(schemaPath string) error {
 	return nil
 }
 
-// ValidateManifest validates a decoded manifest against its collection's schema.
-func (v *Validator) ValidateManifest(
+// Validate validates a decoded manifest against its collection's schema.
+func (v *Validator) Validate(
 	m *Manifest,
 	schemaPath string,
 	entity *scan.Entity,

@@ -8,8 +8,8 @@ import (
 	"testing/fstest"
 
 	"github.com/ju4n97/catl"
+	"github.com/ju4n97/catl/internal/manifest"
 	"github.com/ju4n97/catl/internal/scan"
-	"github.com/ju4n97/catl/internal/schema"
 )
 
 // TestOpenFS verifies in-memory catalog loading, manifest validation,
@@ -165,7 +165,7 @@ func TestOpenFS(t *testing.T) {
 			t.Fatal("expected schema validation error, got nil")
 		}
 
-		var valErr *schema.ValidationError
+		var valErr *manifest.ValidationError
 		if !errors.As(err, &valErr) {
 			t.Fatalf("expected *schema.ValidationError, got %T", err)
 		}

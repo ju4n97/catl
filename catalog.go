@@ -11,8 +11,8 @@ import (
 
 	"github.com/ju4n97/catl/internal/conf"
 	"github.com/ju4n97/catl/internal/hash"
+	"github.com/ju4n97/catl/internal/manifest"
 	"github.com/ju4n97/catl/internal/scan"
-	"github.com/ju4n97/catl/internal/schema"
 )
 
 // Options configures runtime behavior when opening a catalog.
@@ -60,8 +60,8 @@ func OpenFS(ctx context.Context, fsys fs.FS, opts Options) (*Catalog, error) {
 		return nil, err
 	}
 
-	validator := schema.NewValidator(fsys)
-	var allDiags []schema.Diagnostic
+	validator := manifest.NewValidator(fsys)
+	var allDiags []manifest.Diagnostic
 
 	entityMap := make(map[string]map[string]*Entity, len(cfg.Collections))
 	var allSorted []*Entity
@@ -83,7 +83,7 @@ func OpenFS(ctx context.Context, fsys fs.FS, opts Options) (*Catalog, error) {
 				return nil, fmt.Errorf("read manifest %q: %w", se.ManifestPath, err)
 			}
 
-			manifest, err := schema.DecodeManifest(manifestBytes, se.ManifestPath)
+			decoded, err := manifest.Decode(manifestBytes, se.ManifestPath)
 			if err != nil {
 				return nil, err
 			}
@@ -96,8 +96,8 @@ func OpenFS(ctx context.Context, fsys fs.FS, opts Options) (*Catalog, error) {
 				}
 			}
 
-			if err := validator.ValidateManifest(manifest, coll.Schema, &se, bundleFS); err != nil {
-				if valErr, ok := errors.AsType[*schema.ValidationError](err); ok {
+			if err := validator.Validate(decoded, coll.Schema, &se, bundleFS); err != nil {
+				if valErr, ok := errors.AsType[*manifest.ValidationError](err); ok {
 					allDiags = append(allDiags, valErr.Diagnostics...)
 				} else {
 					return nil, err
@@ -115,7 +115,7 @@ func OpenFS(ctx context.Context, fsys fs.FS, opts Options) (*Catalog, error) {
 	}
 
 	if len(allDiags) > 0 {
-		return nil, &schema.ValidationError{Diagnostics: allDiags}
+		return nil, &manifest.ValidationError{Diagnostics: allDiags}
 	}
 
 	// Sort entities deterministically: collection asc, then ID asc

@@ -1,4 +1,4 @@
-package schema_test
+package manifest_test
 
 import (
 	"errors"
@@ -6,8 +6,8 @@ import (
 	"testing"
 	"testing/fstest"
 
+	"github.com/ju4n97/catl/internal/manifest"
 	"github.com/ju4n97/catl/internal/scan"
-	"github.com/ju4n97/catl/internal/schema"
 )
 
 // TestValidatorSchemaEnforcement verifies JSON Schema type and bound checks,
@@ -30,7 +30,7 @@ func TestValidatorSchemaEnforcement(t *testing.T) {
 		},
 	}
 
-	val := schema.NewValidator(fsys)
+	val := manifest.NewValidator(fsys)
 	if err := val.Compile("schemas/rules.json"); err != nil {
 		t.Fatalf("Compile() failed: %v", err)
 	}
@@ -39,13 +39,13 @@ func TestValidatorSchemaEnforcement(t *testing.T) {
 		t.Parallel()
 
 		raw := "enabled: true\nthreshold: 50\n"
-		m, err := schema.DecodeManifest([]byte(raw), "rules/rate-limit.yaml")
+		m, err := manifest.Decode([]byte(raw), "rules/rate-limit.yaml")
 		if err != nil {
 			t.Fatalf("DecodeManifest() failed: %v", err)
 		}
 
 		ent := &scan.Entity{ID: "rate-limit", Shape: scan.EntityShapeFlat}
-		if err := val.ValidateManifest(m, "schemas/rules.json", ent, nil); err != nil {
+		if err := val.Validate(m, "schemas/rules.json", ent, nil); err != nil {
 			t.Fatalf("ValidateManifest() unexpected error: %v", err)
 		}
 	})
@@ -54,18 +54,18 @@ func TestValidatorSchemaEnforcement(t *testing.T) {
 		t.Parallel()
 
 		raw := "enabled: true\nthreshold: 150\n"
-		m, err := schema.DecodeManifest([]byte(raw), "rules/rate-limit.yaml")
+		m, err := manifest.Decode([]byte(raw), "rules/rate-limit.yaml")
 		if err != nil {
 			t.Fatalf("DecodeManifest() failed: %v", err)
 		}
 
 		ent := &scan.Entity{ID: "rate-limit", Shape: scan.EntityShapeFlat}
-		err = val.ValidateManifest(m, "schemas/rules.json", ent, nil)
+		err = val.Validate(m, "schemas/rules.json", ent, nil)
 		if err == nil {
 			t.Fatal("expected validation error, got nil")
 		}
 
-		var valErr *schema.ValidationError
+		var valErr *manifest.ValidationError
 		if !errors.As(err, &valErr) {
 			t.Fatalf("expected *schema.ValidationError, got %T", err)
 		}
@@ -83,18 +83,18 @@ func TestValidatorSchemaEnforcement(t *testing.T) {
 		t.Parallel()
 
 		raw := "enabled: no\nthreshold: 50\n"
-		m, err := schema.DecodeManifest([]byte(raw), "rules/rate-limit.yaml")
+		m, err := manifest.Decode([]byte(raw), "rules/rate-limit.yaml")
 		if err != nil {
 			t.Fatalf("DecodeManifest() failed: %v", err)
 		}
 
 		ent := &scan.Entity{ID: "rate-limit", Shape: scan.EntityShapeFlat}
-		err = val.ValidateManifest(m, "schemas/rules.json", ent, nil)
+		err = val.Validate(m, "schemas/rules.json", ent, nil)
 		if err == nil {
 			t.Fatal("expected validation error on string boolean, got nil")
 		}
 
-		var valErr *schema.ValidationError
+		var valErr *manifest.ValidationError
 		if !errors.As(err, &valErr) {
 			t.Fatalf("expected *schema.ValidationError, got %T", err)
 		}
@@ -112,13 +112,13 @@ func TestValidatorSchemaEnforcement(t *testing.T) {
 		t.Parallel()
 
 		raw := "anything: allowed\nnumbers: 42\n"
-		m, err := schema.DecodeManifest([]byte(raw), "drafts/item.yaml")
+		m, err := manifest.Decode([]byte(raw), "drafts/item.yaml")
 		if err != nil {
 			t.Fatalf("DecodeManifest() failed: %v", err)
 		}
 
 		ent := &scan.Entity{ID: "item", Shape: scan.EntityShapeFlat}
-		if err := val.ValidateManifest(m, "", ent, nil); err != nil {
+		if err := val.Validate(m, "", ent, nil); err != nil {
 			t.Fatalf("permissive validation failed: %v", err)
 		}
 	})
@@ -142,7 +142,7 @@ func TestValidatorCatlFileFormat(t *testing.T) {
 		},
 	}
 
-	val := schema.NewValidator(fsys)
+	val := manifest.NewValidator(fsys)
 	if err := val.Compile("schemas/bundle.json"); err != nil {
 		t.Fatalf("Compile() failed: %v", err)
 	}
@@ -155,7 +155,7 @@ func TestValidatorCatlFileFormat(t *testing.T) {
 		}
 
 		raw := "runbook: notes.md\n"
-		m, err := schema.DecodeManifest([]byte(raw), "services/billing/manifest.yaml")
+		m, err := manifest.Decode([]byte(raw), "services/billing/manifest.yaml")
 		if err != nil {
 			t.Fatalf("DecodeManifest() failed: %v", err)
 		}
@@ -165,7 +165,7 @@ func TestValidatorCatlFileFormat(t *testing.T) {
 			Shape:     scan.EntityShapeBundle,
 			BundleDir: "services/billing",
 		}
-		if err := val.ValidateManifest(m, "schemas/bundle.json", ent, bundleFS); err != nil {
+		if err := val.Validate(m, "schemas/bundle.json", ent, bundleFS); err != nil {
 			t.Fatalf("ValidateManifest() failed: %v", err)
 		}
 	})
@@ -176,7 +176,7 @@ func TestValidatorCatlFileFormat(t *testing.T) {
 		bundleFS := fstest.MapFS{}
 
 		raw := "runbook: missing.md\n"
-		m, err := schema.DecodeManifest([]byte(raw), "services/billing/manifest.yaml")
+		m, err := manifest.Decode([]byte(raw), "services/billing/manifest.yaml")
 		if err != nil {
 			t.Fatalf("DecodeManifest() failed: %v", err)
 		}
@@ -186,12 +186,12 @@ func TestValidatorCatlFileFormat(t *testing.T) {
 			Shape:     scan.EntityShapeBundle,
 			BundleDir: "services/billing",
 		}
-		err = val.ValidateManifest(m, "schemas/bundle.json", ent, bundleFS)
+		err = val.Validate(m, "schemas/bundle.json", ent, bundleFS)
 		if err == nil {
 			t.Fatal("expected error for missing companion file, got nil")
 		}
 
-		var valErr *schema.ValidationError
+		var valErr *manifest.ValidationError
 		if !errors.As(err, &valErr) {
 			t.Fatalf("expected *schema.ValidationError, got %T", err)
 		}
@@ -205,18 +205,18 @@ func TestValidatorCatlFileFormat(t *testing.T) {
 		t.Parallel()
 
 		raw := "runbook: notes.md\n"
-		m, err := schema.DecodeManifest([]byte(raw), "services/auth.yaml")
+		m, err := manifest.Decode([]byte(raw), "services/auth.yaml")
 		if err != nil {
 			t.Fatalf("DecodeManifest() failed: %v", err)
 		}
 
 		ent := &scan.Entity{ID: "auth", Shape: scan.EntityShapeFlat}
-		err = val.ValidateManifest(m, "schemas/bundle.json", ent, nil)
+		err = val.Validate(m, "schemas/bundle.json", ent, nil)
 		if err == nil {
 			t.Fatal("expected error when using catl-file on flat entity, got nil")
 		}
 
-		var valErr *schema.ValidationError
+		var valErr *manifest.ValidationError
 		if !errors.As(err, &valErr) {
 			t.Fatalf("expected *schema.ValidationError, got %T", err)
 		}

@@ -1,4 +1,4 @@
-package schema
+package manifest
 
 import (
 	"errors"
@@ -37,9 +37,9 @@ type Manifest struct {
 	File *ast.File
 }
 
-// DecodeManifest parses raw YAML or JSON bytes enforcing YAML 1.2 core schema rules,
+// Decode parses raw YAML or JSON bytes enforcing YAML 1.2 core schema rules,
 // unique keys, single document streams, and limits.
-func DecodeManifest(data []byte, relPath string) (*Manifest, error) {
+func Decode(data []byte, relPath string) (*Manifest, error) {
 	if len(data) > MaxManifestSize {
 		return nil, fmt.Errorf("%w: %s (%d bytes)", ErrManifestTooLarge, relPath, len(data))
 	}

@@ -1,9 +1,9 @@
-package schema_test
+package manifest_test
 
 import (
 	"testing"
 
-	"github.com/ju4n97/catl/internal/schema"
+	"github.com/ju4n97/catl/internal/manifest"
 )
 
 // TestDiagnosticString verifies standard compiler-style formatting of individual diagnostics.
@@ -12,12 +12,12 @@ func TestDiagnosticString(t *testing.T) {
 
 	tests := []struct {
 		name string
-		diag schema.Diagnostic
+		diag manifest.Diagnostic
 		want string
 	}{
 		{
 			name: "diagnostic with line number",
-			diag: schema.Diagnostic{
+			diag: manifest.Diagnostic{
 				Path:    "rules/auth.yaml",
 				Line:    12,
 				Pointer: "/threshold",
@@ -27,7 +27,7 @@ func TestDiagnosticString(t *testing.T) {
 		},
 		{
 			name: "diagnostic without line number",
-			diag: schema.Diagnostic{
+			diag: manifest.Diagnostic{
 				Path:    "rules/auth.yaml",
 				Line:    0,
 				Pointer: "/threshold",
@@ -55,7 +55,7 @@ func TestValidationError(t *testing.T) {
 	t.Run("empty diagnostics fallback", func(t *testing.T) {
 		t.Parallel()
 
-		err := &schema.ValidationError{}
+		err := &manifest.ValidationError{}
 		if got := err.Error(); got != "schema validation failed" {
 			t.Errorf("Error() = %q, want 'schema validation failed'", got)
 		}
@@ -64,8 +64,8 @@ func TestValidationError(t *testing.T) {
 	t.Run("multiple diagnostics formatted across lines", func(t *testing.T) {
 		t.Parallel()
 
-		err := &schema.ValidationError{
-			Diagnostics: []schema.Diagnostic{
+		err := &manifest.ValidationError{
+			Diagnostics: []manifest.Diagnostic{
 				{Path: "a.yaml", Line: 1, Pointer: "/p1", Message: "err1"},
 				{Path: "b.yaml", Line: 2, Pointer: "/p2", Message: "err2"},
 			},
