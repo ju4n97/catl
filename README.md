@@ -12,7 +12,7 @@ Catalogs can be queried via a CLI, embedded in Go applications, served over a lo
 
 Everything runs offline as a single static binary with no database, background daemon, or CGO dependencies.
 
-[Documentation](https://ju4n97.github.io/catl/) · [Specification](https://ju4n97.github.io/catl/guide/spec/layout-and-manifests) · [Embedding in Go](https://ju4n97.github.io/catl/guide/reference/embedding) · [HTTP API](https://ju4n97.github.io/catl/guide/reference/http-api) · [Examples](./examples)
+[Documentation](https://ju4n97.github.io/catl/) · [Specification](https://ju4n97.github.io/catl/guide/spec/layout-and-manifests) · [Embedding in Go](https://ju4n97.github.io/catl/guide/reference/embedding) · [HTTP API](https://ju4n97.github.io/catl/guide/reference/http) · [Examples](./examples)
 
 ## Why catl? Building a Git-backed Headless CMS
 
