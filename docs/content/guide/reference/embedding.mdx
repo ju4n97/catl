@@ -59,7 +59,7 @@ func main() {
         log.Fatalf("manifest decode error: %v", err)
     }
 
-    fmt.Printf("Policy %s: severity=%s enabled=%v\n", entity.QualifiedID(), p.Severity, p.Enabled)
+    fmt.Printf("Policy %s: severity=%s enabled=%v\n", entity.QualifiedID, p.Severity, p.Enabled)
 }
 ```
 
@@ -148,8 +148,8 @@ func TestCatalogIntegration(t *testing.T) {
         t.Fatalf("Resolve failed: %v", err)
     }
 
-    if entity.ID() != "allow-all" {
-        t.Errorf("got ID %q, want allow-all", entity.ID())
+    if entity.ID != "allow-all" {
+        t.Errorf("got ID %q, want allow-all", entity.ID)
     }
 }
 ```
