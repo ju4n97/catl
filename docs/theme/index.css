@@ -118,7 +118,6 @@
   --rp-home-feature-bg: linear-gradient(135deg, var(--bg), var(--bg-soft));
 }
 
-
 html.rp-dark,
 html.dark {
   color-scheme: dark;
@@ -178,7 +177,6 @@ html.dark {
   --shadow-5: 0 0 55px rgba(255, 176, 0, .08),
               0 18px 50px rgba(0, 0, 0, .75);
 }
-
 
 *, *::before, *::after {
   border-radius: 0 !important;

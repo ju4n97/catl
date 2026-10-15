@@ -3,6 +3,7 @@ package catl_test
 import (
 	"context"
 	"errors"
+	"strings"
 	"testing"
 	"testing/fstest"
 
@@ -170,6 +171,23 @@ func TestOpenFS(t *testing.T) {
 		}
 		if len(valErr.Diagnostics) != 1 {
 			t.Fatalf("expected 1 diagnostic, got %d", len(valErr.Diagnostics))
+		}
+	})
+
+	t.Run("catalog tree hash calculation", func(t *testing.T) {
+		t.Parallel()
+
+		cat, err := catl.OpenFS(ctx, validFS, catl.Options{})
+		if err != nil {
+			t.Fatalf("OpenFS() failed: %v", err)
+		}
+
+		h, err := cat.TreeHash()
+		if err != nil {
+			t.Fatalf("TreeHash() failed: %v", err)
+		}
+		if !strings.HasPrefix(h, "sha256:") || len(h) != 71 {
+			t.Errorf("unexpected tree hash format: %q", h)
 		}
 	})
 }

@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"github.com/ju4n97/catl/internal/config"
+	"github.com/ju4n97/catl/internal/hash"
 	"github.com/ju4n97/catl/internal/scan"
 	"github.com/ju4n97/catl/internal/schema"
 )
@@ -189,4 +190,10 @@ func (c *Catalog) Resolve(collection, qualifiedID string) (*Entity, error) {
 	}
 
 	return ent, nil
+}
+
+// TreeHash calculates the deterministic cryptographic SHA-256 tree hash
+// of the catalog contents.
+func (c *Catalog) TreeHash() (string, error) {
+	return hash.Tree(c.fsys)
 }
