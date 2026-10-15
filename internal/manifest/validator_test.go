@@ -122,6 +122,24 @@ func TestValidatorSchemaEnforcement(t *testing.T) {
 			t.Fatalf("permissive validation failed: %v", err)
 		}
 	})
+
+	t.Run("rejects schema with crlf line endings", func(t *testing.T) {
+		t.Parallel()
+
+		crlfFS := fstest.MapFS{
+			"schemas/crlf.json": &fstest.MapFile{
+				Data: []byte("{\r\n  \"type\": \"object\"\r\n}\r\n"),
+			},
+		}
+		val := manifest.NewValidator(crlfFS)
+		err := val.Compile("schemas/crlf.json")
+		if err == nil {
+			t.Fatal("expected error on schema with CRLF, got nil")
+		}
+		if !errors.Is(err, manifest.ErrCRLFForbidden) {
+			t.Errorf("got %v, want ErrCRLFForbidden", err)
+		}
+	})
 }
 
 // TestValidatorCatlFileFormat verifies the custom "catl-file" format assertion

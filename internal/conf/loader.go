@@ -29,6 +29,10 @@ func Parse(data []byte) (*File, error) {
 		return nil, errors.New("catl.toml: UTF-8 BOM is forbidden")
 	}
 
+	if bytes.Contains(data, []byte("\r")) {
+		return nil, errors.New("catl.toml: CRLF line endings are forbidden (use LF)")
+	}
+
 	var file File
 	dec := toml.NewDecoder(bytes.NewReader(data))
 	dec.DisallowUnknownFields()

@@ -69,6 +69,12 @@ tree = "sha256:9f2c1a7b8e4f5a6b7c8d9e0f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b"
 			targetErr: lock.ErrInvalidLockfile,
 		},
 		{
+			name:      "rejects crlf line endings",
+			toml:      "version = 1\r\n",
+			wantErr:   true,
+			targetErr: lock.ErrInvalidLockfile,
+		},
+		{
 			name: "rejects unknown fields strictly",
 			toml: `
 version = 1

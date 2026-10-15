@@ -51,6 +51,10 @@ func (v *Validator) Compile(schemaPath string) error {
 		return fmt.Errorf("read schema %s: %w", schemaPath, err)
 	}
 
+	if bytes.Contains(data, []byte("\r")) {
+		return fmt.Errorf("%s: %w", schemaPath, ErrCRLFForbidden)
+	}
+
 	doc, err := jsonschema.UnmarshalJSON(bytes.NewReader(data))
 	if err != nil {
 		return fmt.Errorf("unmarshal schema %s: %w", schemaPath, err)

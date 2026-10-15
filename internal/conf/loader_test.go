@@ -58,6 +58,11 @@ core = { path = "../core" }
 			wantErr: true,
 		},
 		{
+			name:    "rejects crlf line endings",
+			toml:    "[catalog]\r\nname = \"crlf-cat\"\r\n[collections.a]\r\n",
+			wantErr: true,
+		},
+		{
 			name: "rejects unknown keys at root level",
 			toml: `
 [catalog]

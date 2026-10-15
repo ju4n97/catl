@@ -1,6 +1,7 @@
 package manifest
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"strconv"
@@ -28,6 +29,9 @@ var (
 
 	// ErrCustomTagForbidden is returned when a YAML node uses a custom tag (e.g. '!custom').
 	ErrCustomTagForbidden = errors.New("custom YAML tags are forbidden")
+
+	// ErrCRLFForbidden is returned when a structured file contains CRLF line endings.
+	ErrCRLFForbidden = errors.New("CRLF line endings are forbidden (use LF)")
 )
 
 // Manifest holds decoded manifest data along with its parsed AST for line lookups.
@@ -42,6 +46,10 @@ type Manifest struct {
 func Decode(data []byte, relPath string) (*Manifest, error) {
 	if len(data) > MaxManifestSize {
 		return nil, fmt.Errorf("%w: %s (%d bytes)", ErrManifestTooLarge, relPath, len(data))
+	}
+
+	if bytes.Contains(data, []byte("\r")) {
+		return nil, fmt.Errorf("%s: %w", relPath, ErrCRLFForbidden)
 	}
 
 	// Parse AST to verify document boundaries and token line positions

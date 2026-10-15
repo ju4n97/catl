@@ -72,6 +72,19 @@ endpoints:
 		}
 	})
 
+	t.Run("rejects crlf line endings", func(t *testing.T) {
+		t.Parallel()
+
+		raw := "title: Test\r\nenabled: true\r\n"
+		_, err := manifest.Decode([]byte(raw), "test.yaml")
+		if err == nil {
+			t.Fatal("expected error on CRLF line endings, got nil")
+		}
+		if !errors.Is(err, manifest.ErrCRLFForbidden) {
+			t.Errorf("got %v, want ErrCRLFForbidden", err)
+		}
+	})
+
 	t.Run("rejects duplicate keys", func(t *testing.T) {
 		t.Parallel()
 
