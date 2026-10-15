@@ -9,7 +9,7 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/ju4n97/catl/internal/config"
+	"github.com/ju4n97/catl/internal/conf"
 	"github.com/ju4n97/catl/internal/hash"
 	"github.com/ju4n97/catl/internal/scan"
 	"github.com/ju4n97/catl/internal/schema"
@@ -25,7 +25,7 @@ type Options struct {
 type Catalog struct {
 	fsys      fs.FS
 	rootPath  string
-	config    *config.File
+	config    *conf.File
 	tree      *scan.Tree
 	entities  map[string]map[string]*Entity // collection -> id -> Entity
 	allSorted []*Entity
@@ -50,7 +50,7 @@ func OpenFS(ctx context.Context, fsys fs.FS, opts Options) (*Catalog, error) {
 		return nil, fmt.Errorf("read catl.toml: %w", err)
 	}
 
-	cfg, err := config.Parse(configData)
+	cfg, err := conf.Parse(configData)
 	if err != nil {
 		return nil, err
 	}

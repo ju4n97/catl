@@ -1,9 +1,9 @@
-package config_test
+package conf_test
 
 import (
 	"testing"
 
-	"github.com/ju4n97/catl/internal/config"
+	"github.com/ju4n97/catl/internal/conf"
 )
 
 // TestFile_ValidateCollections verifies relational checks that cannot be expressed in JSON Schema,
@@ -13,14 +13,14 @@ func TestFile_ValidateCollections(t *testing.T) {
 
 	tests := []struct {
 		name    string
-		file    config.File
+		file    conf.File
 		wantErr bool
 	}{
 		{
 			name: "distinct explicit directories",
-			file: config.File{
-				Catalog: config.Catalog{Name: "my-cat"},
-				Collections: map[string]config.Collection{
+			file: conf.File{
+				Catalog: conf.Catalog{Name: "my-cat"},
+				Collections: map[string]conf.Collection{
 					"coll-a": {Dir: "dir-a"},
 					"coll-b": {Dir: "dir-b"},
 				},
@@ -28,9 +28,9 @@ func TestFile_ValidateCollections(t *testing.T) {
 		},
 		{
 			name: "distinct default directories",
-			file: config.File{
-				Catalog: config.Catalog{Name: "my-cat"},
-				Collections: map[string]config.Collection{
+			file: conf.File{
+				Catalog: conf.Catalog{Name: "my-cat"},
+				Collections: map[string]conf.Collection{
 					"coll-a": {},
 					"coll-b": {},
 				},
@@ -38,9 +38,9 @@ func TestFile_ValidateCollections(t *testing.T) {
 		},
 		{
 			name: "collision between explicit directory and default directory",
-			file: config.File{
-				Catalog: config.Catalog{Name: "my-cat"},
-				Collections: map[string]config.Collection{
+			file: conf.File{
+				Catalog: conf.Catalog{Name: "my-cat"},
+				Collections: map[string]conf.Collection{
 					"services": {},
 					"other":    {Dir: "services"},
 				},
@@ -49,9 +49,9 @@ func TestFile_ValidateCollections(t *testing.T) {
 		},
 		{
 			name: "schema path with directory traversal",
-			file: config.File{
-				Catalog: config.Catalog{Name: "my-cat"},
-				Collections: map[string]config.Collection{
+			file: conf.File{
+				Catalog: conf.Catalog{Name: "my-cat"},
+				Collections: map[string]conf.Collection{
 					"services": {Schema: "../escapes/schema.json"},
 				},
 			},
@@ -78,26 +78,26 @@ func TestDependencySource(t *testing.T) {
 
 	tests := []struct {
 		name       string
-		dep        config.Dependency
+		dep        conf.Dependency
 		wantErr    bool
-		wantSource config.Source
+		wantSource conf.Source
 	}{
 		{
 			name: "valid git source with tag",
-			dep: config.Dependency{
+			dep: conf.Dependency{
 				Git: "https://github.com/acme/infra",
 				Tag: "v1.0.0",
 			},
-			wantSource: config.GitSource{Repo: "https://github.com/acme/infra", Tag: "v1.0.0"},
+			wantSource: conf.GitSource{Repo: "https://github.com/acme/infra", Tag: "v1.0.0"},
 		},
 		{
 			name: "valid git source with branch and subdir",
-			dep: config.Dependency{
+			dep: conf.Dependency{
 				Git:    "https://github.com/acme/infra",
 				Branch: "main",
 				Subdir: "catalogs/base",
 			},
-			wantSource: config.GitSource{
+			wantSource: conf.GitSource{
 				Repo:   "https://github.com/acme/infra",
 				Branch: "main",
 				Subdir: "catalogs/base",
@@ -105,41 +105,41 @@ func TestDependencySource(t *testing.T) {
 		},
 		{
 			name: "valid git source with rev",
-			dep: config.Dependency{
+			dep: conf.Dependency{
 				Git: "https://github.com/acme/infra",
 				Rev: "d6e89a7123bf01c4a0b1e5f7a3c9d2e8b4f60718",
 			},
-			wantSource: config.GitSource{
+			wantSource: conf.GitSource{
 				Repo: "https://github.com/acme/infra",
 				Rev:  "d6e89a7123bf01c4a0b1e5f7a3c9d2e8b4f60718",
 			},
 		},
 		{
 			name: "valid archive source",
-			dep: config.Dependency{
+			dep: conf.Dependency{
 				URL:    "https://cdn.example.com/data.tar.gz",
 				Digest: "sha256:123",
 			},
-			wantSource: config.ArchiveSource{
+			wantSource: conf.ArchiveSource{
 				URL:    "https://cdn.example.com/data.tar.gz",
 				Digest: "sha256:123",
 			},
 		},
 		{
 			name: "valid path source",
-			dep: config.Dependency{
+			dep: conf.Dependency{
 				Path: "../core",
 			},
-			wantSource: config.PathSource{Dir: "../core"},
+			wantSource: conf.PathSource{Dir: "../core"},
 		},
 		{
 			name:    "empty dependency has no source configured",
-			dep:     config.Dependency{},
+			dep:     conf.Dependency{},
 			wantErr: true,
 		},
 		{
 			name: "multiple source types configured simultaneously",
-			dep: config.Dependency{
+			dep: conf.Dependency{
 				Git:  "https://github.com/acme/infra",
 				Tag:  "v1.0.0",
 				Path: "../core",
@@ -148,14 +148,14 @@ func TestDependencySource(t *testing.T) {
 		},
 		{
 			name: "git missing reference target",
-			dep: config.Dependency{
+			dep: conf.Dependency{
 				Git: "https://github.com/acme/infra",
 			},
 			wantErr: true,
 		},
 		{
 			name: "git with ambiguous ref targets",
-			dep: config.Dependency{
+			dep: conf.Dependency{
 				Git:    "https://github.com/acme/infra",
 				Tag:    "v1.0.0",
 				Branch: "main",
@@ -164,7 +164,7 @@ func TestDependencySource(t *testing.T) {
 		},
 		{
 			name: "git with invalid subdir",
-			dep: config.Dependency{
+			dep: conf.Dependency{
 				Git:    "https://github.com/acme/infra",
 				Tag:    "v1.0.0",
 				Subdir: "../escapes",
@@ -173,21 +173,21 @@ func TestDependencySource(t *testing.T) {
 		},
 		{
 			name: "archive with insecure http url",
-			dep: config.Dependency{
+			dep: conf.Dependency{
 				URL: "http://insecure.example.com/archive.tar.gz",
 			},
 			wantErr: true,
 		},
 		{
 			name: "path with absolute directory",
-			dep: config.Dependency{
+			dep: conf.Dependency{
 				Path: "/absolute/path/not/allowed",
 			},
 			wantErr: true,
 		},
 		{
 			name: "path containing backslashes",
-			dep: config.Dependency{
+			dep: conf.Dependency{
 				Path: "..\\core",
 			},
 			wantErr: true,
@@ -215,8 +215,8 @@ func TestDependencySource(t *testing.T) {
 func TestNewDependency(t *testing.T) {
 	t.Parallel()
 
-	gitSrc := config.GitSource{Repo: "https://github.com/acme/infra", Tag: "v1.0.0"}
-	dep, err := config.NewDependency(gitSrc)
+	gitSrc := conf.GitSource{Repo: "https://github.com/acme/infra", Tag: "v1.0.0"}
+	dep, err := conf.NewDependency(gitSrc)
 	if err != nil {
 		t.Fatalf("NewDependency(GitSource) error = %v", err)
 	}
@@ -224,8 +224,8 @@ func TestNewDependency(t *testing.T) {
 		t.Errorf("unexpected dependency fields: %+v", dep)
 	}
 
-	archSrc := config.ArchiveSource{URL: "https://cdn.example.com/p.tar.gz", Digest: "sha256:abc"}
-	dep, err = config.NewDependency(archSrc)
+	archSrc := conf.ArchiveSource{URL: "https://cdn.example.com/p.tar.gz", Digest: "sha256:abc"}
+	dep, err = conf.NewDependency(archSrc)
 	if err != nil {
 		t.Fatalf("NewDependency(ArchiveSource) error = %v", err)
 	}
@@ -233,8 +233,8 @@ func TestNewDependency(t *testing.T) {
 		t.Errorf("unexpected dependency fields: %+v", dep)
 	}
 
-	pathSrc := config.PathSource{Dir: "../core"}
-	dep, err = config.NewDependency(pathSrc)
+	pathSrc := conf.PathSource{Dir: "../core"}
+	dep, err = conf.NewDependency(pathSrc)
 	if err != nil {
 		t.Fatalf("NewDependency(PathSource) error = %v", err)
 	}

@@ -1,11 +1,11 @@
-package config_test
+package conf_test
 
 import (
 	"errors"
 	"strings"
 	"testing"
 
-	"github.com/ju4n97/catl/internal/config"
+	"github.com/ju4n97/catl/internal/conf"
 )
 
 func TestValidateIdent(t *testing.T) {
@@ -91,17 +91,17 @@ func TestValidateIdent(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			err := config.ValidateIdent(tt.input)
+			err := conf.ValidateIdent(tt.input)
 			if gotErr := err != nil; gotErr != tt.wantErr {
 				t.Fatalf("ValidateIdent(%q) error = %v, wantErr %t", tt.input, err, tt.wantErr)
 			}
 
-			if tt.wantErr && !errors.Is(err, config.ErrInvalidIdent) {
+			if tt.wantErr && !errors.Is(err, conf.ErrInvalidIdent) {
 				t.Errorf(
 					"ValidateIdent(%q) error = %v, want %v",
 					tt.input,
 					err,
-					config.ErrInvalidIdent,
+					conf.ErrInvalidIdent,
 				)
 			}
 		})

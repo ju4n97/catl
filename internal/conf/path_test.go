@@ -1,11 +1,11 @@
-package config_test
+package conf_test
 
 import (
 	"errors"
 	"strings"
 	"testing"
 
-	"github.com/ju4n97/catl/internal/config"
+	"github.com/ju4n97/catl/internal/conf"
 )
 
 // TestValidatePathComponent checks path component validation.
@@ -39,7 +39,7 @@ func TestValidatePathComponent(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			err := config.ValidatePathComponent(tt.input)
+			err := conf.ValidatePathComponent(tt.input)
 			if (err != nil) != tt.wantErr {
 				t.Fatalf(
 					"ValidatePathComponent(%q) error = %v, wantErr %t",
@@ -48,12 +48,12 @@ func TestValidatePathComponent(t *testing.T) {
 					tt.wantErr,
 				)
 			}
-			if tt.wantErr && !errors.Is(err, config.ErrInvalidPath) {
+			if tt.wantErr && !errors.Is(err, conf.ErrInvalidPath) {
 				t.Errorf(
 					"ValidatePathComponent(%q) error = %v, want %v",
 					tt.input,
 					err,
-					config.ErrInvalidPath,
+					conf.ErrInvalidPath,
 				)
 			}
 		})
@@ -108,7 +108,7 @@ func TestValidateRelativePath(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			err := config.ValidateRelativePath(tt.input)
+			err := conf.ValidateRelativePath(tt.input)
 			if (err != nil) != tt.wantErr {
 				t.Fatalf(
 					"ValidateRelativePath(%q) error = %v, wantErr %t",
@@ -117,12 +117,12 @@ func TestValidateRelativePath(t *testing.T) {
 					tt.wantErr,
 				)
 			}
-			if tt.wantErr && !errors.Is(err, config.ErrInvalidPath) {
+			if tt.wantErr && !errors.Is(err, conf.ErrInvalidPath) {
 				t.Errorf(
 					"ValidateRelativePath(%q) error = %v, want %v",
 					tt.input,
 					err,
-					config.ErrInvalidPath,
+					conf.ErrInvalidPath,
 				)
 			}
 		})

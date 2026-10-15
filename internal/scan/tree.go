@@ -8,7 +8,7 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/ju4n97/catl/internal/config"
+	"github.com/ju4n97/catl/internal/conf"
 )
 
 // Tree holds all collections and entities discovered within a catalog directory tree.
@@ -19,7 +19,7 @@ type Tree struct {
 
 // TreeScan scans a catalog directory tree using the provided configuration, enforcing
 // clean-checkout rules and discovering all flat and bundle entities.
-func TreeScan(fsys fs.FS, cfg *config.File) (*Tree, error) {
+func TreeScan(fsys fs.FS, cfg *conf.File) (*Tree, error) {
 	if cfg == nil {
 		return nil, errors.New("cannot scan catalog without configuration")
 	}
@@ -52,7 +52,7 @@ func TreeScan(fsys fs.FS, cfg *config.File) (*Tree, error) {
 
 // validateRoot ensures only declared directories, catl files, and ignored dot-files
 // exist at the root of the catalog directory tree.
-func validateRoot(fsys fs.FS, cfg *config.File) error {
+func validateRoot(fsys fs.FS, cfg *conf.File) error {
 	entries, err := fs.ReadDir(fsys, ".")
 	if err != nil {
 		return fmt.Errorf("read catalog root: %w", err)
@@ -84,7 +84,7 @@ func validateRoot(fsys fs.FS, cfg *config.File) error {
 			continue
 		}
 
-		if err := config.ValidatePathComponent(name); err != nil {
+		if err := conf.ValidatePathComponent(name); err != nil {
 			return err
 		}
 
@@ -126,7 +126,7 @@ func scanCollection(fsys fs.FS, collName, collDir string) ([]Entity, error) {
 			continue
 		}
 
-		if err := config.ValidatePathComponent(name); err != nil {
+		if err := conf.ValidatePathComponent(name); err != nil {
 			return nil, err
 		}
 
@@ -145,7 +145,7 @@ func scanCollection(fsys fs.FS, collName, collDir string) ([]Entity, error) {
 			id = strings.TrimSuffix(name, ext)
 		}
 
-		if err := config.ValidateIdent(id); err != nil {
+		if err := conf.ValidateIdent(id); err != nil {
 			return nil, fmt.Errorf("collection %q invalid entity ID %q: %w", collName, id, err)
 		}
 
@@ -207,7 +207,7 @@ func scanBundle(fsys fs.FS, collName, collDir, id string) (Entity, error) {
 			return nil
 		}
 
-		if err := config.ValidatePathComponent(name); err != nil {
+		if err := conf.ValidatePathComponent(name); err != nil {
 			return err
 		}
 

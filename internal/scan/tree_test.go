@@ -5,7 +5,7 @@ import (
 	"testing"
 	"testing/fstest"
 
-	"github.com/ju4n97/catl/internal/config"
+	"github.com/ju4n97/catl/internal/conf"
 	"github.com/ju4n97/catl/internal/scan"
 )
 
@@ -31,9 +31,9 @@ func TestTreeScan(t *testing.T) {
 			"services/billing/.hidden-draft.txt": &fstest.MapFile{Data: []byte("ignored\n")},
 		}
 
-		cfg := &config.File{
-			Catalog: config.Catalog{Name: "my-cat"},
-			Collections: map[string]config.Collection{
+		cfg := &conf.File{
+			Catalog: conf.Catalog{Name: "my-cat"},
+			Collections: map[string]conf.Collection{
 				"services": {},
 				"drafts":   {},
 			},
@@ -83,9 +83,9 @@ func TestTreeScan(t *testing.T) {
 			"scratch.txt":     &fstest.MapFile{Data: []byte("stray")},
 		}
 
-		cfg := &config.File{
-			Catalog: config.Catalog{Name: "my-cat"},
-			Collections: map[string]config.Collection{
+		cfg := &conf.File{
+			Catalog: conf.Catalog{Name: "my-cat"},
+			Collections: map[string]conf.Collection{
 				"services": {},
 			},
 		}
@@ -108,9 +108,9 @@ func TestTreeScan(t *testing.T) {
 			"tmp/scratch.txt": &fstest.MapFile{Data: []byte("stray")},
 		}
 
-		cfg := &config.File{
-			Catalog: config.Catalog{Name: "my-cat"},
-			Collections: map[string]config.Collection{
+		cfg := &conf.File{
+			Catalog: conf.Catalog{Name: "my-cat"},
+			Collections: map[string]conf.Collection{
 				"services": {},
 			},
 		}
@@ -133,9 +133,9 @@ func TestTreeScan(t *testing.T) {
 			"services/auth/manifest.yaml": &fstest.MapFile{Data: []byte("")},
 		}
 
-		cfg := &config.File{
-			Catalog: config.Catalog{Name: "test-cat"},
-			Collections: map[string]config.Collection{
+		cfg := &conf.File{
+			Catalog: conf.Catalog{Name: "test-cat"},
+			Collections: map[string]conf.Collection{
 				"services": {},
 			},
 		}
@@ -157,9 +157,9 @@ func TestTreeScan(t *testing.T) {
 			"services/auth/doc.md": &fstest.MapFile{Data: []byte("")},
 		}
 
-		cfg := &config.File{
-			Catalog: config.Catalog{Name: "test-cat"},
-			Collections: map[string]config.Collection{
+		cfg := &conf.File{
+			Catalog: conf.Catalog{Name: "test-cat"},
+			Collections: map[string]conf.Collection{
 				"services": {},
 			},
 		}
@@ -182,9 +182,9 @@ func TestTreeScan(t *testing.T) {
 			"services/auth/manifest.json": &fstest.MapFile{Data: []byte("")},
 		}
 
-		cfg := &config.File{
-			Catalog: config.Catalog{Name: "test-cat"},
-			Collections: map[string]config.Collection{
+		cfg := &conf.File{
+			Catalog: conf.Catalog{Name: "test-cat"},
+			Collections: map[string]conf.Collection{
 				"services": {},
 			},
 		}
@@ -206,9 +206,9 @@ func TestTreeScan(t *testing.T) {
 			"services/notes.txt": &fstest.MapFile{Data: []byte("")},
 		}
 
-		cfg := &config.File{
-			Catalog: config.Catalog{Name: "test-cat"},
-			Collections: map[string]config.Collection{
+		cfg := &conf.File{
+			Catalog: conf.Catalog{Name: "test-cat"},
+			Collections: map[string]conf.Collection{
 				"services": {},
 			},
 		}

@@ -1,4 +1,4 @@
-package config_test
+package conf_test
 
 import (
 	"errors"
@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/ju4n97/catl/internal/config"
+	"github.com/ju4n97/catl/internal/conf"
 )
 
 // TestParse verifies parsing of valid and invalid TOML payloads into File structures.
@@ -19,7 +19,7 @@ func TestParse(t *testing.T) {
 		toml      string
 		wantErr   bool
 		targetErr error
-		check     func(t *testing.T, f *config.File)
+		check     func(t *testing.T, f *conf.File)
 	}{
 		{
 			name: "valid catalog with flat inline dependencies",
@@ -35,7 +35,7 @@ infra = { git = "https://github.com/acme/infra", tag = "v2.0.0" }
 policies = { url = "https://cdn.example.com/p.tar.gz", digest = "sha256:ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad" }
 core = { path = "../core" }
 `,
-			check: func(t *testing.T, f *config.File) {
+			check: func(t *testing.T, f *conf.File) {
 				t.Helper()
 				if f.Catalog.Name != "platform-rules" {
 					t.Fatalf("catalog name = %q, want platform-rules", f.Catalog.Name)
@@ -72,7 +72,7 @@ unknown_field = 123
 [collections.rules]
 `,
 			wantErr:   true,
-			targetErr: config.ErrRequiresNewer,
+			targetErr: conf.ErrRequiresNewer,
 		},
 		{
 			name: "rejects unknown properties in dependency tables",
@@ -86,7 +86,7 @@ name = "my-cat"
 infra = { git = "https://github.com/acme/infra", tag = "v1", extra = true }
 `,
 			wantErr:   true,
-			targetErr: config.ErrRequiresNewer,
+			targetErr: conf.ErrRequiresNewer,
 		},
 		{
 			name: "rejects unexpected trailing document content",
@@ -106,7 +106,7 @@ extra = "document"
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			f, err := config.Parse([]byte(tt.toml))
+			f, err := conf.Parse([]byte(tt.toml))
 			if gotErr := err != nil; gotErr != tt.wantErr {
 				t.Fatalf("Parse() error = %v, wantErr %t", err, tt.wantErr)
 			}
@@ -139,7 +139,7 @@ name = "on-disk"
 		t.Fatalf("failed to write test file: %v", err)
 	}
 
-	f, err := config.LoadFile(filePath)
+	f, err := conf.LoadFile(filePath)
 	if err != nil {
 		t.Fatalf("LoadFile(%q) error = %v", filePath, err)
 	}
@@ -149,7 +149,7 @@ name = "on-disk"
 	}
 
 	// Missing file should return an error
-	_, err = config.LoadFile(filepath.Join(tmpDir, "missing.toml"))
+	_, err = conf.LoadFile(filepath.Join(tmpDir, "missing.toml"))
 	if err == nil {
 		t.Error("LoadFile() on missing path expected error, got nil")
 	}
@@ -171,7 +171,7 @@ schema = "schemas/rules.json"
 infra = { git = "https://github.com/acme/infra", tag = "v1.0.0" }
 `
 
-	f, err := config.Parse([]byte(original))
+	f, err := conf.Parse([]byte(original))
 	if err != nil {
 		t.Fatalf("Parse() failed: %v", err)
 	}
@@ -181,7 +181,7 @@ infra = { git = "https://github.com/acme/infra", tag = "v1.0.0" }
 		t.Fatalf("Marshal() failed: %v", err)
 	}
 
-	reparsed, err := config.Parse(data)
+	reparsed, err := conf.Parse(data)
 	if err != nil {
 		t.Fatalf("Parse() of marshaled output failed: %v\nOutput:\n%s", err, string(data))
 	}
