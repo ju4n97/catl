@@ -32,7 +32,6 @@ schema = "schemas/rules.json"
 
 [dependencies]
 infra = { git = "https://github.com/acme/infra", tag = "v2.0.0" }
-policies = { url = "https://cdn.example.com/p.tar.gz", digest = "sha256:ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad" }
 core = { path = "../core" }
 `,
 			check: func(t *testing.T, f *conf.File) {
@@ -40,16 +39,12 @@ core = { path = "../core" }
 				if f.Catalog.Name != "platform-rules" {
 					t.Fatalf("catalog name = %q, want platform-rules", f.Catalog.Name)
 				}
-				if len(f.Dependencies) != 3 {
-					t.Fatalf("got %d dependencies, want 3", len(f.Dependencies))
+				if len(f.Dependencies) != 2 {
+					t.Fatalf("got %d dependencies, want 2", len(f.Dependencies))
 				}
 				infra := f.Dependencies["infra"]
 				if infra.Git != "https://github.com/acme/infra" || infra.Tag != "v2.0.0" {
 					t.Errorf("unexpected infra dependency: %+v", infra)
-				}
-				policies := f.Dependencies["policies"]
-				if policies.URL != "https://cdn.example.com/p.tar.gz" {
-					t.Errorf("unexpected policies dependency: %+v", policies)
 				}
 				core := f.Dependencies["core"]
 				if core.Path != "../core" {

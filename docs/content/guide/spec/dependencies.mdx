@@ -9,16 +9,15 @@ A catalog can depend on other catalogs to import shared entities, schemas, and c
 
 ```toml title="catl.toml"
 [dependencies]
-infra    = { git = "https://github.com/acme/infra", tag = "v2.0.0" }
-policies = { url = "https://cdn.example.com/catalogs/policies.tar.gz" }
-core     = { path = "../core" }
+infra = { git = "https://github.com/acme/infra", tag = "v2.0.0" }
+core  = { path = "../core" }
 ```
 
 Every dependency has a namespace matching the table key. This key must strictly match the `catalog.name` declared in the target catalog's own `catl.toml`. Entities from `infra` are resolved using that namespace (for example, `infra.postgres`).
 
 ## Source types
 
-A dependency must specify exactly one source type.
+A dependency must specify exactly one source type: Git or Local Path.
 
 ### Git
 
@@ -26,24 +25,13 @@ Git dependencies are resolved and cloned using the host system `git` binary (Git
 
 ```toml
 [dependencies]
-infra     = { git = "https://github.com/acme/infra", tag = "v2.0.0" }
-monorepo  = { git = "https://github.com/acme/monorepo", rev = "d6e89a7123bf01c4a0b1e5f7a3c9d2e8b4f60718", subdir = "catalogs/infra" }
+infra    = { git = "https://github.com/acme/infra", tag = "v2.0.0" }
+monorepo = { git = "https://github.com/acme/monorepo", rev = "d6e89a7123bf01c4a0b1e5f7a3c9d2e8b4f60718", subdir = "catalogs/infra" }
 ```
 
 A Git source requires exactly one of `tag`, `branch`, or `rev`. Commits (`rev`) must be full 40 character hexadecimal strings. Annotated tags are automatically peeled to their target commits.
 
 The optional `subdir` field specifies a subdirectory inside the repository that contains the target catalog. Git submodules (gitlinks) inside the target tree cause an error, and Git LFS pointers are treated as plain text files rather than resolved.
-
-### HTTPS archives
-
-Tar archives hosted on HTTP or HTTPS servers can be imported directly:
-
-```toml
-[dependencies]
-policies = { url = "https://cdn.example.com/catalogs/policies.tar.gz", digest = "sha256:4b227777d4dd1fc61c6f884f48641d02b4d121d3fd328cb08b5531fcacdabf8a" }
-```
-
-The URL must point to a `.tar`, `.tar.gz`, or `.tgz` archive. The optional `digest` field verifies the downloaded archive file before extraction.
 
 ### Local paths
 
@@ -54,15 +42,7 @@ Catalogs residing on the local filesystem (such as sibling directories) use `pat
 core = { path = "../core" }
 ```
 
-Local path dependencies are read in place. Because the local filesystem is trusted, path dependencies are not recorded in `catl.lock`, are never cached, and are never hashed.
-
-### Network timeouts and retries
-
-All remote dependency operations over HTTP and HTTPS enforce bounded network defaults:
-
-- **Per request timeout:** 30 seconds for metadata and archives. Streaming timeout applies per 10 MiB chunk for large archives.
-- **Retries:** Up to 3 automatic retries with exponential backoff on transient errors (HTTP 429, 502, 503, 504, and connection resets).
-- **Redirects:** Capped at a maximum of 10 redirects. Redirecting from HTTPS to plaintext HTTP is rejected.
+Local path dependencies are read in place. Because they can change independently of the lockfile and don't have a commit to pin, path dependencies are not recorded in `catl.lock`, are never cached, and are never hashed.
 
 ## Source string syntax
 
@@ -71,7 +51,6 @@ CLI commands like `catl add` accept canonical source strings:
 ```bash
 catl add 'git+https://github.com/acme/infra#tag=v2.0.0'
 catl add 'git+https://github.com/acme/monorepo#tag=v1.0.0&subdir=catalogs/infra'
-catl add 'https://cdn.example.com/catalogs/policies.tar.gz'
 catl add ../core
 ```
 
@@ -90,7 +69,7 @@ resolved = "d6e89a7123bf01c4a0b1e5f7a3c9d2e8b4f60718"
 tree = "sha256:9f2c1a7b8e4f5a6b7c8d9e0f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b"
 ```
 
-Entries are sorted by `requested`. The `resolved` key holds the exact commit hash for Git or the downloaded file digest for HTTPS archives. The `tree` key records the cryptographic tree hash of the extracted catalog files.
+Entries are sorted by `requested`. The `resolved` key holds the exact 40-character commit hash for Git dependencies. The `tree` key records the cryptographic tree hash of the fetched catalog files.
 
 Only `catl add`, `catl remove`, and `catl update` modify `catl.lock`. All other commands (including `check`, `list`, `pack`, and Go library calls to `catl.Open`) treat the lockfile as read only. If `catl.lock` is missing an entry or does not match `catl.toml`, operations fail with `ErrLockStale`:
 

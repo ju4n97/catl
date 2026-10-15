@@ -15,12 +15,6 @@ func newVendorCommand() *cli.Command {
 		UsageText: "catl vendor [flags]",
 		Description: `Copies all remote dependencies and referenced blobs into .catl/vendor/.
 Local path dependencies are not copied.`,
-		Flags: []cli.Flag{
-			&cli.BoolFlag{
-				Name:  "skip-blobs",
-				Usage: "Skip downloading large blob payloads when vendoring",
-			},
-		},
 		Action: func(ctx context.Context, cmd *cli.Command) error {
 			return nil
 		},

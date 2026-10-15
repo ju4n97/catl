@@ -31,6 +31,6 @@ The package includes a standalone CLI binary and an embeddable Go library. Both 
 
 Data is organized into collections declared in `catl.toml`. Each collection has a JSON Schema file. Manifests are parsed using strict YAML 1.2 or JSON rules and checked against that schema. Companion files live inside bundle directories and are verified through cryptographic tree hashes.
 
-External dependencies come from Git repositories, HTTPS archives, or local directory paths. When you add a dependency, `catl` fetches it, hashes its contents, and writes the tree hash to `catl.lock`. Later builds and runtime calls to `catl.Open` verify that the on-disk bytes match the lock.
+External dependencies come from Git repositories, or local directory paths. When you add a dependency, `catl` fetches it, hashes its contents, and writes the tree hash to `catl.lock`. Later builds and runtime calls to `catl.Open` verify that the on-disk bytes match the lock.
 
 Validation doesn't use the network. Schemas, dependencies, and companion files must exist locally or in `.catl/vendor`. If anything has been tampered with or is missing, validation fails immediately.

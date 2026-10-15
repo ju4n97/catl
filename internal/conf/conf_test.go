@@ -115,17 +115,6 @@ func TestDependencySource(t *testing.T) {
 			},
 		},
 		{
-			name: "valid archive source",
-			dep: conf.Dependency{
-				URL:    "https://cdn.example.com/data.tar.gz",
-				Digest: "sha256:123",
-			},
-			wantSource: conf.ArchiveSource{
-				URL:    "https://cdn.example.com/data.tar.gz",
-				Digest: "sha256:123",
-			},
-		},
-		{
 			name: "valid path source",
 			dep: conf.Dependency{
 				Path: "../core",
@@ -172,13 +161,6 @@ func TestDependencySource(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name: "archive with insecure http url",
-			dep: conf.Dependency{
-				URL: "http://insecure.example.com/archive.tar.gz",
-			},
-			wantErr: true,
-		},
-		{
 			name: "path with absolute directory",
 			dep: conf.Dependency{
 				Path: "/absolute/path/not/allowed",
@@ -221,15 +203,6 @@ func TestNewDependency(t *testing.T) {
 		t.Fatalf("NewDependency(GitSource) error = %v", err)
 	}
 	if dep.Git != gitSrc.Repo || dep.Tag != gitSrc.Tag {
-		t.Errorf("unexpected dependency fields: %+v", dep)
-	}
-
-	archSrc := conf.ArchiveSource{URL: "https://cdn.example.com/p.tar.gz", Digest: "sha256:abc"}
-	dep, err = conf.NewDependency(archSrc)
-	if err != nil {
-		t.Fatalf("NewDependency(ArchiveSource) error = %v", err)
-	}
-	if dep.URL != archSrc.URL || dep.Digest != archSrc.Digest {
 		t.Errorf("unexpected dependency fields: %+v", dep)
 	}
 

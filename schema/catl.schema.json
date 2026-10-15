@@ -17,10 +17,6 @@
             "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$",
             "maxLength": 63
         },
-        "digest": {
-            "type": "string",
-            "pattern": "^sha256:[0-9a-f]{64}$"
-        },
         "relpath": {
             "type": "string",
             "pattern": "^[^/.](.*[^/])?$"
@@ -65,18 +61,6 @@
                         { "required": ["branch"] },
                         { "required": ["rev"] }
                     ],
-                    "additionalProperties": false
-                },
-                {
-                    "type": "object",
-                    "properties": {
-                        "url": {
-                            "type": "string",
-                            "pattern": "^https://.+"
-                        },
-                        "digest": { "$ref": "#/$defs/digest" }
-                    },
-                    "required": ["url"],
                     "additionalProperties": false
                 },
                 {

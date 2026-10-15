@@ -51,7 +51,6 @@ dir = "services"
 
 [dependencies]
 infra = { git = "https://github.com/acme/infra", tag = "v1.0.0" }
-policies = { url = "https://cdn.example.com/p.tar.gz", digest = "sha256:ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad" }
 core = { path = "../core" }
 `,
 			wantErr: false,
@@ -140,19 +139,6 @@ name = "my-catalog"
 git = "https://github.com/acme/infra"
 tag = "v1.0.0"
 path = "../infra"
-`,
-			wantErr: true,
-		},
-		{
-			name: "archive dependency with insecure http url",
-			toml: `
-[catalog]
-name = "my-catalog"
-
-[collections.services]
-
-[dependencies.infra]
-url = "http://insecure.example.com/archive.tar.gz"
 `,
 			wantErr: true,
 		},

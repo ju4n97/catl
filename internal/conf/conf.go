@@ -3,7 +3,6 @@ package conf
 import (
 	"errors"
 	"fmt"
-	"net/url"
 	"path"
 	"strings"
 )
@@ -64,7 +63,6 @@ type Collection struct {
 // Dependency declares a direct external catalog source using the compact inline form:
 //
 //	shared-infra = { git = "https://...", tag = "v1" }
-//	policies     = { url = "https://...", digest = "sha256:..." }
 //	core         = { path = "../core" }
 //
 // Exactly one source type must be configured. Use Source to obtain the validated variant.
@@ -75,13 +73,10 @@ type Dependency struct {
 	Rev    string `toml:"rev,omitzero"    json:"rev,omitzero"`
 	Subdir string `toml:"subdir,omitzero" json:"subdir,omitzero"`
 
-	URL    string `toml:"url,omitzero"    json:"url,omitzero"`
-	Digest string `toml:"digest,omitzero" json:"digest,omitzero"`
-
 	Path string `toml:"path,omitzero" json:"path,omitzero"`
 }
 
-// Source is a sealed sum type: GitSource, ArchiveSource, or PathSource.
+// Source is a sealed sum type: GitSource or PathSource.
 //
 //sumtype:decl
 type Source interface {
@@ -112,29 +107,6 @@ func (s GitSource) validate() error {
 		if err := ValidateRelativePath(s.Subdir); err != nil {
 			return fmt.Errorf("git: invalid subdir: %w", err)
 		}
-	}
-	return nil
-}
-
-// ArchiveSource is a remote HTTPS tar archive dependency.
-type ArchiveSource struct {
-	URL    string `json:"url"`
-	Digest string `json:"digest,omitzero"`
-}
-
-func (ArchiveSource) isSource() {}
-
-// validate implements [Source] by ensuring the archive endpoint uses secure HTTPS.
-func (s ArchiveSource) validate() error {
-	if s.URL == "" {
-		return errors.New("archive: 'url' is required")
-	}
-	u, err := url.Parse(s.URL)
-	switch {
-	case err != nil:
-		return fmt.Errorf("archive: invalid url: %w", err)
-	case u.Scheme != "https" || u.Host == "":
-		return fmt.Errorf("archive: url %q must be an absolute https URL", s.URL)
 	}
 	return nil
 }
@@ -175,13 +147,6 @@ func (d Dependency) Source() (Source, error) {
 		}
 		names = append(names, "git")
 	}
-	if d.URL != "" {
-		src = ArchiveSource{
-			URL:    d.URL,
-			Digest: d.Digest,
-		}
-		names = append(names, "url")
-	}
 	if d.Path != "" {
 		src = PathSource{
 			Dir: d.Path,
@@ -191,7 +156,7 @@ func (d Dependency) Source() (Source, error) {
 
 	switch len(names) {
 	case 0:
-		return nil, errors.New("must specify one of 'git', 'url', or 'path'")
+		return nil, errors.New("must specify one of 'git' or 'path'")
 	case 1:
 		if err := src.validate(); err != nil {
 			return nil, err
@@ -215,11 +180,6 @@ func NewDependency(src Source) (Dependency, error) {
 			Branch: s.Branch,
 			Rev:    s.Rev,
 			Subdir: s.Subdir,
-		}, nil
-	case ArchiveSource:
-		return Dependency{
-			URL:    s.URL,
-			Digest: s.Digest,
 		}, nil
 	case PathSource:
 		return Dependency{

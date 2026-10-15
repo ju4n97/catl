@@ -59,16 +59,6 @@ Running `catl pack` serializes a catalog into a reproducible, uncompressed POSIX
 catl pack -o catalog.tar
 ```
 
-## Archive extraction and safety
-
-When downloading and extracting catalog archives from HTTPS or Git dependencies:
-
-1. Readers ignore directory entries and PAX metadata records.
-2. Symbolic links, hard links, device nodes, and FIFOs are rejected immediately.
-3. Paths containing `..`, leading slashes, drive letters, backslashes, or control characters trigger an extraction failure.
-4. Archives containing case-folding collisions (such as `Rule.yaml` and `rule.yaml`) or Unicode normalization collisions (NFC vs. NFD) are rejected.
-5. Archives are extracted into a temporary directory and moved to their final cache destination using an atomic rename once verification passes.
-
 ## Threat model and trust boundaries
 
 | Threat                                | Defense mechanism                                           | Verification point   |
