@@ -5,7 +5,7 @@ description: Reading, validating, and reloading catalogs using the github.com/ju
 
 # Embedding in Go
 
-The `catl` Go module provides programmatic read access to catalogs and workspaces. It contains no CGO dependencies, uses no background threads, and executes validation offline.
+The `catl` Go module provides programmatic read access to catalogs. It contains no CGO dependencies, uses no background threads, and executes validation offline.
 
 Complete type signatures, interfaces, and methods are maintained in GoDoc. See the [pkg.go.dev reference for github.com/ju4n97/catl](https://pkg.go.dev/github.com/ju4n97/catl) for auto-generated API documentation.
 
@@ -111,47 +111,6 @@ Calling `Open` or `ReadFile` on `entity.FS` streams content directly from the lo
 
 The returned filesystem adheres to standard Go `fs.ValidPath` rules: paths escaping the bundle directory with `..` are rejected, and dot-prefixed files are hidden.
 
-## Resolving entities in workspaces
-
-When working with a multi-catalog workspace, open the workspace root using `catl.OpenWorkspace` and access member catalogs via `ws.Member(name)`:
-
-```go
-package main
-
-import (
-    "context"
-    "fmt"
-    "log"
-
-    "github.com/ju4n97/catl"
-)
-
-func main() {
-    ctx := context.Background()
-
-    ws, err := catl.OpenWorkspace(ctx, "./healthcare-platform", catl.Options{})
-    if err != nil {
-        log.Fatalf("failed to open workspace: %v", err)
-    }
-
-    // Scoped resolution: retrieve the "assistants" member
-    assistants, err := ws.Member("assistants")
-    if err != nil {
-        log.Fatalf("member not found: %v", err)
-    }
-
-    // Resolve an entity within the context of the "assistants" catalog
-    agent, err := assistants.Resolve("agents", "assistants.triage")
-    if err != nil {
-        log.Fatalf("failed to resolve agent: %v", err)
-    }
-
-    fmt.Printf("Resolved agent: %s\n", agent.QualifiedID())
-}
-```
-
-Resolving entities through `ws.Member("name")` guarantees that lookups evaluate against that specific member's declared dependencies and namespaces.
-
 ## In-memory testing with `OpenFS`
 
 To test applications without touching the local disk, use `catl.OpenFS` with `testing/fstest.MapFS` or Go's standard `embed.FS`:
@@ -249,7 +208,7 @@ if err != nil {
     case errors.Is(err, catl.ErrNotQualified):
         // The caller passed a bare ID without a namespace
     case errors.Is(err, catl.ErrLockStale):
-        // catl.lock doesn't match catl.toml; needs 'catl dependency update'
+        // catl.lock doesn't match catl.toml; needs 'catl update'
     case errors.Is(err, catl.ErrTamperedVendor):
         // Files inside .catl/vendor don't match the tree hash
     case errors.Is(err, catl.ErrRequiresNewer):

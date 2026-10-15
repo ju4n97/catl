@@ -19,8 +19,6 @@ type Template string
 // Supported templates.
 const (
 	TemplateMinimal Template = "minimal"
-
-	TemplateWorkspaceMinimal Template = "workspace-minimal"
 )
 
 //go:embed all:templates/*
@@ -28,7 +26,7 @@ var templateFS embed.FS
 
 // Data contains the template substitution values.
 type Data struct {
-	Name       string // Catalog namespace or workspace name
+	Name       string // Catalog namespace
 	Collection string // Primary collection name (defaults to "items")
 }
 

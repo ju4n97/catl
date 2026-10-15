@@ -10,28 +10,19 @@ This page defines the vocabulary used across `catl` commands, configuration file
 ## Containment hierarchy
 
 ```text
-workspace
-└── member (catalog)
-    ├── dependencies (external catalogs)
-    └── collections
-        └── entities
-            ├── manifest (validated data)
-            └── companion files (local files)
+catalog
+├── dependencies (external catalogs)
+└── collections
+    └── entities
+        ├── manifest (validated data)
+        └── companion files (local files)
 ```
 
 ## Terms
 
-### Workspace
-
-A directory whose root `catl.toml` contains a `[workspace]` table. A workspace groups multiple catalog directories (members) in a single repository so they share a single root `catl.lock` file and can reference each other via local relative paths. A workspace doesn't define collections or own entities directly.
-
 ### Catalog
 
-A directory whose root `catl.toml` contains a `[catalog]` table. A catalog defines a primary namespace (`catalog.name`), declares one or more collections, and may declare external dependencies. It is the fundamental unit of validation, packaging, and publishing.
-
-### Member
-
-A catalog directory listed in a workspace's `members` array. A member catalog operates as an independent namespace within the workspace, but delegates remote dependency pinning to the workspace's root `catl.lock`.
+A directory containing a root `catl.toml` file. A catalog defines a primary namespace (`catalog.name`), declares one or more collections, and may declare external dependencies. It is the fundamental unit of validation, packaging, and publishing.
 
 ### Collection
 
@@ -75,7 +66,7 @@ A deterministic SHA-256 hash identifying the complete content of a catalog. It h
 
 ### Lockfile (`catl.lock`)
 
-A TOML file at the root of a catalog or workspace that records immutable pins (`resolved` commits or digests) and `tree` hashes for all remote dependencies. It is written only by `catl dependency add` and `catl dependency update`.
+A TOML file at the root of a catalog that records immutable pins (`resolved` commits or digests) and `tree` hashes for all remote dependencies. It is written only by `catl add`, `catl remove`, and `catl update`.
 
 ### Vendor directory (`.catl/vendor`)
 

@@ -10,20 +10,14 @@ import (
 
 // File models the root structure of a catl.toml configuration file.
 type File struct {
-	Catalog      *Catalog              `toml:"catalog,omitzero"      json:"catalog,omitzero"`
-	Workspace    *Workspace            `toml:"workspace,omitzero"    json:"workspace,omitzero"`
+	Catalog      Catalog               `toml:"catalog,omitzero"      json:"catalog,omitzero"`
 	Collections  map[string]Collection `toml:"collections,omitzero"  json:"collections,omitzero"`
 	Dependencies map[string]Dependency `toml:"dependencies,omitzero" json:"dependencies,omitzero"`
 }
 
-// Catalog names an individual catalog.
+// Catalog defines the primary identity and namespace of a catalog.
 type Catalog struct {
 	Name string `toml:"name" json:"name"`
-}
-
-// Workspace groups several catalog members in one repository.
-type Workspace struct {
-	Members []string `toml:"members" json:"members"`
 }
 
 // Collection configures the schema and storage directory of a collection.

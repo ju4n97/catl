@@ -15,7 +15,7 @@ const schemaURL = "https://raw.githubusercontent.com/ju4n97/catl/refs/heads/main
 
 // getCompiledSchema parses and compiles catl.schema.json exactly once.
 var getCompiledSchema = sync.OnceValues(func() (*jsonschema.Schema, error) {
-	doc, err := jsonschema.UnmarshalJSON(bytes.NewReader(schema.CatlBytes))
+	doc, err := jsonschema.UnmarshalJSON(bytes.NewReader(schema.CatlJSON))
 	if err != nil {
 		return nil, fmt.Errorf("unmarshal catl schema: %w", err)
 	}
@@ -45,20 +45,30 @@ func ValidateSchema(data any) error {
 	return nil
 }
 
-// Validate checks post-schema semantic constraints on the File struct, specifically
-// verifying that collection directories don't overlap or collide.
+// Validate checks relational semantic constraints and filesystem path invariants
+// on the File struct that cannot be verified by JSON Schema.
 func (f *File) Validate() error {
-	if f.Workspace != nil {
-		return nil
-	}
-
 	seenDirs := make(map[string]string, len(f.Collections))
+
 	for name, coll := range f.Collections {
+		// Deep OS path validation for schema file (if specified)
+		if coll.Schema != "" {
+			if err := ValidateRelativePath(coll.Schema); err != nil {
+				return fmt.Errorf("collection %q schema: %w", name, err)
+			}
+		}
+
+		// Resolve effective directory: defaults to collection name
 		dir := coll.Dir
 		if dir == "" {
 			dir = name
+		} else {
+			if err := ValidateRelativePath(dir); err != nil {
+				return fmt.Errorf("collection %q dir: %w", name, err)
+			}
 		}
 
+		// Relational collision check: no two collections can share a target directory
 		if existing, exists := seenDirs[dir]; exists {
 			return fmt.Errorf(
 				"collections %q and %q share the same directory %q",

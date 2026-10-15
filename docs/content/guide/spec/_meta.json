@@ -21,11 +21,6 @@
     },
     {
         "type": "file",
-        "name": "workspaces",
-        "label": "Workspaces"
-    },
-    {
-        "type": "file",
         "name": "integrity-and-packaging",
         "label": "Integrity and packaging"
     }

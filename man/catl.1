@@ -15,7 +15,6 @@ catl
 
 .nf
 [--cwd|-C]=[value]
-[--member|-m]=[value]
 [--offline]
 [--quiet|-q]
 [--verbose|-v]
@@ -39,9 +38,6 @@ catl [flags] <command> [args...]
 .SH GLOBAL OPTIONS
 .PP
 \fB--cwd, -C\fP="": Change working directory before executing
-
-.PP
-\fB--member, -m\fP="": Target a specific workspace member (can be repeated)
 
 .PP
 \fB--offline\fP: Disable all network calls and fail if dependencies are not cached
@@ -71,7 +67,7 @@ catl version [flags]
 
 .SH init
 .PP
-Initialize a new catalog or workspace
+Initialize a new catalog
 
 .PP
 .RS
@@ -89,9 +85,6 @@ catl init [flags] [dir]
 
 .PP
 \fB--template, -t\fP="": Starter template to scaffold
-
-.PP
-\fB--workspace\fP: Initialize a workspace root instead of a catalog
 
 .SH check
 .PP
@@ -128,9 +121,6 @@ List entities across collections
 catl list [flags] [collection]
 
 .RE
-
-.PP
-\fB--all, -a\fP: Include entities imported from declared dependencies
 
 .PP
 \fB--json\fP: Output entities as newline-delimited JSON objects

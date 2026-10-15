@@ -20,7 +20,7 @@ type Tree struct {
 // TreeScan scans a catalog directory tree using the provided configuration, enforcing
 // clean-checkout rules and discovering all flat and bundle entities.
 func TreeScan(fsys fs.FS, cfg *config.File) (*Tree, error) {
-	if cfg == nil || cfg.Catalog == nil {
+	if cfg == nil {
 		return nil, errors.New("cannot scan catalog without configuration")
 	}
 

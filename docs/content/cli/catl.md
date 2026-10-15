@@ -17,20 +17,19 @@ catl [flags] <command> [args...]
 
 ## Flags
 
-| Flag                   | Description                                                       |
-| :--------------------- | :---------------------------------------------------------------- |
-| `-C, --cwd <value>`    | Change working directory before executing                         |
-| `-m, --member <value>` | Target a specific workspace member (can be repeated)              |
-| `--offline`            | Disable all network calls and fail if dependencies are not cached |
-| `-q, --quiet`          | Suppress informational output and emit only errors                |
-| `-v, --verbose`        | Print detailed diagnostics and progress to stderr                 |
+| Flag                | Description                                                       |
+| :------------------ | :---------------------------------------------------------------- |
+| `-C, --cwd <value>` | Change working directory before executing                         |
+| `--offline`         | Disable all network calls and fail if dependencies are not cached |
+| `-q, --quiet`       | Suppress informational output and emit only errors                |
+| `-v, --verbose`     | Print detailed diagnostics and progress to stderr                 |
 
 ## Subcommands
 
 | Command                        | Description                                           |
 | :----------------------------- | :---------------------------------------------------- |
 | [`version`](./catl-version.md) | Print catl version and build information              |
-| [`init`](./catl-init.md)       | Initialize a new catalog or workspace                 |
+| [`init`](./catl-init.md)       | Initialize a new catalog                              |
 | [`check`](./catl-check.md)     | Validate schemas, paths, and lockfile integrity       |
 | [`clean`](./catl-clean.md)     | Clear local download and build cache                  |
 | [`list`](./catl-list.md)       | List entities across collections                      |

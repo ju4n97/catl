@@ -2,30 +2,15 @@
     "$schema": "https://json-schema.org/draft/2020-12/schema",
     "$id": "https://raw.githubusercontent.com/ju4n97/catl/refs/heads/main/schema/catl.schema.json",
     "title": "catl.toml",
-    "description": "Validation schema for catl catalog and workspace configuration files.",
+    "description": "Validation schema for catl catalog configuration files.",
     "type": "object",
     "properties": {
         "catalog": { "$ref": "#/$defs/catalog" },
-        "workspace": { "$ref": "#/$defs/workspace" },
         "dependencies": { "$ref": "#/$defs/dependencies" },
         "collections": { "$ref": "#/$defs/collections" }
     },
+    "required": ["catalog", "collections"],
     "additionalProperties": false,
-    "if": {
-        "required": ["workspace"]
-    },
-    "then": {
-        "not": {
-            "anyOf": [
-                { "required": ["catalog"] },
-                { "required": ["collections"] },
-                { "required": ["dependencies"] }
-            ]
-        }
-    },
-    "else": {
-        "required": ["catalog", "collections"]
-    },
     "$defs": {
         "name": {
             "type": "string",
@@ -50,18 +35,6 @@
                 "name": { "$ref": "#/$defs/name" }
             },
             "required": ["name"],
-            "additionalProperties": false
-        },
-        "workspace": {
-            "type": "object",
-            "properties": {
-                "members": {
-                    "type": "array",
-                    "items": { "$ref": "#/$defs/relpath" },
-                    "uniqueItems": true
-                }
-            },
-            "required": ["members"],
             "additionalProperties": false
         },
         "dependencies": {

@@ -7,7 +7,7 @@ import (
 )
 
 // TestValidateSchema verifies that the embedded JSON Schema Draft 2020-12
-// correctly enforces table exclusivity, identifier syntax, and nested dependency variants.
+// correctly enforces required tables, identifier syntax, and dependency variants.
 func TestValidateSchema(t *testing.T) {
 	t.Parallel()
 
@@ -28,26 +28,6 @@ func TestValidateSchema(t *testing.T) {
 					},
 				},
 			},
-		},
-		{
-			name: "valid workspace configuration",
-			data: map[string]any{
-				"workspace": map[string]any{
-					"members": []any{"member-a", "member-b"},
-				},
-			},
-		},
-		{
-			name: "rejects declaring both catalog and workspace",
-			data: map[string]any{
-				"catalog": map[string]any{
-					"name": "catalog-name",
-				},
-				"workspace": map[string]any{
-					"members": []any{"member-a"},
-				},
-			},
-			wantErr: true,
 		},
 		{
 			name: "rejects catalog name with uppercase letters",
@@ -141,7 +121,7 @@ func TestFileValidate(t *testing.T) {
 		{
 			name: "distinct explicit directories",
 			file: config.File{
-				Catalog: &config.Catalog{Name: "my-cat"},
+				Catalog: config.Catalog{Name: "my-cat"},
 				Collections: map[string]config.Collection{
 					"coll-a": {Dir: "dir-a"},
 					"coll-b": {Dir: "dir-b"},
@@ -151,7 +131,7 @@ func TestFileValidate(t *testing.T) {
 		{
 			name: "distinct default directories",
 			file: config.File{
-				Catalog: &config.Catalog{Name: "my-cat"},
+				Catalog: config.Catalog{Name: "my-cat"},
 				Collections: map[string]config.Collection{
 					"coll-a": {},
 					"coll-b": {},
@@ -161,10 +141,20 @@ func TestFileValidate(t *testing.T) {
 		{
 			name: "collision between explicit directory and default directory",
 			file: config.File{
-				Catalog: &config.Catalog{Name: "my-cat"},
+				Catalog: config.Catalog{Name: "my-cat"},
 				Collections: map[string]config.Collection{
 					"services": {},
 					"other":    {Dir: "services"},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "schema path with directory traversal",
+			file: config.File{
+				Catalog: config.Catalog{Name: "my-cat"},
+				Collections: map[string]config.Collection{
+					"services": {Schema: "../escapes/schema.json"},
 				},
 			},
 			wantErr: true,

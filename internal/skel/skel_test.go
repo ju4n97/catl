@@ -10,7 +10,7 @@ import (
 )
 
 // TestCopy verifies template rendering, file placement, and placeholder substitution
-// across catalog and workspace starters.
+// across catalog starters.
 func TestCopy(t *testing.T) {
 	t.Parallel()
 
@@ -58,36 +58,6 @@ func TestCopy(t *testing.T) {
 		gitAttrPath := filepath.Join(tmpDir, ".gitattributes")
 		if _, err := os.Stat(gitAttrPath); err != nil {
 			t.Errorf("expected %s to exist: %v", gitAttrPath, err)
-		}
-	})
-
-	t.Run("render minimal workspace template", func(t *testing.T) {
-		t.Parallel()
-
-		tmpDir := t.TempDir()
-		created, err := skel.Copy(skel.TemplateWorkspaceMinimal, tmpDir, skel.Data{})
-		if err != nil {
-			t.Fatalf("Copy() failed: %v", err)
-		}
-
-		if len(created) != 2 {
-			t.Fatalf("expected 2 files, got %d: %v", len(created), created)
-		}
-
-		catlPath := filepath.Join(tmpDir, "catl.toml")
-		catlData, err := os.ReadFile(catlPath)
-		if err != nil {
-			t.Fatalf("read workspace catl.toml failed: %v", err)
-		}
-
-		if !strings.Contains(string(catlData), "[workspace]\nmembers = []") {
-			t.Errorf("workspace catl.toml missing empty members array")
-		}
-
-		// Workspaces must never contain schemas at the root
-		schemaPath := filepath.Join(tmpDir, "schemas")
-		if _, err := os.Stat(schemaPath); !os.IsNotExist(err) {
-			t.Errorf("schemas directory should not exist in workspace root")
 		}
 	})
 

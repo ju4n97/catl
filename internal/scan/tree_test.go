@@ -32,7 +32,7 @@ func TestTreeScan(t *testing.T) {
 		}
 
 		cfg := &config.File{
-			Catalog: &config.Catalog{Name: "my-cat"},
+			Catalog: config.Catalog{Name: "my-cat"},
 			Collections: map[string]config.Collection{
 				"services": {},
 				"drafts":   {},
@@ -84,7 +84,7 @@ func TestTreeScan(t *testing.T) {
 		}
 
 		cfg := &config.File{
-			Catalog: &config.Catalog{Name: "my-cat"},
+			Catalog: config.Catalog{Name: "my-cat"},
 			Collections: map[string]config.Collection{
 				"services": {},
 			},
@@ -109,7 +109,7 @@ func TestTreeScan(t *testing.T) {
 		}
 
 		cfg := &config.File{
-			Catalog: &config.Catalog{Name: "my-cat"},
+			Catalog: config.Catalog{Name: "my-cat"},
 			Collections: map[string]config.Collection{
 				"services": {},
 			},
@@ -134,7 +134,7 @@ func TestTreeScan(t *testing.T) {
 		}
 
 		cfg := &config.File{
-			Catalog: &config.Catalog{Name: "test-cat"},
+			Catalog: config.Catalog{Name: "test-cat"},
 			Collections: map[string]config.Collection{
 				"services": {},
 			},
@@ -158,7 +158,7 @@ func TestTreeScan(t *testing.T) {
 		}
 
 		cfg := &config.File{
-			Catalog: &config.Catalog{Name: "test-cat"},
+			Catalog: config.Catalog{Name: "test-cat"},
 			Collections: map[string]config.Collection{
 				"services": {},
 			},
@@ -183,7 +183,7 @@ func TestTreeScan(t *testing.T) {
 		}
 
 		cfg := &config.File{
-			Catalog: &config.Catalog{Name: "test-cat"},
+			Catalog: config.Catalog{Name: "test-cat"},
 			Collections: map[string]config.Collection{
 				"services": {},
 			},
@@ -207,7 +207,7 @@ func TestTreeScan(t *testing.T) {
 		}
 
 		cfg := &config.File{
-			Catalog: &config.Catalog{Name: "test-cat"},
+			Catalog: config.Catalog{Name: "test-cat"},
 			Collections: map[string]config.Collection{
 				"services": {},
 			},

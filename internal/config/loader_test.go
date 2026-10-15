@@ -58,19 +58,6 @@ core = { path = "../core" }
 			},
 		},
 		{
-			name: "valid workspace",
-			toml: `
-[workspace]
-members = ["member-a", "member-b"]
-`,
-			check: func(t *testing.T, f *config.File) {
-				t.Helper()
-				if len(f.Workspace.Members) != 2 {
-					t.Fatalf("got %d members, want 2", len(f.Workspace.Members))
-				}
-			},
-		},
-		{
 			name:    "rejects utf8 byte order mark",
 			toml:    "\xef\xbb\xbf[catalog]\nname = \"bom-cat\"\n[collections.a]\n",
 			wantErr: true,
@@ -157,7 +144,7 @@ name = "on-disk"
 		t.Fatalf("LoadFile(%q) error = %v", filePath, err)
 	}
 
-	if f.Catalog == nil || f.Catalog.Name != "on-disk" {
+	if f.Catalog.Name != "on-disk" {
 		t.Errorf("unexpected loaded catalog: %+v", f.Catalog)
 	}
 

@@ -34,7 +34,3 @@ go.work.sum
 
 # Temp
 tmp/
-
-# TODO: remove this
-README
-agentd

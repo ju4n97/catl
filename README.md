@@ -1,5 +1,5 @@
 > [!IMPORTANT]
-> The core catalog functionality is implemented. Dependency management, workspaces, packaging, integrity checks, and cache hardening are still in progress.
+> The core catalog functionality is implemented. Dependency management, packaging, integrity checks, and cache hardening are still in progress.
 
 # catl
 

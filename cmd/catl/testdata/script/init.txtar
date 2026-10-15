@@ -12,19 +12,6 @@ cmp catalog-a/catl.toml expected-catalog-catl.toml
 ! exec catl init -C catalog-a
 stderr 'catl: catl\.toml already exists'
 
-# Initialize an empty workspace root
-exec catl init --workspace platform-ws
-stdout 'create platform-ws/catl.toml'
-stdout 'create platform-ws/.gitattributes'
-! exists platform-ws/schemas
-cmp platform-ws/catl.toml expected-workspace-catl.toml
-
-# Append member when initializing inside an existing workspace
-exec catl init -C platform-ws --name billing --collection invoices billing-catalog
-stdout 'create billing-catalog/catl.toml'
-stdout 'update catl.toml'
-cmp platform-ws/catl.toml expected-updated-workspace-catl.toml
-
 -- expected-catalog-catl.toml --
 #:schema https://raw.githubusercontent.com/ju4n97/catl/refs/heads/main/schema/catl.schema.json
 
@@ -33,17 +20,3 @@ name = "app-rules"
 
 [collections.rules]
 schema = "schemas/rules.json"
-
--- expected-workspace-catl.toml --
-#:schema https://raw.githubusercontent.com/ju4n97/catl/refs/heads/main/schema/catl.schema.json
-
-[workspace]
-members = []
-
--- expected-updated-workspace-catl.toml --
-#:schema https://raw.githubusercontent.com/ju4n97/catl/refs/heads/main/schema/catl.schema.json
-
-[workspace]
-members = [
-  "billing-catalog",
-]
