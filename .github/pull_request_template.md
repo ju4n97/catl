@@ -2,6 +2,4 @@
 
 Closes: #
 
-## Notes
-
 <!-- Add only context that helps reviewers understand the change. -->
