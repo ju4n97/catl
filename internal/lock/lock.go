@@ -137,7 +137,7 @@ func Save(targetPath string, f *File) error {
 
 // VerifyFreshness asserts that catl.lock strictly matches the declared dependencies in catl.toml.
 // Returns ErrLockStale if any remote dependency is missing, extraneous, or mismatching.
-func VerifyFreshness(declared map[string]conf.Dependency, lock *File) error {
+func VerifyFreshness(declared map[string]conf.Dependency, lockFile *File) error {
 	expected := make(map[string]string, len(declared))
 
 	for depName, dep := range declared {
@@ -154,23 +154,23 @@ func VerifyFreshness(declared map[string]conf.Dependency, lock *File) error {
 
 	// If no remote dependencies are declared, lockfile must either be omitted or empty
 	if remoteCount == 0 {
-		if lock != nil && len(lock.Dependencies) > 0 {
+		if lockFile != nil && len(lockFile.Dependencies) > 0 {
 			return fmt.Errorf(
 				"%w: catl.lock contains %d pins but catl.toml declares no remote dependencies",
 				ErrLockStale,
-				len(lock.Dependencies),
+				len(lockFile.Dependencies),
 			)
 		}
 		return nil
 	}
 
 	// Remote dependencies are declared, so a valid lockfile is strictly required
-	if lock == nil {
+	if lockFile == nil {
 		return fmt.Errorf("%w: catalog declares remote dependencies but catl.lock is missing", ErrLockStale)
 	}
 
-	locked := make(map[string]string, len(lock.Dependencies))
-	for _, entry := range lock.Dependencies {
+	locked := make(map[string]string, len(lockFile.Dependencies))
+	for _, entry := range lockFile.Dependencies {
 		locked[entry.Requested] = entry.Resolved
 	}
 
@@ -228,8 +228,8 @@ func CanonicalRequested(dep conf.Dependency) (string, error) {
 	}
 }
 
-// Find retrieves an entry matching the requested canonical source string.
-func (f *File) Find(requested string) (Entry, bool) {
+// FindEntry retrieves an entry matching the requested canonical source string.
+func (f *File) FindEntry(requested string) (Entry, bool) {
 	for _, entry := range f.Dependencies {
 		if entry.Requested == requested {
 			return entry, true

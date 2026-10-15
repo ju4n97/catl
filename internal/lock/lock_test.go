@@ -429,8 +429,8 @@ func TestCanonicalRequested(t *testing.T) {
 	}
 }
 
-// TestFind verifies lookup by requested URI key.
-func TestFind(t *testing.T) {
+// TestFindEntry verifies lookup by requested URI key.
+func TestFindEntry(t *testing.T) {
 	t.Parallel()
 
 	f := &lock.File{
@@ -447,7 +447,7 @@ func TestFind(t *testing.T) {
 	t.Run("find existing entry", func(t *testing.T) {
 		t.Parallel()
 
-		ent, ok := f.Find("git+https://github.com/acme/infra#tag=v1.0.0")
+		ent, ok := f.FindEntry("git+https://github.com/acme/infra#tag=v1.0.0")
 		if !ok {
 			t.Fatal("expected entry to be found")
 		}
@@ -459,7 +459,7 @@ func TestFind(t *testing.T) {
 	t.Run("find non-existent entry returns false", func(t *testing.T) {
 		t.Parallel()
 
-		_, ok := f.Find("git+https://github.com/acme/missing#tag=v1.0.0")
+		_, ok := f.FindEntry("git+https://github.com/acme/missing#tag=v1.0.0")
 		if ok {
 			t.Error("expected non-existent entry to return false")
 		}
