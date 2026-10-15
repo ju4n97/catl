@@ -15,7 +15,6 @@ catl
 
 .nf
 [--cwd|-C]=[value]
-[--offline]
 [--quiet|-q]
 [--verbose|-v]
 
@@ -38,9 +37,6 @@ catl [flags] <command> [args...]
 .SH GLOBAL OPTIONS
 .PP
 \fB--cwd, -C\fP="": Change working directory before executing
-
-.PP
-\fB--offline\fP: Disable all network calls and fail if dependencies are not cached
 
 .PP
 \fB--quiet, -q\fP: Suppress informational output and emit only errors
@@ -179,30 +175,6 @@ Stream a manifest or companion file to stdout
 
 .PP
 catl show   [path]
-
-.RE
-
-.SH add
-.PP
-Add a remote dependency to catl.toml and lock it
-
-.PP
-.RS
-
-.PP
-catl add 
-
-.RE
-
-.SH remove, rm
-.PP
-Remove a dependency from catl.toml and lockfile
-
-.PP
-.RS
-
-.PP
-catl remove 
 
 .RE
 

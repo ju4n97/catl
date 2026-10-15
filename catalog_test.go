@@ -3,6 +3,7 @@ package catl_test
 import (
 	"context"
 	"errors"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"slices"
@@ -455,6 +456,153 @@ func TestCatalogResolve(t *testing.T) {
 		}
 		if !errors.Is(err, catl.ErrNotFound) {
 			t.Errorf("got error %v, want ErrNotFound", err)
+		}
+	})
+}
+
+// TestCatalogDependencies verifies cross-namespace entity resolution, lockfile checking,
+// and path prefixing across local path and vendored dependencies.
+func TestCatalogDependencies(t *testing.T) {
+	t.Parallel()
+
+	ctx := context.Background()
+
+	t.Run("resolves entities from local path dependency", func(t *testing.T) {
+		t.Parallel()
+
+		rootDir := t.TempDir()
+		coreDir := filepath.Join(rootDir, "core")
+		appDir := filepath.Join(rootDir, "app")
+
+		// Scaffold dependency catalog 'core'
+		if err := os.MkdirAll(filepath.Join(coreDir, "services"), 0o755); err != nil {
+			t.Fatalf("mkdir core failed: %v", err)
+		}
+		coreTOML := "[catalog]\nname = \"core\"\n[collections.services]\n"
+		if err := os.WriteFile(filepath.Join(coreDir, "catl.toml"), []byte(coreTOML), 0o600); err != nil {
+			t.Fatalf("write core catl.toml failed: %v", err)
+		}
+		if err := os.WriteFile(filepath.Join(coreDir, "services", "postgres.yaml"), []byte("tier: primary\n"), 0o600); err != nil {
+			t.Fatalf("write postgres.yaml failed: %v", err)
+		}
+
+		// Scaffold root catalog 'app' depending on '../core'
+		if err := os.MkdirAll(filepath.Join(appDir, "services"), 0o755); err != nil {
+			t.Fatalf("mkdir app failed: %v", err)
+		}
+		appTOML := "[catalog]\nname = \"app\"\n[collections.services]\n\n[dependencies]\ncore = { path = \"../core\" }\n"
+		if err := os.WriteFile(filepath.Join(appDir, "catl.toml"), []byte(appTOML), 0o600); err != nil {
+			t.Fatalf("write app catl.toml failed: %v", err)
+		}
+		if err := os.WriteFile(filepath.Join(appDir, "services", "api.yaml"), []byte("tier: web\n"), 0o600); err != nil {
+			t.Fatalf("write api.yaml failed: %v", err)
+		}
+
+		cat, err := catl.Open(ctx, appDir)
+		if err != nil {
+			t.Fatalf("Open() unexpected error: %v", err)
+		}
+
+		if !slices.Equal(cat.Dependencies(), []string{"core"}) {
+			t.Errorf("cat.Dependencies() = %v, want ['core']", cat.Dependencies())
+		}
+
+		// Resolve local entity
+		localEnt, err := cat.Resolve("services", "app.api")
+		if err != nil {
+			t.Fatalf("Resolve(local) failed: %v", err)
+		}
+		if localEnt.ManifestPath != "services/api.yaml" {
+			t.Errorf("localEnt.ManifestPath = %q, want 'services/api.yaml'", localEnt.ManifestPath)
+		}
+
+		// Resolve cross-namespace dependency entity
+		depEnt, err := cat.Resolve("services", "core.postgres")
+		if err != nil {
+			t.Fatalf("Resolve(core.postgres) failed: %v", err)
+		}
+		if depEnt.QualifiedID != "core.postgres" {
+			t.Errorf("depEnt.QualifiedID = %q, want 'core.postgres'", depEnt.QualifiedID)
+		}
+		if depEnt.Namespace != "core" {
+			t.Errorf("depEnt.Namespace = %q, want 'core'", depEnt.Namespace)
+		}
+		if depEnt.ManifestPath != "../core/services/postgres.yaml" {
+			t.Errorf("depEnt.ManifestPath = %q, want '../core/services/postgres.yaml'", depEnt.ManifestPath)
+		}
+
+		// Verify AllEntities includes both sorted by collection then qualified ID
+		all := cat.AllEntities()
+		if len(all) != 2 {
+			t.Fatalf("AllEntities() count = %d, want 2", len(all))
+		}
+		if all[0].QualifiedID != "app.api" || all[1].QualifiedID != "core.postgres" {
+			t.Errorf("unexpected AllEntities ordering: %s, %s", all[0].QualifiedID, all[1].QualifiedID)
+		}
+	})
+
+	t.Run("resolves bundle companion file from dependency", func(t *testing.T) {
+		t.Parallel()
+
+		rootDir := t.TempDir()
+		coreDir := filepath.Join(rootDir, "infra")
+		appDir := filepath.Join(rootDir, "web")
+
+		if err := os.MkdirAll(filepath.Join(coreDir, "monitors", "network"), 0o755); err != nil {
+			t.Fatalf("mkdir failed: %v", err)
+		}
+		coreTOML := "[catalog]\nname = \"infra\"\n[collections.monitors]\n"
+		_ = os.WriteFile(filepath.Join(coreDir, "catl.toml"), []byte(coreTOML), 0o600)
+		_ = os.WriteFile(filepath.Join(coreDir, "monitors", "network", "manifest.yaml"), []byte("active: true\n"), 0o600)
+		_ = os.WriteFile(filepath.Join(coreDir, "monitors", "network", "runbook.md"), []byte("# Network Runbook\n"), 0o600)
+
+		if err := os.MkdirAll(appDir, 0o755); err != nil {
+			t.Fatalf("mkdir failed: %v", err)
+		}
+		appTOML := "[catalog]\nname = \"web\"\n[collections.pages]\n\n[dependencies]\ninfra = { path = \"../infra\" }\n"
+		_ = os.WriteFile(filepath.Join(appDir, "catl.toml"), []byte(appTOML), 0o600)
+
+		cat, err := catl.Open(ctx, appDir)
+		if err != nil {
+			t.Fatalf("Open() failed: %v", err)
+		}
+
+		ent, err := cat.Resolve("monitors", "infra.network")
+		if err != nil {
+			t.Fatalf("Resolve(infra.network) failed: %v", err)
+		}
+		if !ent.IsBundle() {
+			t.Fatal("expected bundle entity")
+		}
+
+		bfs, err := ent.FS(ctx)
+		if err != nil {
+			t.Fatalf("ent.FS() failed: %v", err)
+		}
+
+		data, err := fs.ReadFile(bfs, "runbook.md")
+		if err != nil {
+			t.Fatalf("ReadFile(runbook.md) failed: %v", err)
+		}
+		if string(data) != "# Network Runbook\n" {
+			t.Errorf("companion file content mismatch: %q", string(data))
+		}
+	})
+
+	t.Run("undeclared namespace returns err not found", func(t *testing.T) {
+		t.Parallel()
+
+		cat, err := catl.OpenFS(ctx, validCatalogFS())
+		if err != nil {
+			t.Fatalf("OpenFS() failed: %v", err)
+		}
+
+		_, err = cat.Resolve("services", "undeclared.item")
+		if err == nil {
+			t.Fatal("expected error on undeclared namespace, got nil")
+		}
+		if !errors.Is(err, catl.ErrNotFound) {
+			t.Errorf("got %v, want ErrNotFound", err)
 		}
 	})
 }

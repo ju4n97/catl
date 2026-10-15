@@ -17,12 +17,11 @@ catl [flags] <command> [args...]
 
 ## Flags
 
-| Flag                | Description                                                       |
-| :------------------ | :---------------------------------------------------------------- |
-| `-C, --cwd <value>` | Change working directory before executing                         |
-| `--offline`         | Disable all network calls and fail if dependencies are not cached |
-| `-q, --quiet`       | Suppress informational output and emit only errors                |
-| `-v, --verbose`     | Print detailed diagnostics and progress to stderr                 |
+| Flag                | Description                                        |
+| :------------------ | :------------------------------------------------- |
+| `-C, --cwd <value>` | Change working directory before executing          |
+| `-q, --quiet`       | Suppress informational output and emit only errors |
+| `-v, --verbose`     | Print detailed diagnostics and progress to stderr  |
 
 ## Subcommands
 
@@ -37,7 +36,5 @@ catl [flags] <command> [args...]
 | [`list`](./catl-list.md)       | List entities across collections                              |
 | [`resolve`](./catl-resolve.md) | Print the filesystem path of a manifest                       |
 | [`show`](./catl-show.md)       | Stream a manifest or companion file to stdout                 |
-| [`add`](./catl-add.md)         | Add a remote dependency to catl.toml and lock it              |
-| [`remove`](./catl-remove.md)   | Remove a dependency from catl.toml and lockfile               |
 | [`update`](./catl-update.md)   | Update dependencies in catl.lock to latest revisions          |
 | [`vendor`](./catl-vendor.md)   | Vendor dependencies into .catl/vendor for offline use         |

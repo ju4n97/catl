@@ -1,33 +1,59 @@
+cd app
+
 # Reject bare identifier with helpful suggestion
 ! exec catl resolve flags dark-mode
 stderr '"dark-mode" is not a qualified ID \(want namespace\.id\); did you mean "app-flags\.dark-mode"\?'
 
-# Resolve flat entity manifest path on disk
+# Resolve local flat entity manifest path on disk
 exec catl resolve flags app-flags.dark-mode
 stdout 'flags/dark-mode\.yaml'
 
-# Resolve bundle entity manifest path on disk
+# Resolve local bundle entity manifest path on disk
 exec catl resolve flags app-flags.new-checkout
 stdout 'flags/new-checkout/manifest\.yaml'
 
-# Non-existent entity returns not found
+# Resolve cross-namespace dependency entity path
+exec catl resolve services core.postgres
+stdout '\.\./core/services/postgres\.yaml'
+
+# Non-existent entity in local collection returns not found
 ! exec catl resolve flags app-flags.missing
 stderr 'entity "missing" in collection "flags"'
+
+# Non-existent entity in dependency collection returns not found
+! exec catl resolve services core.missing
+stderr 'entity "missing" in collection "services"'
 
 # Non-existent collection returns not found
 ! exec catl resolve non-existent app-flags.dark-mode
 stderr 'collection "non-existent"'
 
--- catl.toml --
+# Undeclared namespace returns not found
+! exec catl resolve services undeclared.postgres
+stderr 'namespace "undeclared"'
+
+-- core/catl.toml --
+[catalog]
+name = "core"
+
+[collections.services]
+
+-- core/services/postgres.yaml --
+tier: primary
+
+-- app/catl.toml --
 [catalog]
 name = "app-flags"
 
 [collections.flags]
 
--- flags/dark-mode.yaml --
+[dependencies]
+core = { path = "../core" }
+
+-- app/flags/dark-mode.yaml --
 enabled: true
 rollout: 100
 
--- flags/new-checkout/manifest.yaml --
+-- app/flags/new-checkout/manifest.yaml --
 enabled: false
 rollout: 10

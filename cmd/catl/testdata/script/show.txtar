@@ -1,17 +1,28 @@
-# Stream flat manifest contents to standard output
+cd app
+
+# Stream local flat manifest contents to stdout
 exec catl show flags app-flags.dark-mode
 stdout 'enabled: true'
 stdout 'rollout: 100'
 
-# Stream bundle manifest when path argument is omitted
+# Stream local bundle manifest when path argument is omitted
 exec catl show flags app-flags.new-checkout
 stdout 'enabled: false'
 stdout 'rollout: 10'
 
-# Stream companion file from bundle entity
+# Stream local bundle companion file
 exec catl show flags app-flags.new-checkout notes.md
 stdout '# Experiment Notes'
 stdout 'Targeted staging cohort\.'
+
+# Stream cross-namespace dependency manifest
+exec catl show services core.postgres
+stdout 'tier: primary'
+stdout 'port: 5432'
+
+# Stream cross-namespace dependency bundle companion file
+exec catl show monitors core.network runbook.md
+stdout '# Network Mitigation'
 
 # Flat entity rejects companion file requests
 ! exec catl show flags app-flags.dark-mode notes.md
@@ -21,20 +32,40 @@ stderr 'entity "dark-mode" is a flat entity and has no companion files'
 ! exec catl show flags dark-mode
 stderr '"dark-mode" is not a qualified ID \(want namespace\.id\); did you mean "app-flags\.dark-mode"\?'
 
--- catl.toml --
+-- core/catl.toml --
+[catalog]
+name = "core"
+
+[collections.services]
+[collections.monitors]
+
+-- core/services/postgres.yaml --
+tier: primary
+port: 5432
+
+-- core/monitors/network/manifest.yaml --
+active: true
+
+-- core/monitors/network/runbook.md --
+# Network Mitigation
+
+-- app/catl.toml --
 [catalog]
 name = "app-flags"
 
 [collections.flags]
 
--- flags/dark-mode.yaml --
+[dependencies]
+core = { path = "../core" }
+
+-- app/flags/dark-mode.yaml --
 enabled: true
 rollout: 100
 
--- flags/new-checkout/manifest.yaml --
+-- app/flags/new-checkout/manifest.yaml --
 enabled: false
 rollout: 10
 
--- flags/new-checkout/notes.md --
+-- app/flags/new-checkout/notes.md --
 # Experiment Notes
 Targeted staging cohort.

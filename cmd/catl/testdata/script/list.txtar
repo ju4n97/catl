@@ -1,12 +1,16 @@
-# List all entities in default TSV format
+cd app
+
+# Default list displays only local entities
 exec catl list
 stdout '^flags\tapp-flags\.dark-mode\tflags/dark-mode\.yaml$'
 stdout '^flags\tapp-flags\.new-checkout\tflags/new-checkout/manifest\.yaml$'
+! stdout 'core\.postgres'
 
-# Filter entities by collection
+# Filter local entities by collection
 exec catl list flags
 stdout 'app-flags\.dark-mode'
 stdout 'app-flags\.new-checkout'
+! stdout 'core\.postgres'
 
 # Unknown collection returns error
 ! exec catl list non-existent
@@ -15,6 +19,7 @@ stderr 'collection "non-existent"'
 # Output entities as newline-delimited JSON objects
 exec catl list --json
 stdout '\{"id":"dark-mode","collection":"flags"'
+! stdout 'core\.postgres'
 
 # Output entities with NUL delimiters for shell scripts
 exec catl list -z
@@ -24,16 +29,44 @@ stdout 'flags\tapp-flags\.dark-mode\tflags/dark-mode\.yaml\x00'
 ! exec catl list --json --null
 stderr 'cannot use --json and --null together'
 
--- catl.toml --
+# List all entities including imported dependencies with -a / --all
+exec catl list -a
+stdout '^flags\tapp-flags\.dark-mode\tflags/dark-mode\.yaml$'
+stdout '^flags\tapp-flags\.new-checkout\tflags/new-checkout/manifest\.yaml$'
+stdout '^services\tcore\.postgres\t\.\./core/services/postgres\.yaml$'
+
+# Filter collection declared only in dependency using --all
+exec catl list -a services
+stdout 'core\.postgres'
+! stdout 'app-flags\.dark-mode'
+
+# Output all entities including dependencies as JSON
+exec catl list -a --json
+stdout '\{"id":"postgres","collection":"services"'
+
+-- core/catl.toml --
+[catalog]
+name = "core"
+
+[collections.services]
+
+-- core/services/postgres.yaml --
+tier: primary
+port: 5432
+
+-- app/catl.toml --
 [catalog]
 name = "app-flags"
 
 [collections.flags]
 
--- flags/dark-mode.yaml --
+[dependencies]
+core = { path = "../core" }
+
+-- app/flags/dark-mode.yaml --
 enabled: true
 rollout: 100
 
--- flags/new-checkout/manifest.yaml --
+-- app/flags/new-checkout/manifest.yaml --
 enabled: false
 rollout: 10

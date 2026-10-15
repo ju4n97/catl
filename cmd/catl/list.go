@@ -27,6 +27,7 @@ Outputs tab-separated columns: COLLECTION  QUALIFIED-ID  PATH
 Examples:
   $ catl list
   $ catl list services
+  $ catl list --all
   $ catl list --json`,
 		Arguments: []cli.Argument{
 			&cli.StringArg{
@@ -55,6 +56,7 @@ Examples:
 		Action: func(ctx context.Context, cmd *cli.Command) error {
 			useJSON := cmd.Bool("json")
 			useNull := cmd.Bool("null")
+			useAll := cmd.Bool("all")
 
 			if useJSON && useNull {
 				return errors.New("cannot use --json and --null together")
@@ -66,15 +68,28 @@ Examples:
 			}
 
 			coll := cmd.StringArg("collection")
-			if coll != "" && !slices.Contains(cat.Collections(), coll) {
+			validColls := cat.Collections()
+			if useAll {
+				validColls = cat.AllCollections()
+			}
+
+			if coll != "" && !slices.Contains(validColls, coll) {
 				return cli.Exit(fmt.Sprintf("collection %q not found", coll), 1)
 			}
 
 			var entities []*catl.Entity
-			if coll != "" {
-				entities = cat.Entities(coll)
+			if useAll {
+				if coll != "" {
+					entities = cat.AllEntities(coll)
+				} else {
+					entities = cat.AllEntities()
+				}
 			} else {
-				entities = cat.Entities()
+				if coll != "" {
+					entities = cat.Entities(coll)
+				} else {
+					entities = cat.Entities()
+				}
 			}
 
 			enc := json.NewEncoder(os.Stdout)
