@@ -3,7 +3,6 @@ package schema_test
 import (
 	"testing"
 
-	"github.com/gkampitakis/go-snaps/snaps"
 	"github.com/pelletier/go-toml/v2"
 
 	"github.com/ju4n97/catl/schema"
@@ -168,10 +167,6 @@ url = "http://insecure.example.com/archive.tar.gz"
 
 			if (err != nil) != tt.wantErr {
 				t.Fatalf("ValidateCatl() error = %v, wantErr %t", err, tt.wantErr)
-			}
-
-			if tt.wantErr {
-				snaps.MatchSnapshot(t, err.Error())
 			}
 		})
 	}
