@@ -41,9 +41,7 @@ Examples:
 			collection := cmd.StringArg("collection")
 			qualifiedID := cmd.StringArg("qualified-id")
 
-			cat, err := catl.Open(ctx, ".", catl.Options{
-				Offline: cmd.Bool("offline"),
-			})
+			cat, err := catl.Open(ctx, ".")
 			if err != nil {
 				return cli.Exit(err.Error(), 1)
 			}

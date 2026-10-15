@@ -42,10 +42,6 @@ Examples:
 				dir = "."
 			}
 
-			opts := catl.Options{
-				Offline: true, // MCP servers operate exclusively against local verified files
-			}
-
 			ctx, stop := signal.NotifyContext(ctx, os.Interrupt, syscall.SIGTERM)
 			defer stop()
 
@@ -53,7 +49,7 @@ Examples:
 
 			// Detect single-catalog mode
 			if _, err := os.Stat(filepath.Join(dir, "catl.toml")); err == nil {
-				cat, err := catl.Open(ctx, dir, opts)
+				cat, err := catl.Open(ctx, dir)
 				if err != nil {
 					return cli.Exit(fmt.Sprintf("failed to load catalog: %v", err), 1)
 				}
@@ -63,7 +59,7 @@ Examples:
 			}
 
 			// Fall back to multi-catalog registry mode
-			reg, err := catl.OpenRegistry(ctx, dir, opts)
+			reg, err := catl.OpenRegistry(ctx, dir)
 			if err != nil {
 				return cli.Exit(fmt.Sprintf("failed to load registry: %v", err), 1)
 			}

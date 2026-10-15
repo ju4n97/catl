@@ -16,12 +16,6 @@ import (
 	"github.com/ju4n97/catl/internal/scan"
 )
 
-// Options configures runtime behavior when opening a catalog.
-type Options struct {
-	// Offline disables all network calls and reads exclusively from local vendor directories or cache.
-	Offline bool
-}
-
 // Catalog represents an immutable, validated catalog loaded into memory.
 type Catalog struct {
 	fsys        fs.FS
@@ -34,8 +28,8 @@ type Catalog struct {
 }
 
 // Open reads and validates a catalog from a local filesystem directory.
-func Open(ctx context.Context, dir string, opts Options) (*Catalog, error) {
-	cat, err := OpenFS(ctx, os.DirFS(dir), opts)
+func Open(ctx context.Context, dir string) (*Catalog, error) {
+	cat, err := OpenFS(ctx, os.DirFS(dir))
 	if err != nil {
 		return nil, err
 	}
@@ -45,7 +39,7 @@ func Open(ctx context.Context, dir string, opts Options) (*Catalog, error) {
 
 // OpenFS reads and validates a catalog from an arbitrary fs.FS filesystem
 // (such as testing/fstest.MapFS or embed.FS) without accessing the host disk.
-func OpenFS(ctx context.Context, fsys fs.FS, opts Options) (*Catalog, error) {
+func OpenFS(ctx context.Context, fsys fs.FS) (*Catalog, error) {
 	configData, err := fs.ReadFile(fsys, "catl.toml")
 	if err != nil {
 		return nil, fmt.Errorf("read catl.toml: %w", err)

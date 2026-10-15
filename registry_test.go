@@ -35,7 +35,7 @@ func writeTestCatalog(t *testing.T, dir, name string) {
 func TestNewRegistry(t *testing.T) {
 	t.Parallel()
 
-	cat1, err := catl.OpenFS(t.Context(), validCatalogFS(), catl.Options{})
+	cat1, err := catl.OpenFS(t.Context(), validCatalogFS())
 	if err != nil {
 		t.Fatalf("OpenFS() failed: %v", err)
 	}
@@ -101,7 +101,7 @@ func TestOpenRegistry(t *testing.T) {
 		t.Fatalf("write README failed: %v", err)
 	}
 
-	reg, err := catl.OpenRegistry(t.Context(), rootDir, catl.Options{Offline: true})
+	reg, err := catl.OpenRegistry(t.Context(), rootDir)
 	if err != nil {
 		t.Fatalf("OpenRegistry() unexpected error: %v", err)
 	}
@@ -155,7 +155,7 @@ func TestRegistryReload(t *testing.T) {
 
 	writeTestCatalog(t, rootDir, "clinic1")
 
-	reg, err := catl.OpenRegistry(ctx, rootDir, catl.Options{Offline: true})
+	reg, err := catl.OpenRegistry(ctx, rootDir)
 	if err != nil {
 		t.Fatalf("OpenRegistry() failed: %v", err)
 	}

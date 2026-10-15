@@ -35,7 +35,7 @@ func TestEntity(t *testing.T) {
 	}
 
 	ctx := context.Background()
-	cat, err := catl.OpenFS(ctx, fsys, catl.Options{})
+	cat, err := catl.OpenFS(ctx, fsys)
 	if err != nil {
 		t.Fatalf("OpenFS() failed: %v", err)
 	}

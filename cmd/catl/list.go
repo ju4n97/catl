@@ -60,9 +60,7 @@ Examples:
 				return errors.New("cannot use --json and --null together")
 			}
 
-			cat, err := catl.Open(ctx, ".", catl.Options{
-				Offline: cmd.Bool("offline"),
-			})
+			cat, err := catl.Open(ctx, ".")
 			if err != nil {
 				return cli.Exit(err.Error(), 1)
 			}

@@ -85,7 +85,7 @@ func TestOpenFS(t *testing.T) {
 	t.Run("valid catalog loads all collections and entities", func(t *testing.T) {
 		t.Parallel()
 
-		cat, err := catl.OpenFS(ctx, validCatalogFS(), catl.Options{})
+		cat, err := catl.OpenFS(ctx, validCatalogFS())
 		if err != nil {
 			t.Fatalf("OpenFS() unexpected error: %v", err)
 		}
@@ -114,7 +114,7 @@ func TestOpenFS(t *testing.T) {
 	t.Run("tree hash returns valid sha256 digest", func(t *testing.T) {
 		t.Parallel()
 
-		cat, err := catl.OpenFS(ctx, validCatalogFS(), catl.Options{})
+		cat, err := catl.OpenFS(ctx, validCatalogFS())
 		if err != nil {
 			t.Fatalf("OpenFS() failed: %v", err)
 		}
@@ -145,7 +145,7 @@ func TestOpenFS(t *testing.T) {
 			Data: []byte("tier: core\nactive: not-a-boolean\n"),
 		}
 
-		_, err := catl.OpenFS(ctx, fsys, catl.Options{})
+		_, err := catl.OpenFS(ctx, fsys)
 		if err == nil {
 			t.Fatal("expected schema validation error, got nil")
 		}
@@ -167,7 +167,7 @@ func TestOpenFS(t *testing.T) {
 			Data: []byte("tier: [unclosed list\n"),
 		}
 
-		_, err := catl.OpenFS(ctx, fsys, catl.Options{})
+		_, err := catl.OpenFS(ctx, fsys)
 		if err == nil {
 			t.Fatal("expected decode error on malformed YAML, got nil")
 		}
@@ -180,7 +180,7 @@ func TestOpenFS(t *testing.T) {
 			"services/item.yaml": &fstest.MapFile{Data: []byte("a: b\n")},
 		}
 
-		_, err := catl.OpenFS(ctx, fsys, catl.Options{})
+		_, err := catl.OpenFS(ctx, fsys)
 		if err == nil {
 			t.Fatal("expected error on missing catl.toml, got nil")
 		}
@@ -214,7 +214,7 @@ func TestOpen(t *testing.T) {
 	t.Run("open on disk populates root path", func(t *testing.T) {
 		t.Parallel()
 
-		cat, err := catl.Open(ctx, tmpDir, catl.Options{})
+		cat, err := catl.Open(ctx, tmpDir)
 		if err != nil {
 			t.Fatalf("Open() unexpected error: %v", err)
 		}
@@ -235,7 +235,7 @@ func TestOpen(t *testing.T) {
 	t.Run("open non-existent directory fails", func(t *testing.T) {
 		t.Parallel()
 
-		_, err := catl.Open(ctx, filepath.Join(tmpDir, "missing-dir"), catl.Options{})
+		_, err := catl.Open(ctx, filepath.Join(tmpDir, "missing-dir"))
 		if err == nil {
 			t.Fatal("expected error opening missing directory, got nil")
 		}
@@ -248,7 +248,7 @@ func TestCatalogEntities(t *testing.T) {
 	t.Parallel()
 
 	ctx := context.Background()
-	cat, err := catl.OpenFS(ctx, validCatalogFS(), catl.Options{})
+	cat, err := catl.OpenFS(ctx, validCatalogFS())
 	if err != nil {
 		t.Fatalf("OpenFS() failed: %v", err)
 	}
@@ -338,7 +338,7 @@ func TestCatalogResolve(t *testing.T) {
 	t.Parallel()
 
 	ctx := context.Background()
-	cat, err := catl.OpenFS(ctx, validCatalogFS(), catl.Options{})
+	cat, err := catl.OpenFS(ctx, validCatalogFS())
 	if err != nil {
 		t.Fatalf("OpenFS() failed: %v", err)
 	}
@@ -464,7 +464,7 @@ func TestCatalogSchema(t *testing.T) {
 	t.Parallel()
 
 	ctx := context.Background()
-	cat, err := catl.OpenFS(ctx, validCatalogFS(), catl.Options{})
+	cat, err := catl.OpenFS(ctx, validCatalogFS())
 	if err != nil {
 		t.Fatalf("OpenFS() failed: %v", err)
 	}
@@ -511,7 +511,7 @@ func TestCatalogValidateManifest(t *testing.T) {
 	t.Parallel()
 
 	ctx := context.Background()
-	cat, err := catl.OpenFS(ctx, validCatalogFS(), catl.Options{})
+	cat, err := catl.OpenFS(ctx, validCatalogFS())
 	if err != nil {
 		t.Fatalf("OpenFS() failed: %v", err)
 	}

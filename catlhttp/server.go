@@ -214,7 +214,7 @@ func (sh *singleHandler) handleReloadCatalog(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	next, err := catl.Open(r.Context(), rootPath, catl.Options{Offline: true})
+	next, err := catl.Open(r.Context(), rootPath)
 	if err != nil {
 		writeProblem(w, r, http.StatusUnprocessableEntity, fmt.Sprintf("reload failed: %v", err))
 		return

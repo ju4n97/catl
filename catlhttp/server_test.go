@@ -34,7 +34,7 @@ func newTestCatalog(t *testing.T, name string) *catl.Catalog {
 		},
 	}
 
-	cat, err := catl.OpenFS(context.Background(), fsys, catl.Options{})
+	cat, err := catl.OpenFS(context.Background(), fsys)
 	if err != nil {
 		t.Fatalf("OpenFS() failed: %v", err)
 	}
@@ -372,7 +372,7 @@ func TestSingleCatalogReload(t *testing.T) {
 	}
 
 	writeCat("v1")
-	cat, err := catl.Open(context.Background(), tmpDir, catl.Options{Offline: true})
+	cat, err := catl.Open(context.Background(), tmpDir)
 	if err != nil {
 		t.Fatalf("Open() failed: %v", err)
 	}

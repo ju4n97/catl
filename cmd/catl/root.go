@@ -32,10 +32,6 @@ func newRootCommand() *cli.Command {
 				Config:  cli.StringConfig{TrimSpace: true},
 			},
 			&cli.BoolFlag{
-				Name:  "offline",
-				Usage: "Disable all network calls and fail if dependencies are not cached",
-			},
-			&cli.BoolFlag{
 				Name:    "quiet",
 				Aliases: []string{"q"},
 				Usage:   "Suppress informational output and emit only errors",
@@ -70,8 +66,6 @@ func newRootCommand() *cli.Command {
 			newShowCommand(),
 
 			// Dependencies
-			newAddCommand(),
-			newRemoveCommand(),
 			newUpdateCommand(),
 			newVendorCommand(),
 		},

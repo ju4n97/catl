@@ -14,7 +14,6 @@ import (
 // Registry manages multiple isolated tenant catalogs loaded concurrently in memory.
 type Registry struct {
 	dir      string
-	opts     Options
 	catalogs atomic.Pointer[map[string]*Catalog]
 }
 
@@ -30,10 +29,9 @@ func NewRegistry(catalogs ...*Catalog) *Registry {
 }
 
 // OpenRegistry discovers and loads all catalog subdirectories within rootDir.
-func OpenRegistry(ctx context.Context, rootDir string, opts Options) (*Registry, error) {
+func OpenRegistry(ctx context.Context, rootDir string) (*Registry, error) {
 	reg := &Registry{
-		dir:  rootDir,
-		opts: opts,
+		dir: rootDir,
 	}
 
 	if err := reg.Reload(ctx); err != nil {
@@ -97,7 +95,7 @@ func (r *Registry) Reload(ctx context.Context) error {
 
 		catDir := filepath.Join(r.dir, entry.Name())
 		if _, err := os.Stat(filepath.Join(catDir, "catl.toml")); err == nil {
-			cat, err := Open(ctx, catDir, r.opts)
+			cat, err := Open(ctx, catDir)
 			if err != nil {
 				return fmt.Errorf("load catalog %q: %w", entry.Name(), err)
 			}

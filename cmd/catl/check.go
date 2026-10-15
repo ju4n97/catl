@@ -21,9 +21,7 @@ func newCheckCommand() *cli.Command {
 invariants, verifies tree hashes, and validates vendor directories.
 Exits 0 with no output on success (Unix rule of silence).`,
 		Action: func(ctx context.Context, cmd *cli.Command) error {
-			_, err := catl.Open(ctx, ".", catl.Options{
-				Offline: cmd.Bool("offline"),
-			})
+			_, err := catl.Open(ctx, ".")
 			if err != nil {
 				if valErr, ok := errors.AsType[*manifest.ValidationError](err); ok {
 					return cli.Exit(valErr.Error(), 1)

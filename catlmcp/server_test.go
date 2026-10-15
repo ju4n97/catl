@@ -43,7 +43,7 @@ func newTestCatalog(t *testing.T, name string) *catl.Catalog {
 		},
 	}
 
-	cat, err := catl.OpenFS(context.Background(), fsys, catl.Options{})
+	cat, err := catl.OpenFS(context.Background(), fsys)
 	if err != nil {
 		t.Fatalf("OpenFS() failed: %v", err)
 	}

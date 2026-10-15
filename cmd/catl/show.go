@@ -50,9 +50,7 @@ Examples:
 			qualifiedID := cmd.StringArg("qualified-id")
 			filePath := cmd.StringArg("path")
 
-			cat, err := catl.Open(ctx, ".", catl.Options{
-				Offline: cmd.Bool("offline"),
-			})
+			cat, err := catl.Open(ctx, ".")
 			if err != nil {
 				return cli.Exit(err.Error(), 1)
 			}
