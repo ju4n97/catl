@@ -21,7 +21,7 @@
   },
   {
     "type": "file",
-    "name": "integrity-and-packaging",
-    "label": "Integrity and packaging"
+    "name": "integrity",
+    "label": "Integrity"
   }
 ]

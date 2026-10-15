@@ -340,8 +340,7 @@ func (s *Server) handleValidateManifestTool(
 		return nil, ValidateManifestOutput{Valid: true}, nil
 	}
 
-	var valErr *catl.ValidationError
-	if errors.As(err, &valErr) {
+	if valErr, ok := errors.AsType[*catl.ValidationError](err); ok {
 		return nil, ValidateManifestOutput{
 			Valid:       false,
 			Diagnostics: valErr.Diagnostics,

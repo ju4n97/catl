@@ -74,9 +74,6 @@ func newRootCommand() *cli.Command {
 			newRemoveCommand(),
 			newUpdateCommand(),
 			newVendorCommand(),
-
-			// Distribution
-			newPackCommand(),
 		},
 	}
 }

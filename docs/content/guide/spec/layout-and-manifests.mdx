@@ -25,7 +25,7 @@ clinical-catalog/
 
 ## Directory layout
 
-The catalog root belongs exclusively to `catl`. Any unrecognized file or directory at the root that doesn't match declared collections, schemas, `catl.toml`, or `catl.lock` fails validation. If you need scratch directories, editor settings, or CI scripts inside the catalog root, prefix their names with a dot (`.`). Any file or directory starting with a dot is ignored by scanners, tree hashing, and packaging.
+The catalog root belongs exclusively to `catl`. Any unrecognized file or directory at the root that doesn't match declared collections, schemas, `catl.toml`, or `catl.lock` fails validation. If you need scratch directories, editor settings, or CI scripts inside the catalog root, prefix their names with a dot (`.`). Any file or directory starting with a dot is ignored by scanners and tree hashing.
 
 Catalogs can't nest inside other catalogs. To manage multiple catalogs in the same repository (for example, multi-tenant setups), arrange them as sibling directories within a parent registry folder (e.g. `registry.d/catalog-a/` and `registry.d/catalog-b/`).
 
@@ -98,7 +98,7 @@ JSON manifests must follow RFC 8259 with unique keys. Numbers must not evaluate 
 
 Each collection can optionally bind to a JSON Schema Draft 2020-12 file. When declared, every manifest in the collection is validated against this schema.
 
-If `schema` is omitted in `catl.toml`, the collection operates in permissive mode: manifests are checked for syntax, unique keys, and layout rules, but field-level type checking is skipped. Companion files inside bundles are still hashed and packaged, but field-level `catl-file` assertions require an explicit schema.
+If `schema` is omitted in `catl.toml`, the collection operates in permissive mode: manifests are checked for syntax, unique keys, and layout rules, but field-level type checking is skipped. Companion files inside bundles are still hashed, but field-level `catl-file` assertions require an explicit schema.
 
 ```json title="schemas/protocols.json"
 {

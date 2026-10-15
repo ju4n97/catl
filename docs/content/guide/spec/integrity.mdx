@@ -1,11 +1,11 @@
 ---
-title: Integrity and packaging
+title: Integrity
 description: The tree hash algorithm, deterministic PAX archives, threat model, and non-goals.
 ---
 
-# Integrity and packaging
+# Integrity
 
-`catl` guarantees catalog content integrity through deterministic tree hashing and reproducible tar packaging. A catalog produces identical digests and archive bytes across Linux, macOS, and Windows.
+`catl` guarantees catalog content integrity through deterministic tree hashing. A catalog produces identical digests and archive bytes across Linux, macOS, and Windows.
 
 ## The tree hash algorithm
 
@@ -51,12 +51,16 @@ find . -type f -not -path '*/.*' -not -name 'catl.lock' \
 
 On macOS, substitute `shasum -a 256` for `sha256sum`.
 
-## Package archive format
+## Cross-platform determinism and line endings
 
-Running `catl pack` serializes a catalog into a reproducible, uncompressed POSIX tar archive using standard PAX headers:
+Since the tree hash is based on the exact bytes in each file, line endings can make a difference. For example, a file using Windows CRLF (`\r\n`) will produce a different hash than the same file using Unix LF (`\n`).
 
-```bash
-catl pack -o catalog.tar
+To avoid this, `catl` uses Unix-style line endings so catalogs get the same tree hash across Linux, macOS, and Windows.
+
+When you create a new catalog with `catl init`, it automatically adds a `.gitattributes` file to the root directory with the following content:
+
+```text
+* text=auto eol=lf
 ```
 
 ## Threat model and trust boundaries

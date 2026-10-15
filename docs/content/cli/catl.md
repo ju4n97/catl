@@ -41,4 +41,3 @@ catl [flags] <command> [args...]
 | [`remove`](./catl-remove.md)   | Remove a dependency from catl.toml and lockfile               |
 | [`update`](./catl-update.md)   | Update dependencies in catl.lock to latest revisions          |
 | [`vendor`](./catl-vendor.md)   | Vendor dependencies into .catl/vendor for offline use         |
-| [`pack`](./catl-pack.md)       | Build a deterministic PAX tar archive of the catalog          |

@@ -19,9 +19,3 @@ Local path dependencies are not copied.
 ```bash
 catl vendor [flags]
 ```
-
-## Flags
-
-| Flag           | Description                                         |
-| :------------- | :-------------------------------------------------- |
-| `--skip-blobs` | Skip downloading large blob payloads when vendoring |

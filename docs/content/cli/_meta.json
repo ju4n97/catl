@@ -69,10 +69,5 @@
   {
     "type": "section-header",
     "label": "Distribution"
-  },
-  {
-    "type": "file",
-    "name": "catl-pack",
-    "label": "catl pack"
   }
 ]

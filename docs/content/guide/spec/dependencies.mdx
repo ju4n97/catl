@@ -71,7 +71,7 @@ tree = "sha256:9f2c1a7b8e4f5a6b7c8d9e0f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b"
 
 Entries are sorted by `requested`. The `resolved` key holds the exact 40-character commit hash for Git dependencies. The `tree` key records the cryptographic tree hash of the fetched catalog files.
 
-Only `catl add`, `catl remove`, and `catl update` modify `catl.lock`. All other commands (including `check`, `list`, `pack`, and Go library calls to `catl.Open`) treat the lockfile as read only. If `catl.lock` is missing an entry or does not match `catl.toml`, operations fail with `ErrLockStale`:
+Only `catl add`, `catl remove`, and `catl update` modify `catl.lock`. All other commands (including `check`, `list`, and Go library calls to `catl.Open`) treat the lockfile as read only. If `catl.lock` is missing an entry or does not match `catl.toml`, operations fail with `ErrLockStale`:
 
 ```text
 catl: catl.lock is out of date; run 'catl update'

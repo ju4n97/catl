@@ -11,7 +11,7 @@ Prebuilt binaries are available for Linux, macOS, and Windows on x86_64 and arm6
 
 ## System requirements
 
-- **Core operations:** Zero external runtime dependencies. Commands that operate locally, such as `catl check`, `catl list`, `catl resolve`, `catl pack`, and the Go library API, run hermetically in scratch or distroless containers without external utilities.
+- **Core operations:** Zero external runtime dependencies. Commands that operate locally, such as `catl check`, `catl list`, `catl resolve`, and the Go library API, run hermetically in scratch or distroless containers without external utilities.
 - **Git dependencies (optional):** If you fetch or update remote Git dependencies using `catl add` or `catl update`, the system `git` CLI (2.30+) must be available in your `PATH`. If `git` is missing, only those remote mutation commands fail; offline validation and inspection remain fully functional.
 
 ## Linux and macOS

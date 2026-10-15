@@ -29,7 +29,7 @@ features:
   - title: Content integrity
     details: Hash catalog files deterministically. Verify remote dependencies and vendored content against their recorded tree hashes.
     icon: 🔒
-    link: /guide/spec/integrity-and-packaging
+    link: /guide/spec/integrity
 
   - title: Offline operation
     details: Validate using local files and schemas. Vendor remote dependencies for offline use in CI and air-gapped environments.
