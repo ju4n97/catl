@@ -158,6 +158,20 @@ func (c *Catalog) Collections() []string {
 	return slices.Clone(c.collections)
 }
 
+// Schema returns the raw JSON Schema bytes for a declared collection.
+// If the collection exists but has no schema configured (permissive mode),
+// it returns nil, nil. If the collection does not exist, it returns an error wrapping ErrNotFound.
+func (c *Catalog) Schema(collection string) ([]byte, error) {
+	coll, ok := c.config.Collections[collection]
+	if !ok {
+		return nil, fmt.Errorf("%w: collection %q", ErrNotFound, collection)
+	}
+	if coll.Schema == "" {
+		return nil, nil
+	}
+	return fs.ReadFile(c.fsys, coll.Schema)
+}
+
 // Entities returns all entities in deterministic order. If collection names are provided,
 // only entities belonging to those collections are returned.
 func (c *Catalog) Entities(collections ...string) []*Entity {
@@ -195,4 +209,24 @@ func (c *Catalog) Resolve(collection, qualifiedID string) (*Entity, error) {
 	}
 
 	return ent, nil
+}
+
+// ValidateManifest parses and validates an uncommitted YAML or JSON manifest string in-memory
+// against a collection's configured schema without touching the filesystem.
+func (c *Catalog) ValidateManifest(collection string, content []byte) error {
+	coll, ok := c.config.Collections[collection]
+	if !ok {
+		return fmt.Errorf("%w: collection %q", ErrNotFound, collection)
+	}
+
+	m, err := manifest.Decode(content, collection+"/manifest.yaml")
+	if err != nil {
+		return err
+	}
+
+	if coll.Schema == "" {
+		return nil
+	}
+
+	return manifest.NewValidator(c.fsys).Validate(m, coll.Schema, nil, nil)
 }

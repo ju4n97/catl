@@ -80,7 +80,7 @@ jobs:
           go-version: ${{ env.GO_VERSION }}
 
       - name: Run E2E tests
-        run: go test -tags e2e ./cmd/catl -run "TestScript/('init|check|clean|list|resolve|show|serve')"
+        run: go test -tags e2e ./cmd/catl -run "TestScript/(init|check|clean|list|resolve|show|serve|mcp)"
 
 
     

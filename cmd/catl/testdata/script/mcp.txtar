@@ -1,0 +1,18 @@
+# Clean exit on stdin EOF when catalog exists
+exec catl mcp
+! stderr .
+
+# Fail when pointing to non-existent directory
+! exec catl mcp non-existent-dir
+stderr 'open non-existent-dir: no such file or directory'
+
+# Fail when directory has no catalogs
+mkdir empty-dir
+! exec catl mcp empty-dir
+stderr 'no catalogs found in directory "empty-dir"'
+
+-- catl.toml --
+[catalog]
+name = "platform"
+
+[collections.services]
