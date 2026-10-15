@@ -1,0 +1,24 @@
+# Verify serve --help dynamically outputs registered endpoints
+exec catl serve --help
+stdout 'GET\s+/v1/catalog'
+stdout 'POST\s+/v1/catalog/reload'
+stdout 'GET\s+/v1/catalog/entities'
+stdout 'GET\s+/v1/collections'
+stdout 'GET\s+/v1/collections/\{collection\}/entities/\{id\}/manifest'
+stdout 'GET\s+/v1/catalogs'
+stdout 'ANY\s+/v1/catalogs/\{catalog\}/\*'
+
+# Running serve against a missing directory fails immediately
+! exec catl serve missing-directory
+stderr 'failed to load registry'
+
+# Running serve against an empty non-catalog directory fails cleanly
+mkdir empty-dir
+! exec catl serve empty-dir
+stderr 'no catalogs found in directory "empty-dir"'
+
+-- catl.toml --
+[catalog]
+name = "demo"
+
+[collections.items]

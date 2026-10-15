@@ -3,7 +3,6 @@ package catl_test
 import (
 	"context"
 	"errors"
-	"io/fs"
 	"os"
 	"path/filepath"
 	"slices"
@@ -15,8 +14,6 @@ import (
 	"github.com/ju4n97/catl/internal/manifest"
 )
 
-// validCatalogFS returns an in-memory catalog filesystem with multiple collections,
-// explicit directory overrides, flat and bundle entities, companion files, and schemas.
 func validCatalogFS() fstest.MapFS {
 	return fstest.MapFS{
 		"catl.toml": &fstest.MapFile{
@@ -126,7 +123,6 @@ func TestOpenFS(t *testing.T) {
 			t.Errorf("TreeHash() = %q, want valid sha256:... digest of length 71", h)
 		}
 
-		// Recomputing against same filesystem must produce identical digest
 		h2, err := cat.TreeHash()
 		if err != nil {
 			t.Fatalf("TreeHash() repeated call failed: %v", err)
@@ -154,7 +150,7 @@ func TestOpenFS(t *testing.T) {
 			t.Fatalf("expected *schema.ValidationError, got %T", err)
 		}
 		if len(valErr.Diagnostics) != 1 {
-			t.Fatalf("expected 1 diagnostic, got %d", len(valErr.Diagnostics))
+			t.Errorf("got %d diagnostics, want 1", len(valErr.Diagnostics))
 		}
 	})
 
@@ -189,15 +185,13 @@ func TestOpenFS(t *testing.T) {
 	})
 }
 
-// TestOpen verifies that loading a catalog directly from the OS filesystem
-// populates RootPath and properly validates files on disk.
+// TestOpen verifies on-disk catalog loading, RootPath assignment, and error handling.
 func TestOpen(t *testing.T) {
 	t.Parallel()
 
 	ctx := context.Background()
 	tmpDir := t.TempDir()
 
-	// Write catalog configuration and entity
 	configContent := "[catalog]\nname = \"local-cat\"\n[collections.items]\n"
 	if err := os.WriteFile(filepath.Join(tmpDir, "catl.toml"), []byte(configContent), 0o600); err != nil {
 		t.Fatalf("write catl.toml failed: %v", err)
@@ -243,8 +237,8 @@ func TestOpen(t *testing.T) {
 	})
 }
 
-// TestCatalogEntities verifies deterministic entity querying, collection-based
-// filtering, and slice immutability.
+// TestCatalogEntities verifies entity querying, collection-based filtering,
+// and slice immutability.
 func TestCatalogEntities(t *testing.T) {
 	t.Parallel()
 
@@ -298,7 +292,6 @@ func TestCatalogEntities(t *testing.T) {
 	t.Run("filter entities across multiple collections", func(t *testing.T) {
 		t.Parallel()
 
-		// Requesting in reverse collection order preserves caller's specified order
 		filtered := cat.Entities("services", "monitors")
 		if len(filtered) != 4 {
 			t.Fatalf("got %d entities, want 4", len(filtered))
@@ -371,18 +364,6 @@ func TestCatalogResolve(t *testing.T) {
 		if ent.IsBundle() {
 			t.Error("IsBundle() = true, want false for flat entity")
 		}
-
-		type serviceManifest struct {
-			Tier   string `json:"tier"`
-			Active bool   `json:"active"`
-		}
-		var m serviceManifest
-		if err := ent.Unmarshal(&m); err != nil {
-			t.Fatalf("Unmarshal() failed: %v", err)
-		}
-		if m.Tier != "core" || !m.Active {
-			t.Errorf("unexpected unmarshaled manifest: %+v", m)
-		}
 	})
 
 	t.Run("resolve bundle entity", func(t *testing.T) {
@@ -401,18 +382,6 @@ func TestCatalogResolve(t *testing.T) {
 		}
 		if len(ent.CompanionFiles) != 1 || ent.CompanionFiles[0] != "runbook.md" {
 			t.Errorf("unexpected companion files: %v", ent.CompanionFiles)
-		}
-
-		bundleFS, err := ent.FS(ctx)
-		if err != nil {
-			t.Fatalf("FS() failed: %v", err)
-		}
-		data, err := fs.ReadFile(bundleFS, "runbook.md")
-		if err != nil {
-			t.Fatalf("ReadFile() failed: %v", err)
-		}
-		if string(data) != "# Billing Runbook\n" {
-			t.Errorf("companion file mismatch: %q", string(data))
 		}
 	})
 

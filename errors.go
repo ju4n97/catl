@@ -1,6 +1,16 @@
 package catl
 
-import "errors"
+import (
+	"errors"
+
+	"github.com/ju4n97/catl/internal/manifest"
+)
+
+// ValidationError represents one or more schema or manifest validation failures.
+type ValidationError = manifest.ValidationError
+
+// Diagnostic represents an individual schema failure at a specific line and JSON pointer.
+type Diagnostic = manifest.Diagnostic
 
 var (
 	// ErrNotQualified is returned when an identifier does not contain a namespace prefix.

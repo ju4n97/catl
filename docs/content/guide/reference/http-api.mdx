@@ -1,0 +1,228 @@
+---
+title: HTTP API
+description: Serving and querying catalogs and registries over HTTP using catl serve and the catlhttp package.
+---
+
+# HTTP API
+
+The `catl` package includes an HTTP daemon for querying catalogs from non-Go applications (such as Python or Node.js services) without executing CLI subprocesses for every lookup.
+
+The server loads catalogs into memory, serves manifest and companion file reads, returns structured RFC 9457 Problem Details on failures, and performs zero-downtime atomic reloads.
+
+```bash
+# Start server for a single catalog
+catl serve ./compliance-catalog --addr 127.0.0.1:8080
+
+# Start server for a multi-tenant registry directory
+catl serve ./registry.d --addr 127.0.0.1:8080
+```
+
+## Operational modes
+
+The server inspects the target directory on startup and selects one of two operational modes:
+
+- **Single-catalog mode:** Active when the target directory contains a `catl.toml` file. Routes are exposed directly at the `/v1/` root.
+- **Registry mode:** Active when the target directory contains catalog subdirectories. Routes are partitioned under `/v1/catalogs/{catalog}/` to prevent entity ID collisions between different catalogs.
+
+## Single-catalog endpoints
+
+When serving an individual catalog, the following endpoints are available:
+
+| Method | Path                                                      | Description                                                 |
+| :----- | :-------------------------------------------------------- | :---------------------------------------------------------- |
+| `GET`  | `/v1/catalog`                                             | Catalog name, tree hash, and declared collections           |
+| `POST` | `/v1/catalog/reload`                                      | Re-read and validate catalog from disk                      |
+| `GET`  | `/v1/catalog/entities`                                    | List all entities across all collections                    |
+| `GET`  | `/v1/collections`                                         | List all collections with entity counts                     |
+| `GET`  | `/v1/collections/{collection}`                            | Collection details and entity count                         |
+| `GET`  | `/v1/collections/{collection}/entities`                   | List entities in a collection                               |
+| `GET`  | `/v1/collections/{collection}/entities/{id}`              | Get complete entity resource (metadata and parsed manifest) |
+| `GET`  | `/v1/collections/{collection}/entities/{id}/manifest`     | Stream raw manifest file as stored on disk                  |
+| `GET`  | `/v1/collections/{collection}/entities/{id}/files`        | List relative paths of companion files in bundle            |
+| `GET`  | `/v1/collections/{collection}/entities/{id}/files/{path}` | Stream companion file from bundle entity                    |
+
+Identifiers in `{id}` **strictly require qualified IDs** (`namespace.id`). Supplying a bare ID (e.g. `auth` instead of `platform.auth`) returns `400 Bad Request` with an RFC 9457 error indicating the expected qualified ID.
+
+## Multi-catalog registry endpoints
+
+When serving a registry directory containing multiple catalogs (e.g. `compliance` and `telemetry`), endpoints are scoped by catalog namespace:
+
+| Method | Path                                                                  | Description                                   |
+| :----- | :-------------------------------------------------------------------- | :-------------------------------------------- |
+| `GET`  | `/v1/catalogs`                                                        | List all catalog namespaces in the registry   |
+| `POST` | `/v1/catalogs/reload`                                                 | Rescan directory and reload all catalogs      |
+| `GET`  | `/v1/catalogs/{catalog}/catalog`                                      | Target catalog metadata and tree hash         |
+| `POST` | `/v1/catalogs/{catalog}/catalog/reload`                               | Reload a specific catalog from disk           |
+| `GET`  | `/v1/catalogs/{catalog}/collections`                                  | List collections in target catalog            |
+| `GET`  | `/v1/catalogs/{catalog}/collections/{col}/entities`                   | List entities in target catalog collection    |
+| `GET`  | `/v1/catalogs/{catalog}/collections/{col}/entities/{id}`              | Get entity resource from target catalog       |
+| `GET`  | `/v1/catalogs/{catalog}/collections/{col}/entities/{id}/manifest`     | Stream raw manifest file from target catalog  |
+| `GET`  | `/v1/catalogs/{catalog}/collections/{col}/entities/{id}/files`        | List companion files in target catalog bundle |
+| `GET`  | `/v1/catalogs/{catalog}/collections/{col}/entities/{id}/files/{path}` | Stream companion file from target catalog     |
+
+## Entity resource vs. raw manifest
+
+The API strictly separates structured resource inspection from file byte streaming:
+
+### 1. Entity resource (`GET .../entities/{id}`)
+
+Returns the full JSON entity representation, including metadata, companion file listing, and the decoded manifest payload:
+
+```bash
+curl http://127.0.0.1:8080/v1/collections/services/entities/platform.billing
+```
+
+```json
+{
+    "id": "billing",
+    "collection": "services",
+    "namespace": "platform",
+    "qualified_id": "platform.billing",
+    "path": "svcs/billing/manifest.yaml",
+    "is_bundle": true,
+    "companion_files": ["runbook.md"],
+    "manifest": {
+        "tier": "critical",
+        "active": true
+    }
+}
+```
+
+### 2. Raw manifest stream (`GET .../entities/{id}/manifest`)
+
+Streams the original, unparsed manifest file directly from disk with its native `Content-Type` (`application/yaml` or `application/json`):
+
+```bash
+curl http://127.0.0.1:8080/v1/collections/services/entities/platform.billing/manifest
+```
+
+```yaml
+tier: critical
+active: true
+```
+
+## Companion files
+
+### Listing companion files
+
+To list all companion files contained in a bundle entity:
+
+```bash
+curl http://127.0.0.1:8080/v1/collections/services/entities/platform.billing/files
+```
+
+```json
+["runbook.md"]
+```
+
+If requested on a flat entity, the endpoint returns `400 Bad Request`.
+
+### Streaming companion files
+
+To stream a specific companion file from a bundle entity:
+
+```bash
+curl http://127.0.0.1:8080/v1/collections/services/entities/platform.billing/files/runbook.md
+```
+
+The response `Content-Type` is derived from the file extension using the system MIME database.
+
+## Atomic reloads
+
+The reload endpoints (`POST /v1/catalog/reload` and `POST /v1/catalogs/reload`) re-scan and validate configuration from disk without dropping in-flight HTTP requests.
+
+If the updated configuration or any manifest fails schema validation, the reload aborts, returns `422 Unprocessable Content`, and preserves the existing in-memory catalog snapshot.
+
+## Error handling
+
+Non-2xx responses return RFC 9457 Problem Details using `Content-Type: application/problem+json`:
+
+```json
+{
+    "type": "about:blank",
+    "title": "Bad Request",
+    "status": 400,
+    "detail": "\"auth\" is not a qualified ID (want namespace.id); did you mean \"platform.auth\"?",
+    "instance": "/v1/collections/services/entities/auth"
+}
+```
+
+Common status codes:
+
+- `400 Bad Request`: Bare identifier passed instead of qualified ID, or requesting companion files on a flat entity.
+- `404 Not Found`: The specified catalog, collection, entity, or companion file does not exist.
+- `422 Unprocessable Content`: A disk reload failed schema or path validation.
+
+## Embedding in a Go application
+
+Host Go services can mount the HTTP server directly into an existing `http.ServeMux` or router without starting a separate TCP listener:
+
+```go
+package main
+
+import (
+	"context"
+	"net/http"
+
+	"github.com/ju4n97/catl"
+	"github.com/ju4n97/catl/catlhttp"
+)
+
+func main() {
+	ctx := context.Background()
+
+	// Open a multi-tenant registry
+	reg, err := catl.OpenRegistry(ctx, "./registry.d", catl.Options{Offline: true})
+	if err != nil {
+		panic(err)
+	}
+
+	// Construct HTTP handler implementing http.Handler
+	srv := catlhttp.NewRegistry(reg)
+
+	mux := http.NewServeMux()
+	mux.Handle("/catalog/", http.StripPrefix("/catalog", srv))
+
+	http.ListenAndServe(":8080", mux)
+}
+```
+
+## Client usage
+
+### Python
+
+```python
+import httpx
+
+client = httpx.Client(base_url="http://127.0.0.1:8080")
+
+# Read entity resource
+res = client.get("/v1/catalogs/compliance/collections/rules/entities/compliance.require-mfa")
+res.raise_for_status()
+entity = res.json()
+print(f"Rule severity: {entity['manifest']['severity']}")
+
+# Stream companion file
+file_res = client.get("/v1/catalogs/compliance/collections/rules/entities/compliance.require-mfa/files/remediation.md")
+file_res.raise_for_status()
+remediation = file_res.text
+```
+
+### Node.js
+
+```javascript
+const baseUrl = "http://127.0.0.1:8080";
+
+// Read entity resource
+const res = await fetch(
+    `${baseUrl}/v1/catalogs/compliance/collections/rules/entities/compliance.require-mfa`,
+);
+const entity = await res.json();
+console.log(`Rule severity: ${entity.manifest.severity}`);
+
+// Stream companion file
+const fileRes = await fetch(
+    `${baseUrl}/v1/catalogs/compliance/collections/rules/entities/compliance.require-mfa/files/remediation.md`,
+);
+const remediation = await fileRes.text();
+```

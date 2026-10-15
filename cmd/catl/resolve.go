@@ -52,7 +52,10 @@ Examples:
 			if err != nil {
 				if errors.Is(err, catl.ErrNotQualified) {
 					suggested := fmt.Sprintf("%s.%s", cat.Name(), qualifiedID)
-					return cli.Exit(fmt.Sprintf("%q is not a qualified ID (want namespace.id); did you mean %q?", qualifiedID, suggested), 1)
+					return cli.Exit(
+						fmt.Sprintf("%q is not a qualified ID (want namespace.id); did you mean %q?", qualifiedID, suggested),
+						1,
+					)
 				}
 				return cli.Exit(err.Error(), 1)
 			}

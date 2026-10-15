@@ -1,12 +1,17 @@
 [
-    {
-        "text": "Guide",
-        "link": "/guide/index",
-        "activeMatch": "^/guide/"
-    },
-    {
-        "text": "CLI",
-        "link": "/cli/catl",
-        "activeMatch": "^/cli/"
-    }
+  {
+    "text": "Guide",
+    "link": "/guide/index",
+    "activeMatch": "^/guide/"
+  },
+  {
+    "text": "CLI",
+    "link": "/cli/catl",
+    "activeMatch": "^/cli/"
+  },
+  {
+    "text": "HTTP API",
+    "link": "/guide/reference/http-api",
+    "activeMatch": "^/guide/reference/http-api"
+  }
 ]

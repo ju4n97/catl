@@ -10,15 +10,20 @@ This page defines the vocabulary used across `catl` commands, configuration file
 ## Containment hierarchy
 
 ```text
-catalog
-├── dependencies (external catalogs)
-└── collections
-    └── entities
-        ├── manifest (validated data)
-        └── companion files (local files)
+registry (optional multi-tenant directory)
+└── catalog (primary namespace)
+    ├── dependencies (external catalogs)
+    └── collections
+        └── entities
+            ├── manifest (validated data)
+            └── companion files (local files)
 ```
 
 ## Terms
+
+### Registry
+
+A directory containing one or more isolated catalog subdirectories (e.g. `registry.d/`), each with its own `catl.toml`. A registry serves multiple independent catalogs concurrently without identifier collisions.
 
 ### Catalog
 
@@ -34,7 +39,7 @@ A single declarative item in a collection. An entity has an identifier and takes
 
 ### Flat entity
 
-An entity represented by a single file directly inside a collection directory (e.g., `services/auth.yaml`). The filename without the extension is the entity identifier. Flat entities can't contain companion files.
+An entity represented by a single file directly inside a collection directory (e.g., `services/auth.yaml`). The filename without the extension is the entity identifier. Flat entities cannot contain companion files.
 
 ### Bundle entity
 
@@ -62,7 +67,7 @@ The canonical identifier for an entity, written as `namespace.id`. `catl` requir
 
 ### Tree hash
 
-A deterministic SHA-256 hash identifying the complete content of a catalog. It hashes the sorted relative paths and file digests of all non-dot regular files in the tree, excluding root `catl.lock` files. Pinned in `catl.lock` to verify that downloaded dependencies have not been tampered with.
+A deterministic SHA-256 hash identifying the complete content of a catalog. It hashes the sorted relative paths and file digests of all non-dot regular files in the tree, excluding root `catl.lock` files.
 
 ### Lockfile (`catl.lock`)
 

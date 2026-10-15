@@ -14,7 +14,7 @@ stderr 'collection "non-existent"'
 
 # Output entities as newline-delimited JSON objects
 exec catl list --json
-stdout '\{"collection":"flags","namespace":"app-flags","id":"dark-mode"'
+stdout '\{"id":"dark-mode","collection":"flags"'
 
 # Output entities with NUL delimiters for shell scripts
 exec catl list -z
