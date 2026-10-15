@@ -1,0 +1,6 @@
+FROM alpine:3.24
+RUN apk add --no-cache git ca-certificates
+ARG TARGETPLATFORM
+COPY ${TARGETPLATFORM}/catl /usr/local/bin/catl
+USER nobody:nobody
+ENTRYPOINT ["/usr/local/bin/catl"]

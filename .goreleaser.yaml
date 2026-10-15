@@ -76,17 +76,34 @@ checksum:
   algorithm: sha256
 
 dockers_v2:
-  - images:
+  - id: catl-distroless
+    images:
       - ghcr.io/ju4n97/catl
     tags:
       - "{{ .Version }}"
-      - "{{ if not .IsPrerelease }}latest{{ end }}"
+      - "{{ if not .Prerelease }}latest{{ end }}"
     platforms:
       - linux/amd64
       - linux/arm64
     dockerfile: Dockerfile
     labels:
       org.opencontainers.image.title: "{{ .ProjectName }}"
+      org.opencontainers.image.created: "{{ .Date }}"
+      org.opencontainers.image.revision: "{{ .FullCommit }}"
+      org.opencontainers.image.version: "{{ .Version }}"
+
+  - id: catl-alpine
+    images:
+      - ghcr.io/ju4n97/catl
+    tags:
+      - "{{ .Version }}-alpine"
+      - "{{ if not .Prerelease }}latest-alpine{{ end }}"   
+    platforms:
+      - linux/amd64
+      - linux/arm64
+    dockerfile: Dockerfile.alpine
+    labels:
+      org.opencontainers.image.title: "{{ .ProjectName }} (with Git)"
       org.opencontainers.image.created: "{{ .Date }}"
       org.opencontainers.image.revision: "{{ .FullCommit }}"
       org.opencontainers.image.version: "{{ .Version }}"
