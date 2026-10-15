@@ -1,12 +1,17 @@
 [
-    {
-        "type": "file",
-        "name": "glossary",
-        "label": "Glossary"
-    },
-    {
-        "type": "file",
-        "name": "embedding",
-        "label": "Embedding in Go"
-    }
+  {
+    "type": "file",
+    "name": "glossary",
+    "label": "Glossary"
+  },
+  {
+    "type": "file",
+    "name": "embedding",
+    "label": "Embedding in Go"
+  },
+  {
+    "type": "file",
+    "name": "http-api",
+    "label": "HTTP API"
+  }
 ]

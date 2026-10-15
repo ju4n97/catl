@@ -1,3 +1,4 @@
+// Package catl provides a catalog manager and validator for declarative data stored in filesystem directories.
 package catl
 
 import (
@@ -171,7 +172,7 @@ func (c *Catalog) Entities(collections ...string) []*Entity {
 	return res
 }
 
-// Resolve retrieves an entity by collection name and qualified identifier (e.g. "clinical.emergency-guide").
+// Resolve retrieves an entity by collection name and qualified identifier.
 // Bare identifiers without a namespace return ErrNotQualified.
 func (c *Catalog) Resolve(collection, qualifiedID string) (*Entity, error) {
 	ns, id, hasDot := strings.Cut(qualifiedID, ".")

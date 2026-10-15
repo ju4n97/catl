@@ -2,6 +2,7 @@ package hash
 
 import (
 	"crypto/sha256"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"io"
@@ -109,5 +110,5 @@ func File(fsys fs.FS, path string) (string, error) {
 		return "", fmt.Errorf("read file %q: %w", path, err)
 	}
 
-	return fmt.Sprintf("%x", h.Sum(nil)), nil
+	return hex.EncodeToString(h.Sum(nil)), nil
 }

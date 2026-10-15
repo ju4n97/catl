@@ -61,6 +61,7 @@ func newRootCommand() *cli.Command {
 			newInitCommand(),
 			newCheckCommand(),
 			newCleanCommand(),
+			newServeCommand(),
 
 			// Entity queries
 			newListCommand(),

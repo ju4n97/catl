@@ -26,17 +26,18 @@ catl [flags] <command> [args...]
 
 ## Subcommands
 
-| Command                        | Description                                           |
-| :----------------------------- | :---------------------------------------------------- |
-| [`version`](./catl-version.md) | Print catl version and build information              |
-| [`init`](./catl-init.md)       | Initialize a new catalog                              |
-| [`check`](./catl-check.md)     | Validate schemas, paths, and lockfile integrity       |
-| [`clean`](./catl-clean.md)     | Clear local download and build cache                  |
-| [`list`](./catl-list.md)       | List entities across collections                      |
-| [`resolve`](./catl-resolve.md) | Print the filesystem path of a manifest               |
-| [`show`](./catl-show.md)       | Stream a manifest or companion file to stdout         |
-| [`add`](./catl-add.md)         | Add a remote dependency to catl.toml and lock it      |
-| [`remove`](./catl-remove.md)   | Remove a dependency from catl.toml and lockfile       |
-| [`update`](./catl-update.md)   | Update dependencies in catl.lock to latest revisions  |
-| [`vendor`](./catl-vendor.md)   | Vendor dependencies into .catl/vendor for offline use |
-| [`pack`](./catl-pack.md)       | Build a deterministic PAX tar archive of the catalog  |
+| Command                        | Description                                                   |
+| :----------------------------- | :------------------------------------------------------------ |
+| [`version`](./catl-version.md) | Print catl version and build information                      |
+| [`init`](./catl-init.md)       | Initialize a new catalog                                      |
+| [`check`](./catl-check.md)     | Validate schemas, paths, and lockfile integrity               |
+| [`clean`](./catl-clean.md)     | Clear local download and build cache                          |
+| [`serve`](./catl-serve.md)     | Start a local read-only HTTP server for a catalog or registry |
+| [`list`](./catl-list.md)       | List entities across collections                              |
+| [`resolve`](./catl-resolve.md) | Print the filesystem path of a manifest                       |
+| [`show`](./catl-show.md)       | Stream a manifest or companion file to stdout                 |
+| [`add`](./catl-add.md)         | Add a remote dependency to catl.toml and lock it              |
+| [`remove`](./catl-remove.md)   | Remove a dependency from catl.toml and lockfile               |
+| [`update`](./catl-update.md)   | Update dependencies in catl.lock to latest revisions          |
+| [`vendor`](./catl-vendor.md)   | Vendor dependencies into .catl/vendor for offline use         |
+| [`pack`](./catl-pack.md)       | Build a deterministic PAX tar archive of the catalog          |

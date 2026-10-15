@@ -5,7 +5,7 @@ import (
 	"strings"
 )
 
-// Diagnostic represents a single schema or manifest validation failure at a source location.
+// Diagnostic represents an individual schema failure at a specific line and JSON pointer.
 type Diagnostic struct {
 	Path    string // Manifest path relative to catalog root (e.g. "rules/rate-limit.yaml")
 	Line    int    // 1-based source line number
@@ -21,7 +21,7 @@ func (d Diagnostic) String() string {
 	return fmt.Sprintf("%s: %s: %s", d.Path, d.Pointer, d.Message)
 }
 
-// ValidationError aggregates one or more schema diagnostics across manifests.
+// ValidationError represents one or more schema or manifest validation failures.
 type ValidationError struct {
 	Diagnostics []Diagnostic
 }

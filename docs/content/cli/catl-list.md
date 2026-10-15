@@ -40,5 +40,5 @@ catl list [flags] [collection]
 ```bash
 catl list
 catl list services
-catl list --all --json
+catl list --json
 ```

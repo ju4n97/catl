@@ -27,11 +27,7 @@ clinical-catalog/
 
 The catalog root belongs exclusively to `catl`. Any unrecognized file or directory at the root that doesn't match declared collections, schemas, `catl.toml`, or `catl.lock` fails validation. If you need scratch directories, editor settings, or CI scripts inside the catalog root, prefix their names with a dot (`.`). Any file or directory starting with a dot is ignored by scanners, tree hashing, and packaging.
 
-Each collection maps to a subdirectory matching the collection name, unless overridden by the `dir` key in `catl.toml`. If a declared collection directory doesn't exist on disk, `catl` treats it as an empty collection. You don't need to create `.gitkeep` files to track empty collections.
-
-Symbolic links are forbidden anywhere inside the catalog, except within ignored dot-prefixed paths. A symlink in a collection or schema directory triggers an immediate validation error.
-
-Every path in the catalog must be valid UTF-8 in Unicode Normalization Form C (NFC). File and directory paths can't contain backslashes (`\`) or ASCII control characters (`0x00`-`0x1F`, `0x7F`).
+Catalogs can't nest inside other catalogs. To manage multiple catalogs in the same repository (for example, multi-tenant setups), arrange them as sibling directories within a parent registry folder (e.g. `registry.d/catalog-a/` and `registry.d/catalog-b/`).
 
 ## Entity shapes
 
