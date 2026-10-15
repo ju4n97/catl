@@ -18,32 +18,30 @@ const (
 	EntityShapeBundle
 )
 
-// String returns a human-readable description of the shape.
-func (s EntityShape) String() string {
-	switch s {
-	case EntityShapeFlat:
-		return "flat"
-	case EntityShapeBundle:
-		return "bundle"
-	default:
-		return "unknown"
-	}
-}
-
 // Entity represents a discovered catalog item within a collection.
 type Entity struct {
-	ID             string
-	Collection     string
-	Shape          EntityShape
-	ManifestPath   string   // Path relative to catalog root (e.g. "services/auth.yaml" or "services/billing/manifest.yaml")
-	BundleDir      string   // Directory relative to catalog root (empty for flat entities)
-	CompanionFiles []string // Relative paths inside the bundle directory (excluding manifest and dotfiles)
+	ID             string      `json:"id"`
+	Collection     string      `json:"collection"`
+	ManifestPath   string      `json:"path"`
+	BundleDir      string      `json:"-"`
+	CompanionFiles []string    `json:"companion_files,omitzero"`
+	Shape          EntityShape `json:"-"`
+}
+
+// IsFlat reports whether the entity is a single manifest file.
+func (e *Entity) IsFlat() bool {
+	return e.Shape == EntityShapeFlat
+}
+
+// IsBundle reports whether the entity is a bundle directory with companion files.
+func (e *Entity) IsBundle() bool {
+	return e.Shape == EntityShapeBundle
 }
 
 // FS returns a read-only filesystem scoped to the bundle directory.
-// For flat entities, calling FS returns an error because flat entities can't have companion files.
+// Returns an error if called on a flat entity.
 func (e *Entity) FS(fsys fs.FS) (fs.FS, error) {
-	if e.Shape != EntityShapeBundle {
+	if !e.IsBundle() {
 		return nil, errors.New("cannot create bundle filesystem for flat entity")
 	}
 

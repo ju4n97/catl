@@ -17,24 +17,24 @@ import (
 
 // Options configures runtime behavior when opening a catalog.
 type Options struct {
-	// Offline disables network calls and reads exclusively from local vendor directories or cache.
+	// Offline disables all network calls and reads exclusively from local vendor directories or cache.
 	Offline bool
 }
 
 // Catalog represents an immutable, validated catalog loaded into memory.
 type Catalog struct {
-	fsys      fs.FS
-	rootPath  string
-	config    *conf.File
-	tree      *scan.Tree
-	entities  map[string]map[string]*Entity // collection -> id -> Entity
-	allSorted []*Entity
+	fsys        fs.FS
+	rootPath    string
+	config      *conf.File
+	collections []string                      // Sorted declared collection names
+	byColl      map[string][]*Entity          // collection -> entities sorted by ID
+	byCollID    map[string]map[string]*Entity // collection -> ID -> entity
+	allSorted   []*Entity                     // All entities sorted by collection, then ID
 }
 
-// Open reads and validates a catalog from a directory on the local filesystem.
+// Open reads and validates a catalog from a local filesystem directory.
 func Open(ctx context.Context, dir string, opts Options) (*Catalog, error) {
-	fsys := os.DirFS(dir)
-	cat, err := OpenFS(ctx, fsys, opts)
+	cat, err := OpenFS(ctx, os.DirFS(dir), opts)
 	if err != nil {
 		return nil, err
 	}
@@ -43,7 +43,7 @@ func Open(ctx context.Context, dir string, opts Options) (*Catalog, error) {
 }
 
 // OpenFS reads and validates a catalog from an arbitrary fs.FS filesystem
-// (such as testing/fstest.MapFS or embed.FS) without touching the local disk.
+// (such as testing/fstest.MapFS or embed.FS) without accessing the host disk.
 func OpenFS(ctx context.Context, fsys fs.FS, opts Options) (*Catalog, error) {
 	configData, err := fs.ReadFile(fsys, "catl.toml")
 	if err != nil {
@@ -63,21 +63,28 @@ func OpenFS(ctx context.Context, fsys fs.FS, opts Options) (*Catalog, error) {
 	validator := manifest.NewValidator(fsys)
 	var allDiags []manifest.Diagnostic
 
-	entityMap := make(map[string]map[string]*Entity, len(cfg.Collections))
-	var allSorted []*Entity
+	collNames := make([]string, 0, len(cfg.Collections))
+	for name := range cfg.Collections {
+		collNames = append(collNames, name)
+	}
+	slices.Sort(collNames)
 
 	cat := &Catalog{
-		fsys:     fsys,
-		config:   cfg,
-		tree:     tree,
-		entities: entityMap,
+		fsys:        fsys,
+		config:      cfg,
+		collections: collNames,
+		byColl:      make(map[string][]*Entity, len(collNames)),
+		byCollID:    make(map[string]map[string]*Entity, len(collNames)),
 	}
 
-	for collName, coll := range cfg.Collections {
-		scannedEntities := tree.Collections[collName]
-		entityMap[collName] = make(map[string]*Entity, len(scannedEntities))
+	for _, collName := range collNames {
+		coll := cfg.Collections[collName]
+		scanned := tree.Collections[collName]
 
-		for _, se := range scannedEntities {
+		cat.byColl[collName] = make([]*Entity, 0, len(scanned))
+		cat.byCollID[collName] = make(map[string]*Entity, len(scanned))
+
+		for _, se := range scanned {
 			manifestBytes, err := fs.ReadFile(fsys, se.ManifestPath)
 			if err != nil {
 				return nil, fmt.Errorf("read manifest %q: %w", se.ManifestPath, err)
@@ -89,7 +96,7 @@ func OpenFS(ctx context.Context, fsys fs.FS, opts Options) (*Catalog, error) {
 			}
 
 			var bundleFS fs.FS
-			if se.Shape == scan.EntityShapeBundle {
+			if se.IsBundle() {
 				bundleFS, err = se.FS(fsys)
 				if err != nil {
 					return nil, err
@@ -105,27 +112,22 @@ func OpenFS(ctx context.Context, fsys fs.FS, opts Options) (*Catalog, error) {
 			}
 
 			ent := &Entity{
-				cat:      cat,
-				scanItem: se,
-				raw:      manifestBytes,
+				Entity:      se,
+				Namespace:   cfg.Catalog.Name,
+				QualifiedID: cfg.Catalog.Name + "." + se.ID,
+				cat:         cat,
+				raw:         manifestBytes,
 			}
-			entityMap[collName][se.ID] = ent
-			allSorted = append(allSorted, ent)
+
+			cat.byColl[collName] = append(cat.byColl[collName], ent)
+			cat.byCollID[collName][se.ID] = ent
+			cat.allSorted = append(cat.allSorted, ent)
 		}
 	}
 
 	if len(allDiags) > 0 {
 		return nil, &manifest.ValidationError{Diagnostics: allDiags}
 	}
-
-	// Sort entities deterministically: collection asc, then ID asc
-	slices.SortFunc(allSorted, func(a, b *Entity) int {
-		if c := strings.Compare(a.Collection(), b.Collection()); c != 0 {
-			return c
-		}
-		return strings.Compare(a.ID(), b.ID())
-	})
-	cat.allSorted = allSorted
 
 	return cat, nil
 }
@@ -145,29 +147,32 @@ func (c *Catalog) FS() fs.FS {
 	return c.fsys
 }
 
-// Entities returns all entities across collections sorted deterministically.
-func (c *Catalog) Entities() []*Entity {
-	return c.allSorted
+// TreeHash returns the deterministic SHA-256 tree hash identifying catalog contents.
+func (c *Catalog) TreeHash() (string, error) {
+	return hash.Tree(c.fsys)
 }
 
-// CollectionEntities returns entities belonging to a specific collection, sorted by ID.
-func (c *Catalog) CollectionEntities(collection string) ([]*Entity, error) {
-	colls, ok := c.entities[collection]
-	if !ok {
-		return nil, fmt.Errorf("%w: collection %q", ErrNotFound, collection)
-	}
-
-	res := make([]*Entity, 0, len(colls))
-	for _, ent := range c.allSorted {
-		if ent.Collection() == collection {
-			res = append(res, ent)
-		}
-	}
-	return res, nil
+// Collections returns all declared collection names sorted in alphabetical order.
+func (c *Catalog) Collections() []string {
+	return slices.Clone(c.collections)
 }
 
-// Resolve retrieves an entity by collection name and qualified identifier (e.g. "app.dark-mode").
-// It returns ErrNotQualified if the caller supplies a bare ID without a namespace.
+// Entities returns all entities in deterministic order. If collection names are provided,
+// only entities belonging to those collections are returned.
+func (c *Catalog) Entities(collections ...string) []*Entity {
+	if len(collections) == 0 {
+		return slices.Clone(c.allSorted)
+	}
+
+	var res []*Entity
+	for _, coll := range collections {
+		res = append(res, c.byColl[coll]...)
+	}
+	return res
+}
+
+// Resolve retrieves an entity by collection name and qualified identifier (e.g. "clinical.emergency-guide").
+// Bare identifiers without a namespace return ErrNotQualified.
 func (c *Catalog) Resolve(collection, qualifiedID string) (*Entity, error) {
 	ns, id, hasDot := strings.Cut(qualifiedID, ".")
 	if !hasDot {
@@ -175,25 +180,18 @@ func (c *Catalog) Resolve(collection, qualifiedID string) (*Entity, error) {
 	}
 
 	if ns != c.Name() {
-		// TODO: external dependency namespaces will be resolved here
 		return nil, fmt.Errorf("%w: namespace %q", ErrNotFound, ns)
 	}
 
-	collMap, ok := c.entities[collection]
+	byID, ok := c.byCollID[collection]
 	if !ok {
 		return nil, fmt.Errorf("%w: collection %q", ErrNotFound, collection)
 	}
 
-	ent, ok := collMap[id]
+	ent, ok := byID[id]
 	if !ok {
 		return nil, fmt.Errorf("%w: entity %q in collection %q", ErrNotFound, id, collection)
 	}
 
 	return ent, nil
-}
-
-// TreeHash calculates the deterministic cryptographic SHA-256 tree hash
-// of the catalog contents.
-func (c *Catalog) TreeHash() (string, error) {
-	return hash.Tree(c.fsys)
 }

@@ -7,7 +7,6 @@ import (
 	"testing/fstest"
 
 	"github.com/ju4n97/catl"
-	"github.com/ju4n97/catl/internal/scan"
 )
 
 type FlagConfig struct {
@@ -15,7 +14,7 @@ type FlagConfig struct {
 	Rollout int  `json:"rollout"`
 }
 
-// TestEntity verifies entity metadata methods, unmarshaling behavior,
+// TestEntity verifies entity metadata fields, unmarshaling behavior,
 // and bundle companion filesystem access.
 func TestEntity(t *testing.T) {
 	t.Parallel()
@@ -41,7 +40,7 @@ func TestEntity(t *testing.T) {
 		t.Fatalf("OpenFS() failed: %v", err)
 	}
 
-	t.Run("flat entity properties and unmarshal", func(t *testing.T) {
+	t.Run("flat entity direct fields and unmarshal", func(t *testing.T) {
 		t.Parallel()
 
 		ent, err := cat.Resolve("flags", "test-cat.simple")
@@ -49,26 +48,26 @@ func TestEntity(t *testing.T) {
 			t.Fatalf("Resolve() failed: %v", err)
 		}
 
-		if ent.ID() != "simple" {
-			t.Errorf("ID() = %q, want 'simple'", ent.ID())
+		if ent.ID != "simple" {
+			t.Errorf("ID = %q, want 'simple'", ent.ID)
 		}
-		if ent.Collection() != "flags" {
-			t.Errorf("Collection() = %q, want 'flags'", ent.Collection())
+		if ent.Collection != "flags" {
+			t.Errorf("Collection = %q, want 'flags'", ent.Collection)
 		}
-		if ent.Namespace() != "test-cat" {
-			t.Errorf("Namespace() = %q, want 'test-cat'", ent.Namespace())
+		if ent.Namespace != "test-cat" {
+			t.Errorf("Namespace = %q, want 'test-cat'", ent.Namespace)
 		}
-		if ent.QualifiedID() != "test-cat.simple" {
-			t.Errorf("QualifiedID() = %q, want 'test-cat.simple'", ent.QualifiedID())
+		if ent.QualifiedID != "test-cat.simple" {
+			t.Errorf("QualifiedID = %q, want 'test-cat.simple'", ent.QualifiedID)
 		}
-		if ent.ManifestPath() != "flags/simple.yaml" {
-			t.Errorf("ManifestPath() = %q, want 'flags/simple.yaml'", ent.ManifestPath())
+		if ent.ManifestPath != "flags/simple.yaml" {
+			t.Errorf("ManifestPath = %q, want 'flags/simple.yaml'", ent.ManifestPath)
 		}
-		if ent.Shape() != scan.EntityShapeFlat {
-			t.Errorf("Shape() = %v, want flat", ent.Shape())
+		if ent.IsBundle() {
+			t.Errorf("IsBundle() = true, want false")
 		}
-		if len(ent.CompanionFiles()) != 0 {
-			t.Errorf("flat entity has companion files: %v", ent.CompanionFiles())
+		if len(ent.CompanionFiles) != 0 {
+			t.Errorf("unexpected companion files: %v", ent.CompanionFiles)
 		}
 
 		var cfg FlagConfig
@@ -92,11 +91,11 @@ func TestEntity(t *testing.T) {
 			t.Fatalf("Resolve() failed: %v", err)
 		}
 
-		if ent.Shape() != scan.EntityShapeBundle {
-			t.Errorf("Shape() = %v, want bundle", ent.Shape())
+		if !ent.IsBundle() {
+			t.Errorf("IsBundle() = false, want true")
 		}
-		if len(ent.CompanionFiles()) != 1 || ent.CompanionFiles()[0] != "notes.md" {
-			t.Errorf("unexpected companion files: %v", ent.CompanionFiles())
+		if len(ent.CompanionFiles) != 1 || ent.CompanionFiles[0] != "notes.md" {
+			t.Errorf("unexpected companion files: %v", ent.CompanionFiles)
 		}
 
 		bundleFS, err := ent.FS(ctx)

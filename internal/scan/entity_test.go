@@ -8,44 +8,6 @@ import (
 	"github.com/ju4n97/catl/internal/scan"
 )
 
-// TestEntityShapeString verifies that EntityShape variants produce the expected
-// string representations.
-func TestEntityShapeString(t *testing.T) {
-	t.Parallel()
-
-	tests := []struct {
-		name  string
-		shape scan.EntityShape
-		want  string
-	}{
-		{
-			name:  "flat shape",
-			shape: scan.EntityShapeFlat,
-			want:  "flat",
-		},
-		{
-			name:  "bundle shape",
-			shape: scan.EntityShapeBundle,
-			want:  "bundle",
-		},
-		{
-			name:  "unknown shape",
-			shape: scan.EntityShape(99),
-			want:  "unknown",
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			t.Parallel()
-
-			if got := tt.shape.String(); got != tt.want {
-				t.Errorf("EntityShape.String() = %q, want %q", got, tt.want)
-			}
-		})
-	}
-}
-
 // TestEntityFS verifies scoped filesystem extraction for bundle entities and rejection for flat entities.
 func TestEntityFS(t *testing.T) {
 	t.Parallel()
