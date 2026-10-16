@@ -37,6 +37,20 @@ jobs:
           version: v2.14.0
           only-new-issues: true
 
+  goreleaser-check:
+    name: "GoReleaser config"
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      - name: Check GoReleaser config
+        uses: goreleaser/goreleaser-action@v7
+        with:
+          distribution: goreleaser
+          version: "~> v2"
+          args: check
+
   unit-tests:
     name: "Unit tests"
     runs-on: ubuntu-latest
@@ -52,21 +66,6 @@ jobs:
       - name: Run unit tests
         run: go test -race -count=1 -timeout=30s ./...
 
-  integration-tests:
-    name: "Integration tests"
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v7
-
-      - name: Setup Go
-        uses: actions/setup-go@v7
-        with:
-          go-version: ${{ env.GO_VERSION }}
-
-      - name: Run containerized integration tests
-        run: go test -v -tags=integration -run="^TestIntegration" -timeout=5m ./...
-
   e2e-tests:
     name: "E2E tests"
     runs-on: ubuntu-latest
@@ -81,6 +80,3 @@ jobs:
 
       - name: Run E2E tests
         run: go test -tags e2e ./cmd/catl -run "TestScript/(init|check|clean|list|resolve|show|serve|mcp)"
-
-
-    

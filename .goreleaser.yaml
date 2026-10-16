@@ -6,7 +6,7 @@ project_name: catl
 
 before:
   hooks:
-    - go mod tidy
+    - go mod verify
 
 builds:
   - id: catl
@@ -77,38 +77,60 @@ checksum:
 
 dockers_v2:
   - id: distroless
+    ids: [catl]
+    dockerfile: Dockerfile
     images:
       - ghcr.io/ju4n97/catl
     tags:
       - "{{ .Version }}"
+      - "{{ if not .Prerelease }}{{ .Major }}.{{ .Minor }}{{ end }}"
       - "{{ if not .Prerelease }}latest{{ end }}"
     platforms:
       - linux/amd64
       - linux/arm64
-    dockerfile: Dockerfile
+    sbom: true
     labels:
       org.opencontainers.image.title: "{{ .ProjectName }}"
       org.opencontainers.image.description: "Package manager, validator, and reader for declarative data."
+      org.opencontainers.image.source: "https://github.com/ju4n97/catl"
+      org.opencontainers.image.url: "https://github.com/ju4n97/catl"
+      org.opencontainers.image.documentation: "https://github.com/ju4n97/catl#readme"
+      org.opencontainers.image.licenses: "MIT"
+      org.opencontainers.image.authors: "Juan <https://github.com/ju4n97>"
       org.opencontainers.image.created: "{{ .Date }}"
       org.opencontainers.image.revision: "{{ .FullCommit }}"
       org.opencontainers.image.version: "{{ .Version }}"
+    annotations:
+      org.opencontainers.image.base.name: "{{ .BaseImage }}"
+      org.opencontainers.image.base.digest: "{{ .BaseImageDigest }}"
 
   - id: alpine
+    ids: [catl]
+    dockerfile: Dockerfile.alpine
     images:
       - ghcr.io/ju4n97/catl
     tags:
       - "{{ .Version }}-alpine"
+      - "{{ if not .Prerelease }}{{ .Major }}.{{ .Minor }}-alpine{{ end }}"
       - "{{ if not .Prerelease }}latest-alpine{{ end }}"
     platforms:
       - linux/amd64
       - linux/arm64
-    dockerfile: Dockerfile.alpine
+    sbom: true
     labels:
-      org.opencontainers.image.title: "{{ .ProjectName }} (Alpine with Git)"
-      org.opencontainers.image.description: "catl container with Git and CA certificates for automated CI workflows"
+      org.opencontainers.image.title: "{{ .ProjectName }} (Alpine with git)"
+      org.opencontainers.image.description: "Package manager, validator, and reader for declarative data."
+      org.opencontainers.image.source: "https://github.com/ju4n97/catl"
+      org.opencontainers.image.url: "https://github.com/ju4n97/catl"
+      org.opencontainers.image.documentation: "https://github.com/ju4n97/catl#readme"
+      org.opencontainers.image.licenses: "MIT"
+      org.opencontainers.image.authors: "Juan <https://github.com/ju4n97>"
       org.opencontainers.image.created: "{{ .Date }}"
       org.opencontainers.image.revision: "{{ .FullCommit }}"
       org.opencontainers.image.version: "{{ .Version }}"
+    annotations:
+      org.opencontainers.image.base.name: "{{ .BaseImage }}"
+      org.opencontainers.image.base.digest: "{{ .BaseImageDigest }}"
 
 release:
   github:
