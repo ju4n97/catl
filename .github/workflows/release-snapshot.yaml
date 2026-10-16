@@ -3,15 +3,17 @@ name: Release snapshot
 on:
   push:
     branches: [main]
-  pull_request:
-    types: [opened, reopened, synchronize]
-    paths:
+    paths: &release_paths
       - ".goreleaser.y*ml"
       - "Dockerfile*"
       - "man/**"
       - "go.mod"
       - "go.sum"
       - ".github/workflows/release-snapshot.yaml"
+
+  pull_request:
+    types: [opened, reopened, synchronize]
+    paths: *release_paths
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.number || github.sha }}
