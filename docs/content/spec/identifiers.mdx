@@ -1,0 +1,109 @@
+---
+title: Identifiers
+description: Identifier grammar, namespaces, qualified IDs, and how lookups are scoped to collections.
+---
+
+import { Badge, Tab, Tabs } from "@rspress/core/theme";
+
+# Identifiers
+
+Entities are addressed by a qualified ID, a namespace and an entity ID joined by a dot:
+
+```text
+clinical.emergency-guide
+├── namespace: clinical (catalog name)
+└── id: emergency-guide (filename or bundle directory name)
+```
+
+## Identifier grammar
+
+Catalog names, collection names, dependency names, and entity IDs share one grammar:
+
+```text
+^[a-z0-9]+(-[a-z0-9]+)*$
+```
+
+An identifier is 1 to 63 ASCII characters: lowercase letters and digits, with words separated by single hyphens. It can't start or end with a hyphen, and uppercase letters, dots, and underscores aren't allowed. Since names never contain dots, a qualified ID always splits on its single dot.
+
+| Identifier        | Status                                 | Reason            |
+| ----------------- | -------------------------------------- | ----------------- |
+| `clinical`        | <Badge type="tip" text="valid" />      |                   |
+| `patient-records` | <Badge type="tip" text="valid" />      |                   |
+| `v2-api`          | <Badge type="tip" text="valid" />      |                   |
+| `rule-101`        | <Badge type="tip" text="valid" />      |                   |
+| `Clinical`        | <Badge type="danger" text="invalid" /> | Uppercase letters |
+| `patient_records` | <Badge type="danger" text="invalid" /> | Underscores       |
+| `patient..triage` | <Badge type="danger" text="invalid" /> | Dots              |
+| `-triage`         | <Badge type="danger" text="invalid" /> | Leading hyphen    |
+
+## Namespaces
+
+Local entities use `catalog.name` from `catl.toml` as their namespace:
+
+```toml title="catl.toml"
+[catalog]
+name = "clinical"
+```
+
+Each dependency adds a namespace named after its key, which must match the `name` in the dependency's own `catl.toml`:
+
+```toml title="catl.toml"
+[dependencies]
+shared-infra = { git = "https://github.com/acme/shared-infra", tag = "v1.4.0" }
+```
+
+Entities from this dependency are in the `shared-infra` namespace.
+
+## Qualified IDs
+
+```text
+clinical.triage
+shared-infra.postgres
+```
+
+:::important
+CLI commands and API calls reject bare IDs. To resolve `triage`, pass `clinical.triage`. This keeps an ID unambiguous regardless of working directory or which catalog is open.
+:::
+
+```bash
+catl resolve protocols triage
+```
+
+```text
+catl: "triage" is not a qualified ID (want namespace.id); did you mean "clinical.triage"?
+```
+
+## Collection scoping
+
+Qualified IDs are unique within a collection, not across collections. Here `protocols` and `monitors` both contain `heart-rate`:
+
+```text
+clinical-catalog/
+├── protocols/
+│   └── heart-rate.yaml   # Qualified ID: clinical.heart-rate
+└── monitors/
+    └── heart-rate.yaml   # Qualified ID: clinical.heart-rate
+```
+
+Lookups therefore need the collection name and the qualified ID:
+
+<Tabs groupId="interface">
+<Tab label="CLI">
+
+```bash
+catl resolve protocols clinical.heart-rate
+catl resolve monitors clinical.heart-rate
+```
+
+</Tab>
+<Tab label="Go">
+
+```go
+proto, err := cat.Resolve("protocols", "clinical.heart-rate")
+mon, err := cat.Resolve("monitors", "clinical.heart-rate")
+```
+
+</Tab>
+</Tabs>
+
+The collection plays the role of a Unix manual section: `printf(1)` and `printf(3)` are different pages with the same name.

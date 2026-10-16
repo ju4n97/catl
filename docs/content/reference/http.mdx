@@ -1,0 +1,170 @@
+---
+title: HTTP API
+description: The read-only catl serve HTTP API, with its endpoints, error format, reload behavior, and client examples.
+---
+
+import { Tab, Tabs } from "@rspress/core/theme";
+
+# HTTP API
+
+`catl serve` runs a read-only HTTP server so non-Go applications can query a catalog without spawning the CLI per lookup. It keeps catalogs in memory, serves manifests and companion files, returns errors as RFC 9457 Problem Details, and reloads from disk without restarting.
+
+```bash
+# One catalog
+catl serve ./compliance-catalog --addr 127.0.0.1:8080
+
+# A registry directory
+catl serve ./my-registry --addr 127.0.0.1:8080
+```
+
+## Modes
+
+The mode is chosen at startup from the target directory. If it contains a `catl.toml`, the server runs in single-catalog mode and serves endpoints directly under `/v1/`. If it contains catalog subdirectories and no `catl.toml`, it runs in registry mode and serves them under `/v1/catalogs/{catalog}/`, which keeps entity IDs from different catalogs from colliding.
+
+<Tabs groupId="http-mode">
+<Tab label="Single catalog">
+
+| Method | Path                                                      | Description                                           |
+| ------ | --------------------------------------------------------- | ----------------------------------------------------- |
+| `GET`  | `/v1/catalog`                                             | Catalog metadata, tree hash, and declared collections |
+| `POST` | `/v1/catalog/reload`                                      | Re-read and validate the catalog from disk            |
+| `GET`  | `/v1/catalog/entities`                                    | List entities across all collections                  |
+| `GET`  | `/v1/collections`                                         | List collections with entity counts                   |
+| `GET`  | `/v1/collections/{collection}`                            | Collection details and entity count                   |
+| `GET`  | `/v1/collections/{collection}/entities`                   | List entities in a collection                         |
+| `GET`  | `/v1/collections/{collection}/entities/{id}`              | Entity metadata and parsed manifest as JSON           |
+| `GET`  | `/v1/collections/{collection}/entities/{id}/manifest`     | Raw manifest file as stored on disk                   |
+| `GET`  | `/v1/collections/{collection}/entities/{id}/files`        | Relative paths of a bundle's companion files          |
+| `GET`  | `/v1/collections/{collection}/entities/{id}/files/{path}` | A companion file from a bundle                        |
+
+`{id}` must be a qualified ID (`namespace.id`). A bare ID such as `auth` instead of `platform.auth` returns `400 Bad Request` naming the expected ID.
+
+</Tab>
+<Tab label="Registry">
+
+In registry mode, endpoints are scoped by catalog namespace (for example `compliance` and `telemetry`):
+
+| Method | Path                                                                  | Description                                  |
+| ------ | --------------------------------------------------------------------- | -------------------------------------------- |
+| `GET`  | `/v1/catalogs`                                                        | List catalog namespaces                      |
+| `POST` | `/v1/catalogs/reload`                                                 | Rescan the directory and reload all catalogs |
+| `GET`  | `/v1/catalogs/{catalog}/catalog`                                      | Catalog metadata and tree hash               |
+| `POST` | `/v1/catalogs/{catalog}/catalog/reload`                               | Reload one catalog from disk                 |
+| `GET`  | `/v1/catalogs/{catalog}/collections`                                  | List collections                             |
+| `GET`  | `/v1/catalogs/{catalog}/collections/{col}/entities`                   | List entities in a collection                |
+| `GET`  | `/v1/catalogs/{catalog}/collections/{col}/entities/{id}`              | Entity metadata and parsed manifest          |
+| `GET`  | `/v1/catalogs/{catalog}/collections/{col}/entities/{id}/manifest`     | Raw manifest file                            |
+| `GET`  | `/v1/catalogs/{catalog}/collections/{col}/entities/{id}/files`        | List companion files                         |
+| `GET`  | `/v1/catalogs/{catalog}/collections/{col}/entities/{id}/files/{path}` | A companion file                             |
+
+</Tab>
+</Tabs>
+
+## Entity resource and raw manifest
+
+`GET .../entities/{id}` returns a JSON envelope with metadata, the companion file list, and the decoded manifest:
+
+```bash
+curl http://127.0.0.1:8080/v1/collections/services/entities/platform.billing
+```
+
+```json
+{
+  "id": "billing",
+  "collection": "services",
+  "namespace": "platform",
+  "qualified_id": "platform.billing",
+  "path": "services/billing/manifest.yaml",
+  "is_bundle": true,
+  "companion_files": ["runbook.md"],
+  "manifest": {
+    "tier": "critical",
+    "active": true
+  }
+}
+```
+
+`GET .../entities/{id}/manifest` returns the file as stored on disk, with `Content-Type` `application/yaml` or `application/json`:
+
+```bash
+curl http://127.0.0.1:8080/v1/collections/services/entities/platform.billing/manifest
+```
+
+```yaml
+tier: critical
+active: true
+```
+
+## Companion files
+
+`/files` lists a bundle's companion files. On a flat entity it returns `400 Bad Request`.
+
+```bash
+curl http://127.0.0.1:8080/v1/collections/services/entities/platform.billing/files
+```
+
+```json
+["runbook.md"]
+```
+
+Append a path to fetch one file. Its `Content-Type` comes from the extension, using the system MIME database:
+
+```bash
+curl http://127.0.0.1:8080/v1/collections/services/entities/platform.billing/files/runbook.md
+```
+
+## Reloading
+
+`POST /v1/catalog/reload` and `POST /v1/catalogs/reload` re-read and validate the catalog from disk without dropping in-flight requests. If the configuration or any manifest fails validation, the response is `422 Unprocessable Content` and the previous catalog stays active.
+
+## Errors
+
+Non-2xx responses are RFC 9457 Problem Details with `Content-Type: application/problem+json`:
+
+```json
+{
+  "type": "about:blank",
+  "title": "Bad Request",
+  "status": 400,
+  "detail": "\"auth\" is not a qualified ID (want namespace.id); did you mean \"platform.auth\"?",
+  "instance": "/v1/collections/services/entities/auth"
+}
+```
+
+| Status                      | Cause                                                                    |
+| --------------------------- | ------------------------------------------------------------------------ |
+| `400 Bad Request`           | A bare ID was used, or companion files were requested for a flat entity. |
+| `404 Not Found`             | The catalog, collection, entity, or companion file doesn't exist.        |
+| `422 Unprocessable Content` | A reload failed schema or path validation.                               |
+
+## Mounting the handler in Go
+
+A Go service can mount the API on its own `http.ServeMux` instead of a separate port. `catlhttp.NewRegistry` returns an `http.Handler` with all registry routes:
+
+```go
+package main
+
+import (
+	"context"
+	"net/http"
+
+	"github.com/ju4n97/catl"
+	"github.com/ju4n97/catl/catlhttp"
+)
+
+func main() {
+	ctx := context.Background()
+
+	reg, err := catl.OpenRegistry(ctx, "./my-registry")
+	if err != nil {
+		panic(err)
+	}
+
+	srv := catlhttp.NewRegistry(reg)
+
+	mux := http.NewServeMux()
+	mux.Handle("/catalog/", http.StripPrefix("/catalog", srv))
+
+	http.ListenAndServe(":8080", mux)
+}
+```

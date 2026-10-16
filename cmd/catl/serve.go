@@ -30,7 +30,7 @@ RESTful Endpoints:
 
 Examples:
   $ catl serve ./compliance-catalog
-  $ catl serve ./registry.d --addr 127.0.0.1:9090`, catlhttp.EndpointsSummary()),
+  $ catl serve ./my-registry --addr 127.0.0.1:9090`, catlhttp.EndpointsSummary()),
 		Arguments: []cli.Argument{
 			&cli.StringArg{
 				Name:      "dir",
@@ -41,11 +41,10 @@ Examples:
 		},
 		Flags: []cli.Flag{
 			&cli.StringFlag{
-				Name:    "addr",
-				Aliases: []string{"a"},
-				Value:   "127.0.0.1:8080",
-				Usage:   "TCP network address to listen on",
-				Config:  cli.StringConfig{TrimSpace: true},
+				Name:   "addr",
+				Value:  "127.0.0.1:8080",
+				Usage:  "TCP network address to listen on",
+				Config: cli.StringConfig{TrimSpace: true},
 			},
 		},
 		Action: func(ctx context.Context, cmd *cli.Command) error {

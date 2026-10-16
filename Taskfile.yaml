@@ -84,7 +84,7 @@ tasks:
     desc: Generate CLI markdown documentation
     cmds:
       - go run -tags docs ./cmd/catl
-      - bunx prettier@latest --write docs/content/cli
+      - bunx prettier@latest --write docs/content/reference/cli.md
 
   gen-man:
     desc: Generate CLI man pages

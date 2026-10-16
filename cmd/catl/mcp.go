@@ -27,7 +27,7 @@ Exposes catalog manifests and companion files as MCP Resources, validation and r
 
 Examples:
   $ catl mcp ./compliance-catalog
-  $ catl mcp ./registry.d`,
+  $ catl mcp ./my-registry`,
 		Arguments: []cli.Argument{
 			&cli.StringArg{
 				Name:      "dir",

@@ -1,7 +1,13 @@
 import { defineConfig } from "@rspress/core";
 import { pluginSitemap } from "@rspress/plugin-sitemap";
+import {
+  transformerNotationDiff,
+  transformerNotationErrorLevel,
+  transformerNotationHighlight,
+} from "@shikijs/transformers";
 import path from "node:path";
 import pluginKatex from "rspress-plugin-katex";
+import pluginMermaid from "rspress-plugin-mermaid";
 
 export default defineConfig({
   root: "content",
@@ -21,6 +27,13 @@ export default defineConfig({
   markdown: {
     link: { checkDeadLinks: true, checkAnchors: true },
     image: { checkDeadImages: true },
+    shiki: {
+      transformers: [
+        transformerNotationHighlight(),
+        transformerNotationDiff(),
+        transformerNotationErrorLevel(),
+      ],
+    },
   },
   themeConfig: {
     darkMode: "auto",
@@ -43,5 +56,6 @@ export default defineConfig({
   plugins: [
     pluginSitemap(),
     pluginKatex(),
+    pluginMermaid(),
   ],
 });

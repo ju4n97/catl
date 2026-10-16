@@ -7,7 +7,7 @@ import { Steps } from "@rspress/core/theme";
 
 # Quick start
 
-This guide walks through building a data layer for a Git-backed CMS. You'll define a schema, add articles and companion assets, catch validation errors without going online, and query the catalog through the CLI.
+This walkthrough builds the data layer for a Git-backed blog: a schema, one flat and one bundle article, a validation error, and CLI queries.
 
 <Steps>
 
@@ -42,25 +42,25 @@ schema = "schemas/articles.schema.json"
 
 Replace `schemas/articles.schema.json` with this definition:
 
-```json title="schemas/articles.schema.json"
+```jsonc title="schemas/articles.schema.json"
 {
-    "$schema": "https://json-schema.org/draft/2020-12/schema",
-    "type": "object",
-    "required": ["title", "author", "published", "reading_time_minutes"],
-    "properties": {
-        "title": { "type": "string" },
-        "author": { "type": "string" },
-        "published": { "type": "boolean" },
-        "reading_time_minutes": {
-            "type": "integer",
-            "minimum": 1
-        },
-        "cover_image": {
-            "type": "string",
-            "format": "catl-file"
-        }
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "required": ["title", "author", "published", "reading_time_minutes"],
+  "properties": {
+    "title": { "type": "string" },
+    "author": { "type": "string" },
+    "published": { "type": "boolean" },
+    "reading_time_minutes": {
+      "type": "integer",
+      "minimum": 1,
     },
-    "additionalProperties": false
+    "cover_image": {
+      "type": "string",
+      "format": "catl-file", // [!code highlight]
+    },
+  },
+  "additionalProperties": false, // [!code highlight]
 }
 ```
 
@@ -134,10 +134,15 @@ Exit code: 0
 
 `catl check` follows the Unix rule of silence: it exits with code 0 and produces no output when everything passes.
 
-To see how `catl` enforces constraints, edit `articles/release-v1/manifest.yaml` and reference an image that doesn't exist:
+To trigger a failure, point `cover_image` at a file that doesn't exist:
 
-```yaml
-cover_image: missing.png
+```yaml title="articles/release-v1/manifest.yaml"
+title: Launching version 1.0
+author: Engineering
+published: true
+reading_time_minutes: 4
+cover_image: banner.svg # [!code --]
+cover_image: missing.png # [!code ++]
 ```
 
 Run validation again:
@@ -177,7 +182,9 @@ catl resolve articles blog.release-v1
 articles/release-v1/manifest.yaml
 ```
 
-Lookups strictly require both the collection name and the qualified ID. If you pass a bare ID without a namespace, `catl` rejects it with a hint:
+:::note
+Lookups take a collection and a qualified ID (`namespace.id`). A bare ID is rejected with a hint.
+:::
 
 ```bash
 catl resolve articles release-v1
@@ -216,8 +223,6 @@ This output can be piped directly into Unix utilities, Markdown renderers, or st
 
 </Steps>
 
-## What's next?
+## Next steps
 
-You can now use `catl` to validate and query structured data stored in Git. From here, you can [embed it in a Go application](/guide/reference/embedding), expose the catalog over the [HTTP API](/guide/reference/http), or look into [dependency management](/guide/spec/dependencies) if your catalog needs to import entities from other catalogs.
-
-For the full set of layout rules, manifest formats, and schema constraints, see [Layout and manifests](/guide/spec/layout-and-manifests).
+Use the catalog from code with [Embedding in Go](/reference/embedding) or the [HTTP API](/reference/http). To import entities from other catalogs, see [Dependencies](/spec/dependencies). Layout and schema rules are in [Layout and manifests](/spec/layout-and-manifests).

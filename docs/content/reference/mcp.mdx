@@ -1,0 +1,218 @@
+---
+title: Model Context Protocol (MCP)
+description: Run catl as an MCP server over stdio, with its resource URIs, tool parameters, and Go embedding.
+---
+
+import { Prompt } from "@rspress/core/theme";
+
+# Model Context Protocol (MCP)
+
+`catl mcp` runs an MCP server over `stdio` so MCP clients (editors, AI assistants) can read a catalog. Entities and companion files are exposed as resources, and validation and inspection as tools. See [modelcontextprotocol.io](https://modelcontextprotocol.io) for the protocol.
+
+The client starts `catl mcp` as a subprocess and exchanges messages over its standard input and output.
+
+```bash
+# One catalog
+catl mcp ./compliance-catalog
+
+# A registry directory
+catl mcp ./my-registry
+```
+
+If the directory contains a `catl.toml`, the server runs in single-catalog mode and scopes resources to that catalog's namespace. If it contains catalog subdirectories and no `catl.toml`, it runs in registry mode and serves all of them without ID collisions.
+
+## Client configuration
+
+Register `catl` as a local stdio server, with `catl` as the command and `mcp` plus the absolute path to the catalog or registry as arguments:
+
+```json
+{
+  "command": "catl",
+  "args": ["mcp", "/absolute/path/to/catalog"]
+}
+```
+
+`catl` must be on the client's `PATH`, or use the binary's absolute path as the command. The settings format depends on the client you're using.
+
+To have an agent validate manifests before it writes them, give it this instruction:
+
+<Prompt
+  title="Validate manifests with catl"
+  description="Copy this prompt and send it to your AI agent."
+  prompt={`Use the catl MCP server to work with the manifests in this catalog.
+
+Before creating or editing a manifest:
+
+1. Call catl_get_schema with the collection name to read its JSON Schema.
+2. Draft the manifest to match the schema.
+3. Call catl_validate_manifest with the collection and the draft content, and fix every diagnostic it returns.
+4. Write the file only after validation returns valid: true.
+
+Rules:
+
+- Address entities by qualified ID (namespace.id), never by bare ID.
+- A bundle entity needs a manifest named manifest.yaml or manifest.json. Put other files next to it as companion files.
+- In registry mode, pass the catalog argument to catl_get_schema and catl_validate_manifest.`}
+  />
+
+## Resources
+
+Manifests and companion files are read-only resources under the `catl://` scheme:
+
+| Target         | URI pattern                                       | MIME type                                            |
+| -------------- | ------------------------------------------------- | ---------------------------------------------------- |
+| Manifest       | `catl://{collection}/{qualified_id}/manifest`     | `application/yaml` or `application/json`             |
+| Companion file | `catl://{collection}/{qualified_id}/files/{path}` | Inferred from the extension, such as `text/markdown` |
+
+```text
+catl://services/platform.auth/manifest
+catl://services/platform.billing/files/runbook.md
+catl://monitors/network.latency/manifest
+```
+
+`resources/list` returns every manifest and companion file. `resources/read` serves content from memory.
+
+## Tools
+
+### catl_list_collections
+
+Lists declared collections across active catalogs with entity counts. Takes no parameters.
+
+```json
+{
+  "collections": [
+    {
+      "catalog": "platform",
+      "name": "services",
+      "entity_count": 4
+    }
+  ]
+}
+```
+
+### catl_list_entities
+
+Lists entities across all collections, or one.
+
+- `collection` (string, optional): restrict to this collection.
+
+Each entry is a tab-separated collection, qualified ID, and manifest path:
+
+```json
+{
+  "entities": [
+    "services\tplatform.auth\tservices/auth.yaml",
+    "services\tplatform.billing\tservices/billing/manifest.yaml"
+  ]
+}
+```
+
+### catl_get_entity
+
+Returns identity metadata, the companion file list, and the parsed manifest, in the same envelope as the [HTTP API](./http.mdx#entity-resource-and-raw-manifest).
+
+- `collection` (string, required)
+- `qualified_id` (string, required): for example `platform.billing`.
+
+### catl_get_schema
+
+Returns a collection's JSON Schema Draft 2020-12 definition. Call it before generating or editing manifests to see valid fields, types, and constraints.
+
+- `collection` (string, required)
+- `catalog` (string, optional): required in registry mode, where collection names can repeat across catalogs.
+
+```json
+{
+  "catalog": "platform",
+  "collection": "services",
+  "permissive": false,
+  "schema": "{\"$schema\": \"https://json-schema.org/draft/2020-12/schema\", ...}"
+}
+```
+
+`permissive` is `true` when the collection has no `schema`. `schema` is the schema document as a JSON string.
+
+### catl_read_file
+
+Reads one companion file from a bundle entity.
+
+- `collection` (string, required)
+- `qualified_id` (string, required)
+- `path` (string, required): path inside the bundle, such as `runbook.md`.
+
+```json
+{
+  "path": "runbook.md",
+  "mime_type": "text/markdown",
+  "text": "# Billing Runbook\n..."
+}
+```
+
+### catl_validate_manifest
+
+Validates a YAML or JSON manifest string against a collection's schema. The check runs in memory and writes nothing to disk, so a client can test a draft before saving it.
+
+- `collection` (string, required)
+- `content` (string, required): raw manifest text.
+- `catalog` (string, optional): required in registry mode.
+
+```json
+{
+  "valid": false,
+  "diagnostics": [
+    {
+      "path": "services/manifest.yaml",
+      "line": 3,
+      "pointer": "/threshold",
+      "message": "150 is greater than the maximum of 100"
+    }
+  ]
+}
+```
+
+### catl_check
+
+Validates all manifests against their schemas and checks path rules and the content tree hash, like `catl check`. Takes no parameters.
+
+```json
+{
+  "valid": true,
+  "tree_hash": "sha256:7b2817c991e01cbe5d7500d4d0c8c7ecba12b516d4b7dd7c60e31b38978ffc77",
+  "summary": [
+    "Catalog \"platform\" valid. Content hash: sha256:7b28... (4 entities)"
+  ]
+}
+```
+
+## Embedding in Go
+
+`catlmcp.New` creates a server that runs on any transport from the [MCP Go SDK](https://github.com/modelcontextprotocol/go-sdk). This example serves a catalog over stdio:
+
+```go
+package main
+
+import (
+	"context"
+	"log"
+
+	"github.com/modelcontextprotocol/go-sdk/mcp"
+
+	"github.com/ju4n97/catl"
+	"github.com/ju4n97/catl/catlmcp"
+)
+
+func main() {
+	ctx := context.Background()
+
+	cat, err := catl.Open(ctx, "./catalog")
+	if err != nil {
+		log.Fatalf("failed to open catalog: %v", err)
+	}
+
+	srv := catlmcp.New(cat)
+
+	if err := srv.Run(ctx, &mcp.StdioTransport{}); err != nil {
+		log.Fatalf("mcp server error: %v", err)
+	}
+}
+```

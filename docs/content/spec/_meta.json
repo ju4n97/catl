@@ -2,7 +2,8 @@
   {
     "type": "file",
     "name": "layout-and-manifests",
-    "label": "Layout and manifests"
+    "label": "Layout and manifests",
+    "overviewHeaders": [2, 3]
   },
   {
     "type": "file",

@@ -1,0 +1,144 @@
+---
+title: Layout and manifests
+description: Directory layout, flat and bundle entities, manifest decoding rules, schema validation, and size limits.
+---
+
+# Layout and manifests
+
+A catalog is a directory with a root `catl.toml`, schemas, and one directory per declared collection:
+
+```text
+clinical-catalog/
+├── catl.toml
+├── schemas/
+│   ├── protocols.schema.json
+│   └── tools.schema.json
+├── protocols/
+│   ├── triage.yaml               # Flat entity: ID "triage"
+│   └── emergency-guide/          # Bundle entity: ID "emergency-guide"
+│       ├── manifest.yaml
+│       ├── flow.md               # Companion file
+│       └── diagram.png           # Companion file
+└── tools/
+    └── check-schedule.yaml       # Flat entity: ID "check-schedule"
+```
+
+Validation fails on any root entry that isn't a declared collection, a schema directory, `catl.toml`, or `catl.lock`.
+
+Dot-prefixed files and directories are ignored by the scanner and by tree hashing, so use them for scratch directories, editor settings, or CI scripts.
+
+Catalogs can't be nested. To keep several in one repository, place them side by side in a parent directory (`my-registry/catalog-a/`, `my-registry/catalog-b/`).
+
+## Entity shapes
+
+|                    | Flat entity                          | Bundle entity                                           |
+| ------------------ | ------------------------------------ | ------------------------------------------------------- |
+| Stored as          | One file in the collection directory | One directory in the collection directory               |
+| ID                 | Filename without its extension       | Directory name                                          |
+| Manifest           | The file itself                      | `manifest.yaml` or `manifest.json` inside the directory |
+| Companion files    | Not allowed                          | Any other files, including nested directories           |
+| `catl-file` fields | Validation error                     | Checked against the bundle                              |
+| Example            | `protocols/triage.yaml`              | `protocols/emergency-guide/`                            |
+
+To turn a flat entity into a bundle, create a directory with the same name, move the file into it as `manifest.yaml` (or `manifest.json`), and delete the flat file. The ID stays the same, and an ID can't exist as both shapes.
+
+### Flat entities
+
+A flat entity is one manifest file directly in the collection directory. The filename without its extension is the ID, so `protocols/triage.yaml` has the ID `triage`:
+
+```yaml title="protocols/triage.yaml"
+title: Patient Triage Flow
+severity: high
+timeout_seconds: 300
+```
+
+Flat entities can't have companion files. Use a bundle for templates, images, or PDFs.
+
+### Bundle entities
+
+A bundle is a directory directly in the collection directory. The directory name is the ID. It must contain exactly one manifest, `manifest.yaml` or `manifest.json` (having both is an error). All other files are companion files and can be nested in subdirectories:
+
+```text
+protocols/emergency-guide/
+├── manifest.yaml
+├── steps/
+│   ├── step-1.md
+│   └── step-2.md
+└── assets/
+    └── flowchart.png
+```
+
+An ID can't be both a flat file and a bundle in the same collection: `protocols/triage.yaml` and `protocols/triage/` can't coexist. Collections don't nest, so every directory directly inside a collection is an entity.
+
+## Manifest decoding
+
+Manifests are decoded before schema validation, using the YAML 1.2 core schema or RFC 8259 JSON. The decoder rejects:
+
+- CRLF line endings (manifests and schemas must use LF).
+- Duplicate keys, merge keys, and custom tags are rejected. A merge key (`<<`) copies keys from an anchored mapping, and a custom tag such as `!include` assigns an application-defined type.
+- A manifest must contain exactly one document. Multi-document streams separated by `---` are rejected.
+- JSON numbers that are `NaN` or `Infinity`.
+
+Unquoted `yes`, `no`, `on`, and `off` decode as strings. Only `true` and `false` are booleans:
+
+```yaml
+country: no # the string "no", not false
+enabled: true # a boolean
+```
+
+Decoding also caps alias expansion. An alias (`*name`) reuses a value defined earlier with an anchor (`&name`), and nested aliases can expand into far more values than the file contains. Decoding fails with a parser error when a manifest would exceed 1,000,000 decoded values.
+
+## Schema validation
+
+If a collection declares a JSON Schema Draft 2020-12 file in `catl.toml`, every manifest in it is validated against that schema. Without a schema, the collection is permissive: syntax, unique keys, and layout rules are checked, but field-level checks are skipped.
+
+```json title="schemas/protocols.schema.json"
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "required": ["title", "severity", "documentation"],
+  "properties": {
+    "title": { "type": "string" },
+    "severity": { "type": "string", "enum": ["low", "medium", "high"] },
+    "timeout_seconds": { "type": "integer", "minimum": 1 },
+    "documentation": { "type": "string", "format": "catl-file" }
+  },
+  "additionalProperties": false
+}
+```
+
+Validation is offline: the Draft 2020-12 metaschema is embedded in `catl`. Local `$ref` values must resolve to files inside the catalog root. References that escape the root or point to remote URLs are rejected.
+
+Regular expressions run on Go's RE2 engine, which evaluates in linear time and can't backtrack catastrophically. Lookaround assertions (`(?=...)`, `(?!...)`) and backreferences aren't supported by RE2, so schemas using them fail at compile time.
+
+### The catl-file format
+
+A string property with `"format": "catl-file"` must name a companion file in the entity's bundle:
+
+```json
+"documentation": { "type": "string", "format": "catl-file" }
+```
+
+`catl` checks that:
+
+- The path is relative, uses forward slashes, and has no leading slash or `..` segments.
+- The file exists inside the bundle directory.
+- The entity is a bundle. Using `catl-file` on a flat entity is a validation error.
+
+:::note
+Under `oneOf` or `anyOf`, `catl-file` is checked only on the branch that validates the manifest.
+:::
+
+## Fixed limits
+
+These limits bound memory use when reading untrusted input.
+
+| Target                  | Limit       | Behavior on breach                   |
+| ----------------------- | ----------- | ------------------------------------ |
+| Identifier length       | 63 bytes    | Validation error                     |
+| Relative path length    | 1,024 bytes | Validation error                     |
+| Path component length   | 255 bytes   | Validation error                     |
+| Manifest file size      | 4 MiB       | Validation error                     |
+| Schema file size        | 4 MiB       | Validation error                     |
+| Decoded manifest values | 1,000,000   | Parser error (alias expansion limit) |
+| Manifest nesting depth  | 64 levels   | Parser error                         |

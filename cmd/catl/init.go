@@ -43,10 +43,9 @@ Examples:
 				Config: cli.StringConfig{TrimSpace: true},
 			},
 			&cli.StringFlag{
-				Name:    "template",
-				Aliases: []string{"t"},
-				Usage:   "Starter template to scaffold",
-				Config:  cli.StringConfig{TrimSpace: true},
+				Name:   "template",
+				Usage:  "Starter template to scaffold",
+				Config: cli.StringConfig{TrimSpace: true},
 			},
 		},
 		Action: func(ctx context.Context, cmd *cli.Command) error {

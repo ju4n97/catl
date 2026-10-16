@@ -1,0 +1,227 @@
+---
+title: Go library
+description: Open, query, and test catalogs from Go, including registries, companion files, and error handling.
+---
+
+# Go library
+
+The `catl` Go module provides read access to catalogs and registries. It has no CGO dependencies, starts no background threads, and validates offline.
+
+```bash
+go get github.com/ju4n97/catl@latest
+```
+
+```go
+import "github.com/ju4n97/catl"
+```
+
+## Choosing a constructor
+
+| Function                      | Opens                       | Use it for                                                                                      |
+| ----------------------------- | --------------------------- | ----------------------------------------------------------------------------------------------- |
+| `catl.Open(ctx, dir)`         | A catalog directory on disk | Services and tools. Dependencies resolve from local paths, `.catl/vendor`, or the global cache. |
+| `catl.OpenRegistry(ctx, dir)` | A directory of catalogs     | Multi-tenant apps. Look up each catalog by name.                                                |
+| `catl.OpenFS(ctx, fsys)`      | A catalog in any `fs.FS`    | Tests and embedded catalogs.                                                                    |
+
+## Opening a catalog
+
+`catl.Open` reads and validates a catalog from disk. This example resolves an entity by collection and qualified ID and decodes its manifest into a struct:
+
+```go title="main.go"
+package main
+
+import (
+	"context"
+	"fmt"
+	"log"
+
+	"github.com/ju4n97/catl"
+)
+
+type Policy struct {
+	Severity string `json:"severity"`
+	Enabled  bool   `json:"enabled"`
+}
+
+func main() {
+	ctx := context.Background()
+
+	cat, err := catl.Open(ctx, "./compliance-catalog") // [!code highlight]
+	if err != nil {
+		log.Fatalf("failed to open catalog: %v", err)
+	}
+
+	entity, err := cat.Resolve("policies", "compliance.require-mfa")
+	if err != nil {
+		log.Fatalf("failed to resolve entity: %v", err)
+	}
+
+	var p Policy
+	if err := entity.Unmarshal(&p); err != nil {
+		log.Fatalf("manifest decode error: %v", err)
+	}
+
+	fmt.Printf("Policy %s: severity=%s enabled=%v\n", entity.QualifiedID, p.Severity, p.Enabled)
+}
+```
+
+`catl.Open` runs these steps:
+
+1. Parse and validate `catl.toml`.
+2. Check that `catl.lock` is current, if dependencies are declared.
+3. Resolve direct dependencies from local paths, `.catl/vendor`, or the global cache.
+4. Validate every manifest against its collection's schema.
+5. Return an immutable `*catl.Catalog`, safe for concurrent use.
+
+## Tree hashes
+
+`TreeHash` returns the catalog's SHA-256 tree hash. Compare it against a known value to detect drift:
+
+```go
+treeHash, err := cat.TreeHash()
+if err != nil {
+	log.Fatalf("tree hash computation failed: %v", err)
+}
+fmt.Println("Catalog SHA-256 tree hash:", treeHash)
+```
+
+## Reading companion files
+
+`entity.FS(ctx)` returns an `io/fs.FS` rooted at a bundle directory. Flat entities have no companion files, so check `IsBundle` first:
+
+```go title="main.go"
+func readRunbook(ctx context.Context, cat *catl.Catalog, qualifiedID string) error {
+	entity, err := cat.Resolve("monitors", qualifiedID)
+	if err != nil {
+		return err
+	}
+
+	if !entity.IsBundle() {
+		return fmt.Errorf("entity %q is a flat entity and has no companion files", entity.ID)
+	}
+
+	bundleFS, err := entity.FS(ctx) // [!code highlight]
+	if err != nil {
+		return err
+	}
+
+	data, err := fs.ReadFile(bundleFS, "mitigation.md")
+	if err != nil {
+		return fmt.Errorf("could not read companion file: %w", err)
+	}
+
+	fmt.Println(string(data))
+	return nil
+}
+```
+
+The filesystem follows `fs.ValidPath` rules, so `..` paths that leave the bundle are rejected. Dot-prefixed files are hidden.
+
+## Registries
+
+`catl.OpenRegistry` opens a directory of independent catalogs, such as one per tenant or environment. Look up each by name:
+
+```go title="main.go"
+ctx := context.Background()
+
+reg, err := catl.OpenRegistry(ctx, "./my-registry") // [!code highlight]
+if err != nil {
+	log.Fatalf("failed to open registry: %v", err)
+}
+
+for _, name := range reg.Names() {
+	cat, _ := reg.Catalog(name)
+	fmt.Printf("Catalog: %s (%d collections)\n", cat.Name(), len(cat.Collections()))
+}
+
+if compliance, ok := reg.Catalog("compliance"); ok {
+	ent, err := compliance.Resolve("rules", "compliance.require-mfa")
+	if err == nil {
+		fmt.Println("Resolved entity path:", ent.ManifestPath)
+	}
+}
+```
+
+## Testing with OpenFS
+
+`catl.OpenFS` opens a catalog from any `fs.FS`, so tests don't touch the disk. This one uses `embed.FS`; `testing/fstest.MapFS` works the same way:
+
+```go title="main_test.go"
+//go:embed testdata/catalog/*
+var testCatalogFS embed.FS
+
+func TestCatalogIntegration(t *testing.T) {
+	ctx := context.Background()
+
+	subFS, err := fs.Sub(testCatalogFS, "testdata/catalog")
+	if err != nil {
+		t.Fatalf("sub fs error: %v", err)
+	}
+
+	cat, err := catl.OpenFS(ctx, subFS) // [!code highlight]
+	if err != nil {
+		t.Fatalf("OpenFS failed: %v", err)
+	}
+
+	entity, err := cat.Resolve("rules", "test-catalog.allow-all")
+	if err != nil {
+		t.Fatalf("Resolve failed: %v", err)
+	}
+
+	if entity.ID != "allow-all" {
+		t.Errorf("got ID %q, want allow-all", entity.ID)
+	}
+}
+```
+
+## Reloading in a server
+
+A `*catl.Catalog` is immutable, so a server reloads by opening a new catalog and swapping it in with `sync/atomic`.
+
+```go title="server.go"
+type Server struct {
+	catalog atomic.Pointer[catl.Catalog]
+}
+
+func (s *Server) Reload(ctx context.Context, dir string) error {
+	next, err := catl.Open(ctx, dir)
+	if err != nil {
+		return err
+	}
+
+	s.catalog.Store(next) // [!code highlight]
+	return nil
+}
+
+func (s *Server) CurrentCatalog() *catl.Catalog {
+	return s.catalog.Load()
+}
+```
+
+:::info
+If the new catalog fails validation, `Reload` returns the error and the current catalog stays active.
+:::
+
+## Error handling
+
+Check these with `errors.Is`:
+
+| Error                    | Meaning                                                                 |
+| ------------------------ | ----------------------------------------------------------------------- |
+| `catl.ErrNotFound`       | The entity, collection, or catalog namespace doesn't exist.             |
+| `catl.ErrNotQualified`   | A bare ID (`id`) was passed instead of `namespace.id`.                  |
+| `catl.ErrLockStale`      | `catl.lock` is missing or doesn't match `catl.toml`. Run `catl update`. |
+| `catl.ErrTamperedVendor` | Files in `.catl/vendor` don't match the tree hash in `catl.lock`.       |
+| `catl.ErrCRLFForbidden`  | A structured file uses CRLF instead of LF.                              |
+| `catl.ErrRequiresNewer`  | `catl.toml` requires a newer `catl` version.                            |
+
+Schema failures are returned as `*catl.ValidationError`. Extract it with `errors.As` to read per-diagnostic file, line, JSON pointer, and message:
+
+```go
+var valErr *catl.ValidationError
+if errors.As(err, &valErr) {
+	for _, d := range valErr.Diagnostics {
+		log.Printf("%s:%d: [%s] %s\n", d.Path, d.Line, d.Pointer, d.Message)
+	}
+}
+```

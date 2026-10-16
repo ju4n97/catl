@@ -10,11 +10,11 @@ It organizes YAML 1.2 and JSON manifests into collections, validates them agains
 
 `catl` requires no database, runs no background daemon, and makes zero network calls during validation. It is distributed as a single static binary with no CGO or libc dependencies.
 
-[Documentation](https://ju4n97.github.io/catl/) · [Quick start](https://ju4n97.github.io/catl/guide/quick-start) · [Specification](https://ju4n97.github.io/catl/guide/spec/layout-and-manifests) · [Embedding in Go](https://ju4n97.github.io/catl/guide/reference/embedding) · [HTTP API](https://ju4n97.github.io/catl/guide/reference/http)
+[Documentation](https://ju4n97.github.io/catl/) · [Specification](https://ju4n97.github.io/catl/spec/layout-and-manifests) · [Go library](https://ju4n97.github.io/catl/reference/embedding) · [CLI](https://ju4n97.github.io/catl/reference/cli) · [HTTP server](https://ju4n97.github.io/catl/reference/http) · [MCP server](https://ju4n97.github.io/catl/reference/mcp)
 
 ## Quick start
 
-See the [Quick start guide](https://ju4n97.github.io/catl/guide/quick-start) for a walkthrough of building a Git-backed headless CMS data layer.
+See the [Quick start guide](https://ju4n97.github.io/catl/quick-start) for a walkthrough of building a Git-backed headless CMS data layer.
 
 ## Installation
 
@@ -24,7 +24,7 @@ Download static prebuilt binaries for Linux, macOS, and Windows from the [releas
 go install github.com/ju4n97/catl/cmd/catl@latest
 ```
 
-See [Installation](https://ju4n97.github.io/catl/guide/installation) for package managers, man pages, shell autocompletion, and container images.
+See [Installation](https://ju4n97.github.io/catl/installation) for package managers, man pages, shell autocompletion, and container images.
 
 ## License
 

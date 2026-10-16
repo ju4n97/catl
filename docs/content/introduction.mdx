@@ -1,0 +1,34 @@
+---
+title: Introduction
+description: What a catalog contains and how catl validates, pins, and hashes it.
+---
+
+# Introduction
+
+`catl` loads and validates declarative YAML and JSON stored in directories. A catalog is a directory with a root `catl.toml`, JSON Schema files, and collection directories containing manifests and optional companion files (templates, runbooks, diagrams).
+
+It validates manifests against JSON Schema Draft 2020-12, pins remote dependencies in `catl.lock`, and verifies contents with SHA-256 tree hashes. It ships as a CLI binary and a Go library that share the same parser and validation rules.
+
+```bash
+catalog/
+├── catl.toml                 # Catalog name, collections, and dependencies
+├── catl.lock                 # Pinned commits and tree hashes for remote dependencies
+├── schemas/
+│   └── service.json          # JSON Schema Draft 2020-12
+└── services/
+├── auth.yaml             # Flat entity (ID: auth)
+└── billing/              # Bundle entity (ID: billing)
+├── manifest.yaml     # Validated against service.json
+├── runbook.md        # Companion file
+└── diagram.png       # Companion file
+```
+
+## How it works
+
+Validation is local and synchronous. It makes no network calls and needs no database.
+
+Manifests are strict YAML 1.2 or JSON. Companion files sit in bundle directories next to their manifest and are covered by the tree hash.
+
+Dependencies come from local paths or Git repositories. `catl update` records each remote dependency's resolved commit and tree hash in `catl.lock`. Only direct dependencies are loaded.
+
+Schemas, companion files, and dependencies must already be on disk, in `.catl/vendor`, or in the global cache. A missing, malformed, or modified file fails validation.

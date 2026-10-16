@@ -1,0 +1,82 @@
+---
+title: Glossary
+description: Definitions of the terms used in catl commands, configuration, and error messages.
+---
+
+# Glossary
+
+Terms used across `catl` commands, configuration, specs, and errors. Containment runs from registry down to companion files:
+
+```text
+registry (optional multi-catalog directory)
+└── catalog (primary namespace)
+    ├── dependencies (external catalogs)
+    └── collections
+        └── entities
+            ├── manifest (validated data)
+            └── companion files (supplementary files)
+```
+
+## Registry
+
+A directory with no `catl.toml` of its own whose subdirectories are catalogs, for example `my-registry/`. Each catalog is opened independently and addressed by name, so IDs can't collide across catalogs.
+
+## Catalog
+
+A directory with a root `catl.toml`. It sets a primary namespace (`catalog.name`), declares collections, and can declare dependencies.
+
+## Collection
+
+A named group of entities, declared as `[collections.<name>]` in `catl.toml`. All its entities are validated against the same JSON Schema file.
+
+## Permissive collection
+
+A collection declared without a `schema`. Its manifests are checked for syntax, unique keys, and layout rules, but not field by field, and `catl-file` references aren't verified.
+
+## Entity
+
+An item in a collection with an ID, stored as either a flat entity or a bundle entity.
+
+## Flat entity
+
+A single manifest file directly in a collection directory, such as `services/auth.yaml`. The filename without its extension is the ID. It can't have companion files.
+
+## Bundle entity
+
+A directory directly in a collection directory, such as `services/billing/`. The directory name is the ID. It holds exactly one manifest (`manifest.yaml` or `manifest.json`) plus any companion files and subdirectories.
+
+## Manifest
+
+The YAML or JSON document that defines an entity. It's the only file type validated against a collection's schema. In a bundle it must be named `manifest.yaml` or `manifest.json`.
+
+## Companion file
+
+Any file in a bundle other than the manifest (runbooks, templates, images, schemas). Go code reads them through `entity.FS`, and they're part of the tree hash.
+
+## Dependency
+
+An external catalog declared under `[dependencies]` in `catl.toml`, from a Git repository or local path. Remote dependencies are pinned in `catl.lock`. Only direct dependencies are loaded.
+
+## Namespace
+
+The prefix of a qualified ID. For local entities it's `catalog.name`. For dependency entities it's the dependency key, which must match the name in the dependency's own `catl.toml`.
+
+## Qualified ID
+
+An entity's identifier, written `namespace.id`. Lookups require it to avoid ambiguity. It's unique within a collection.
+
+## Tree hash
+
+A deterministic SHA-256 hash of the sorted relative paths and file digests of all regular, non-dot-prefixed files, excluding the root `catl.lock`. See [Integrity](../spec/integrity.mdx).
+
+## Lockfile
+
+`catl.lock` at the catalog root. It records the `resolved` commit and `tree` hash of each remote dependency. Only `catl update` writes it.
+
+## Vendor directory
+
+`.catl/vendor`, populated by `catl vendor` with copies of remote dependencies. When present, `catl` reads remote dependencies only from it and ignores the global cache.
+
+## Strict vendor mode
+
+The mode `catl` enters when `.catl/vendor/` exists. Remote dependencies are read only from that directory, never from the global cache.

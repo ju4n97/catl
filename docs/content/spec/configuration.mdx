@@ -1,0 +1,122 @@
+---
+title: Configuration
+description: Format and tables of catl.toml, including catalog identity, collections, and dependencies.
+---
+
+import { SourceCode } from "@rspress/core/theme";
+
+# Configuration
+
+Every catalog has a `catl.toml` at its root. It must be UTF-8 without a BOM and use LF line endings. CRLF is rejected.
+
+```toml title="catl.toml"
+#:schema https://raw.githubusercontent.com/ju4n97/catl/refs/heads/main/schema/catl.schema.json
+
+[catalog]
+name = "clinical"
+
+[collections.protocols]
+schema = "schemas/protocols.schema.json"
+
+[collections.monitors]
+schema = "schemas/monitors.schema.json"
+dir = "telemetry/monitors"
+
+[dependencies]
+shared-infra = { git = "https://github.com/acme/shared-infra", tag = "v2.0.0" }
+core         = { path = "../core" }
+```
+
+The `#:schema` line points at the JSON Schema for `catl.toml`:
+
+<SourceCode href="https://github.com/ju4n97/catl/blob/main/schema/catl.schema.json" />
+
+:::warning
+Unknown keys at any level are errors, so an older `catl` rejects a file written for a newer version.
+:::
+
+```text
+catl.toml: unknown key "feature_flag" (requires newer catl version)
+```
+
+## The `[catalog]` table
+
+| Key    | Type   | Required | Description                                                                       |
+| ------ | ------ | :------: | --------------------------------------------------------------------------------- |
+| `name` | string |   Yes    | The catalog's namespace. Must follow the [identifier grammar](./identifiers.mdx). |
+
+## The `[collections.<name>]` table
+
+A catalog must declare at least one collection, as `[collections.<name>]`:
+
+```toml
+[collections.protocols]
+schema = "schemas/protocols.schema.json"
+
+[collections.drafts]
+# No schema: syntax checks only
+```
+
+| Key      | Type   | Required | Description                                                               |
+| -------- | ------ | :------: | ------------------------------------------------------------------------- |
+| `schema` | string |    No    | JSON Schema file, relative to the catalog root.                           |
+| `dir`    | string |    No    | Collection directory, relative to the catalog root. Defaults to `<name>`. |
+
+### Permissive collections
+
+Without a `schema`, `catl` uses the empty schema `{}`. Manifests must still be valid YAML 1.2 or JSON with unique keys and a valid layout, but field-level checks are skipped. That includes `catl-file`: the format is declared in a schema, so references to companion files aren't verified.
+
+A permissive collection suits data whose shape is still changing, or data you only need to load and hash. Adding a `schema` later validates every existing manifest against it.
+
+### Path rules
+
+`schema` and `dir` are relative to the catalog root and use forward slashes (`/`). A leading `./` is allowed and ignored, so `./schemas/a.json` and `schemas/a.json` are the same path.
+
+After removing a leading `./`, a path can't:
+
+- Be empty, absolute, or end with a slash.
+- Contain `.` or `..` segments, empty segments (`//`), or dot-prefixed components.
+
+These paths are valid:
+
+```toml title="catl.toml"
+[collections.protocols]
+schema = "./schemas/protocols.schema.json"
+
+[collections.monitors]
+schema = "schemas/monitors.schema.json"
+dir = "./telemetry/monitors"
+```
+
+These are invalid. In order, they're absolute, leave the root with `..`, use `..` mid-path, start a component with a dot, and have an empty component:
+
+```toml title="catl.toml"
+[collections.a]
+schema = "/schemas/a.json" # [!code error]
+
+[collections.b]
+schema = "../schemas/b.json" # [!code error]
+
+[collections.c]
+schema = "schemas/../a.json" # [!code error]
+
+[collections.d]
+schema = ".schemas/a.json" # [!code error]
+
+[collections.e]
+schema = "schemas//a.json" # [!code error]
+```
+
+`dir` can't resolve to the catalog root, so `dir = "."` and `dir = "./"` are invalid. Two collections can't share a directory or have overlapping directories.
+
+## The `[dependencies]` table
+
+Each key is a dependency's namespace and must match the `name` in that catalog's own `catl.toml`. Each value is an inline table describing the source:
+
+```toml
+[dependencies]
+shared-infra = { git = "https://github.com/acme/shared-infra", tag = "v2.0.0" }
+local-core   = { path = "../core" }
+```
+
+See [Dependencies](./dependencies.mdx) for source options and lockfile behavior.

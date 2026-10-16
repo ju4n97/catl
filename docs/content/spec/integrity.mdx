@@ -1,0 +1,84 @@
+---
+title: Integrity
+description: The tree hash algorithm, line ending rules, the threat model, and what catl doesn't protect against.
+---
+
+# Integrity
+
+`catl` identifies catalog contents with a deterministic tree hash. The same files at the same paths with the same bytes produce the same hash on Linux, macOS, and Windows.
+
+The hash covers all regular files (manifests, schemas, companion files) except dot-prefixed paths and the root `catl.lock`.
+
+## The tree hash algorithm
+
+The tree hash is the SHA-256 of a sorted list of file digests and paths. Contents are hashed as raw bytes, and paths are normalized so the OS path separator doesn't matter.
+
+1. Walk the catalog root for regular files. Skip any file or directory with a path component starting with `.`, and skip the root `catl.lock`.
+2. Reject paths containing ASCII control characters (`0x00` to `0x1F`, `0x7F`) or backslashes.
+3. Normalize each relative path to forward slashes with no leading slash.
+4. Hash each file's bytes with SHA-256 and format the digest as lowercase hex.
+5. Sort entries by path, byte-wise.
+6. Build a payload with one line per file: the 64-character digest, two spaces, the path, and a newline.
+
+```text
+<hex-digest>  <path>\n
+```
+
+7. Hash the payload with SHA-256 and prefix the digest with `sha256:`.
+
+Paths are part of the hash: renaming or moving a file changes it even if the contents don't. An empty payload hashes to the SHA-256 of zero bytes:
+
+```text
+sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+```
+
+## Where the hash is used
+
+| Where                 | What it does                                                                                   |
+| --------------------- | ---------------------------------------------------------------------------------------------- |
+| `tree` in `catl.lock` | Records each remote dependency's hash when you run `catl update`.                              |
+| `catl.Open`           | Checks vendored catalogs against `catl.lock` and fails with `ErrTamperedVendor` on a mismatch. |
+| `Catalog.TreeHash()`  | Returns your own catalog's hash, so you can detect drift.                                      |
+| `GET /v1/catalog`     | Includes the hash in catalog metadata.                                                         |
+| MCP `catl_check`      | Returns the hash as `tree_hash`.                                                               |
+
+## Line endings
+
+Hashes cover raw bytes, so CRLF and LF versions of a file hash differently. Two rules prevent divergence across platforms.
+
+`catl.toml`, `catl.lock`, collection schemas, and manifests must use LF. Validation rejects CRLF in these files.
+
+`catl init` writes a `.gitattributes` file so Git checks out LF on every platform:
+
+```text title=".gitattributes"
+* text=auto eol=lf
+```
+
+## Threat model
+
+`catl` checks that contents match the expected structure and recorded hashes:
+
+| Threat                                          | Defense                                                | When it's checked               |
+| ----------------------------------------------- | ------------------------------------------------------ | ------------------------------- |
+| An upstream Git tag moves                       | The resolved tree hash no longer matches the lockfile  | Dependency fetch and validation |
+| A companion file in a dependency is modified    | Its tree hash differs from the recorded hash           | Dependency fetch and validation |
+| A vendored catalog is modified                  | `catl.Open()` checks its tree hash against `catl.lock` | Catalog loading                 |
+| A path escapes its intended root                | Invalid paths and `..` traversal are rejected          | Catalog loading                 |
+| Excessive YAML alias expansion                  | Decoded values are capped at 1,000,000                 | Manifest decoding               |
+| A schema regex causes catastrophic backtracking | Go's RE2 engine evaluates in linear time               | Schema compilation              |
+
+These checks detect unexpected changes, invalid paths, and resource exhaustion. They don't replace other security controls your application needs.
+
+## Non-goals
+
+:::warning Cryptographic provenance
+A matching tree hash shows the files have the expected bytes, not who wrote or approved them. For signed releases or trusted publishers, verify commit or release signatures separately, for example with Sigstore or GPG.
+:::
+
+:::warning Snapshot isolation
+A directory isn't a snapshot. If files change during a read, the application can observe data from different points in time. For production, use a clean immutable checkout or a verified vendor directory.
+:::
+
+:::warning Runtime interpretation
+`catl` validates and loads data. It doesn't execute entity definitions, deploy infrastructure, or evaluate application-specific queries. The consuming application decides what the data means.
+:::

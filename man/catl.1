@@ -2,40 +2,27 @@
 .TH catl 8
 
 .SH NAME
-.PP
-catl - Package manager and validator for declarative entity catalogs
+catl \- Package manager and validator for declarative entity catalogs
 
 
 .SH SYNOPSIS
-.PP
 catl
 
-.PP
-.RS
-
-.nf
+.EX
 [--cwd|-C]=[value]
 [--quiet|-q]
 [--verbose|-v]
-
-.fi
-.RE
+.EE
 
 .PP
 \fBUsage\fP:
 
-.PP
-.RS
-
-.nf
+.EX
 catl [flags] <command> [args...]
-
-.fi
-.RE
+.EE
 
 
 .SH GLOBAL OPTIONS
-.PP
 \fB--cwd, -C\fP="": Change working directory before executing
 
 .PP
@@ -47,7 +34,6 @@ catl [flags] <command> [args...]
 
 .SH COMMANDS
 .SH version
-.PP
 Print catl version and build information
 
 .PP
@@ -62,7 +48,6 @@ catl version [flags]
 \fB--verbose, -v\fP: Print extended build and runtime diagnostics
 
 .SH init
-.PP
 Initialize a new catalog
 
 .PP
@@ -80,10 +65,9 @@ catl init [flags] [dir]
 \fB--name\fP="": Catalog namespace (defaults to directory base name)
 
 .PP
-\fB--template, -t\fP="": Starter template to scaffold
+\fB--template\fP="": Starter template to scaffold
 
 .SH check
-.PP
 Validate schemas, paths, and lockfile integrity
 
 .PP
@@ -95,7 +79,6 @@ catl check [flags]
 .RE
 
 .SH clean
-.PP
 Clear local download and build cache
 
 .PP
@@ -107,7 +90,6 @@ catl clean
 .RE
 
 .SH serve
-.PP
 Start a local read-only HTTP server for a catalog or registry
 
 .PP
@@ -119,10 +101,9 @@ catl serve [flags] [dir]
 .RE
 
 .PP
-\fB--addr, -a\fP="": TCP network address to listen on (default: "127.0.0.1:8080")
+\fB--addr\fP="": TCP network address to listen on (default: "127.0.0.1:8080")
 
 .SH mcp
-.PP
 Start a Model Context Protocol (MCP) server over stdio
 
 .PP
@@ -134,7 +115,6 @@ catl mcp [flags] [dir]
 .RE
 
 .SH list, ls
-.PP
 List entities across collections
 
 .PP
@@ -155,7 +135,6 @@ catl list [flags] [collection]
 \fB--null, -z\fP: Delimit records with ASCII NUL characters for scripts
 
 .SH resolve
-.PP
 Print the filesystem path of a manifest
 
 .PP
@@ -167,7 +146,6 @@ catl resolve
 .RE
 
 .SH show
-.PP
 Stream a manifest or companion file to stdout
 
 .PP
@@ -179,7 +157,6 @@ catl show   [path]
 .RE
 
 .SH update
-.PP
 Update dependencies in catl.lock to latest revisions
 
 .PP
@@ -194,7 +171,6 @@ catl update [flags] [name...]
 \fB--force\fP: Allow updating when a remote tag has moved to a new commit
 
 .SH vendor
-.PP
 Vendor dependencies into .catl/vendor for offline use
 
 .PP

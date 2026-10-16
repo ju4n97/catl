@@ -6,8 +6,14 @@
   },
   {
     "type": "file",
-    "name": "embedding",
-    "label": "Embedding in Go"
+    "name": "go",
+    "label": "Go library"
+  },
+  {
+    "type": "file",
+    "name": "cli",
+    "label": "CLI",
+    "overviewHeaders": [2, 3]
   },
   {
     "type": "file",
@@ -17,6 +23,7 @@
   {
     "type": "file",
     "name": "mcp",
-    "label": "Model Context Protocol (MCP)"
+    "label": "MCP",
+    "overviewHeaders": [2, 3]
   }
 ]

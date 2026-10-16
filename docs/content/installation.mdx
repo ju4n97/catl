@@ -1,0 +1,192 @@
+---
+title: Installation
+description: Install the static catl binary or container image, or build from source.
+---
+
+import { SourceCode, Tab, Tabs } from "@rspress/core/theme";
+
+# Installation
+
+`catl` is a single static binary with no libc or runtime dependencies. Prebuilt binaries for Linux, macOS, and Windows (x86_64 and arm64) are on the [GitHub releases page](https://github.com/ju4n97/catl/releases).
+
+:::note
+`catl update` needs the system `git` binary (2.30 or later) on `PATH`. Without it, commands that update remote dependencies fail.
+:::
+
+## Install script
+
+<Tabs>
+<Tab label="Linux and macOS">
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/ju4n97/catl/refs/heads/main/scripts/install.sh | bash
+```
+
+The script installs to `/usr/local/bin/catl`, or to `$HOME/.local/bin/catl` when not run as root.
+
+<SourceCode href="https://github.com/ju4n97/catl/blob/main/scripts/install.sh" />
+
+</Tab>
+<Tab label="Windows">
+
+```powershell
+irm https://raw.githubusercontent.com/ju4n97/catl/refs/heads/main/scripts/install.ps1 | iex
+```
+
+<SourceCode href="https://github.com/ju4n97/catl/blob/main/scripts/install.ps1" />
+
+</Tab>
+</Tabs>
+
+## Linux package managers
+
+Prebuilt packages are available for `amd64` and `arm64`. Package installations place the binary in `/usr/bin/catl` and man pages in `/usr/share/man/man1/catl.1`.
+
+### Debian / Ubuntu (`.deb`)
+
+```bash
+curl -fsSLO https://github.com/ju4n97/catl/releases/latest/download/catl_linux_amd64.deb
+sudo dpkg -i catl_linux_amd64.deb
+```
+
+For ARM64 systems, substitute `catl_linux_arm64.deb`.
+
+### Fedora / RHEL / Rocky Linux (`.rpm`)
+
+```bash
+curl -fsSLO https://github.com/ju4n97/catl/releases/latest/download/catl_linux_amd64.rpm
+sudo rpm -i catl_linux_amd64.rpm
+```
+
+For ARM64 systems, substitute `catl_linux_arm64.rpm`.
+
+### Arch Linux (`.pkg.tar.zst`)
+
+```bash
+curl -fsSLO https://github.com/ju4n97/catl/releases/latest/download/catl_linux_amd64.pkg.tar.zst
+sudo pacman -U catl_linux_amd64.pkg.tar.zst
+```
+
+For ARM64 systems, substitute `catl_linux_arm64.pkg.tar.zst`.
+
+### Alpine Linux (`.apk`)
+
+```bash
+curl -fsSLO https://github.com/ju4n97/catl/releases/latest/download/catl_linux_amd64.apk
+sudo apk add --allow-untrusted catl_linux_amd64.apk
+```
+
+For ARM64 systems, substitute `catl_linux_arm64.apk`.
+
+## Verify a download
+
+Releases include `checksums.txt` with SHA-256 digests. Download it next to the archive, then check against it. `--ignore-missing` skips entries for archives you didn't download.
+
+```bash
+curl -fsSLO https://github.com/ju4n97/catl/releases/latest/download/checksums.txt
+```
+
+<Tabs>
+<Tab label="Linux">
+
+```bash
+sha256sum --ignore-missing --check checksums.txt
+```
+
+</Tab>
+<Tab label="macOS">
+
+```bash
+shasum -a 256 --ignore-missing -c checksums.txt
+```
+
+</Tab>
+</Tabs>
+
+## Build from source
+
+<Tabs>
+<Tab label="go install">
+
+Requires Go 1.27 or later. Make sure `$GOPATH/bin` or `$HOME/go/bin` is on `PATH`.
+
+```bash
+go install github.com/ju4n97/catl/cmd/catl@latest
+```
+
+</Tab>
+<Tab label="Task">
+
+Requires [Task](https://taskfile.dev). The binary is written to `bin/catl`.
+
+```bash
+git clone https://github.com/ju4n97/catl.git
+cd catl
+task build
+```
+
+</Tab>
+</Tabs>
+
+## Container image
+
+### Default distroless image
+
+The default image has no shell or package manager, keeping image sizes small with zero CVE footprint:
+
+```bash
+docker run --rm -v "$(pwd):/catalog" ghcr.io/ju4n97/catl:latest -C /catalog check
+```
+
+This image supports all local validation and inspection commands.
+
+### Alpine image with Git
+
+If your CI pipeline runs entirely inside Docker and needs to fetch or update remote Git dependencies, use the `latest-alpine` image:
+
+```bash
+docker run --rm -v "$(pwd):/catalog" ghcr.io/ju4n97/catl:latest-alpine -C /catalog update
+```
+
+## Shell completion
+
+`catl` completes subcommands and flags in Bash, Zsh, and Fish.
+
+<Tabs groupId="shell">
+<Tab label="Bash">
+
+```bash title="~/.bashrc"
+complete -o default -C catl catl
+```
+
+</Tab>
+<Tab label="Zsh">
+
+```zsh title="~/.zshrc"
+autoload -Uz +X compinit && compinit
+autoload -Uz +X bashcompinit && bashcompinit
+complete -o default -C catl catl
+```
+
+</Tab>
+<Tab label="Fish">
+
+```fish title="~/.config/fish/completions/catl.fish"
+complete -c catl -f -a '(catl --generate-shell-completion (commandline -cop))'
+```
+
+</Tab>
+</Tabs>
+
+## Man pages
+
+Packages (`.deb`, `.rpm`, `.pkg.tar.zst`) install the man page. To install it manually:
+
+```bash
+sudo mkdir -p /usr/local/share/man/man1
+sudo curl -fsSL https://raw.githubusercontent.com/ju4n97/catl/main/man/catl.1 \
+  -o /usr/local/share/man/man1/catl.1
+sudo mandb 2>/dev/null || true
+```
+
+Then run `man catl`.

@@ -5,7 +5,7 @@ const Layout = () => (
         afterNavMenu={
             <div className="catl-nav-actions">
                 <a
-                    href="/catl/guide/installation"
+                    href="/catl/installation"
                     className="catl-button catl-button--primary"
                 >
                     Install
