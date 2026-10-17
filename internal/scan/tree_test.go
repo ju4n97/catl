@@ -2,6 +2,7 @@ package scan_test
 
 import (
 	"errors"
+	"io/fs"
 	"testing"
 	"testing/fstest"
 
@@ -219,6 +220,81 @@ func TestTreeScan(t *testing.T) {
 		}
 		if !errors.Is(err, scan.ErrInvalidManifestType) {
 			t.Errorf("got %v, want ErrInvalidManifestType", err)
+		}
+	})
+
+	t.Run("rejects symlink at root", func(t *testing.T) {
+		t.Parallel()
+
+		fsys := fstest.MapFS{
+			"catl.toml":       &fstest.MapFile{Data: []byte("")},
+			"services/a.yaml": &fstest.MapFile{Data: []byte("")},
+			"link":            &fstest.MapFile{Mode: fs.ModeSymlink | 0o777, Data: []byte("services/a.yaml")},
+		}
+
+		cfg := &conf.File{
+			Catalog: conf.Catalog{Name: "test-cat"},
+			Collections: map[string]conf.Collection{
+				"services": {},
+			},
+		}
+
+		_, err := scan.TreeScan(fsys, cfg)
+		if err == nil {
+			t.Fatal("expected error on symlink at root, got nil")
+		}
+		if !errors.Is(err, scan.ErrForbiddenSymlink) {
+			t.Errorf("got %v, want ErrForbiddenSymlink", err)
+		}
+	})
+
+	t.Run("rejects symlinked collection entry", func(t *testing.T) {
+		t.Parallel()
+
+		fsys := fstest.MapFS{
+			"catl.toml":          &fstest.MapFile{Data: []byte("")},
+			"services/link":      &fstest.MapFile{Mode: fs.ModeSymlink | 0o777, Data: []byte("auth")},
+			"services/auth.yaml": &fstest.MapFile{Data: []byte("")},
+		}
+
+		cfg := &conf.File{
+			Catalog: conf.Catalog{Name: "test-cat"},
+			Collections: map[string]conf.Collection{
+				"services": {},
+			},
+		}
+
+		_, err := scan.TreeScan(fsys, cfg)
+		if err == nil {
+			t.Fatal("expected error on symlinked collection entry, got nil")
+		}
+		if !errors.Is(err, scan.ErrForbiddenSymlink) {
+			t.Errorf("got %v, want ErrForbiddenSymlink", err)
+		}
+	})
+
+	t.Run("rejects symlinked file inside bundle", func(t *testing.T) {
+		t.Parallel()
+
+		fsys := fstest.MapFS{
+			"catl.toml":                    &fstest.MapFile{Data: []byte("")},
+			"services/auth/manifest.yaml":  &fstest.MapFile{Data: []byte("")},
+			"services/auth/linked-runbook": &fstest.MapFile{Mode: fs.ModeSymlink | 0o777, Data: []byte("../billing/runbook.md")},
+		}
+
+		cfg := &conf.File{
+			Catalog: conf.Catalog{Name: "test-cat"},
+			Collections: map[string]conf.Collection{
+				"services": {},
+			},
+		}
+
+		_, err := scan.TreeScan(fsys, cfg)
+		if err == nil {
+			t.Fatal("expected error on symlinked file inside bundle, got nil")
+		}
+		if !errors.Is(err, scan.ErrForbiddenSymlink) {
+			t.Errorf("got %v, want ErrForbiddenSymlink", err)
 		}
 	})
 }

@@ -137,4 +137,17 @@ server:
 			t.Errorf("got %v, want ErrManifestTooLarge", err)
 		}
 	})
+
+	t.Run("rejects custom yaml tags", func(t *testing.T) {
+		t.Parallel()
+
+		raw := "key: !custom value\n"
+		_, err := manifest.Decode([]byte(raw), "custom.yaml")
+		if err == nil {
+			t.Fatal("expected error on custom yaml tags, got nil")
+		}
+		if !errors.Is(err, manifest.ErrCustomTagForbidden) {
+			t.Errorf("got %v, want ErrCustomTagForbidden", err)
+		}
+	})
 }

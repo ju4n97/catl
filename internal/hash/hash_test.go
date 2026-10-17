@@ -4,6 +4,7 @@ import (
 	"crypto/sha256"
 	"errors"
 	"fmt"
+	"io/fs"
 	"testing"
 	"testing/fstest"
 
@@ -120,6 +121,22 @@ func TestTree(t *testing.T) {
 		}
 		if !errors.Is(err, hash.ErrInvalidPath) {
 			t.Errorf("got error %v, want ErrInvalidPath", err)
+		}
+	})
+
+	t.Run("rejects symlink entries", func(t *testing.T) {
+		t.Parallel()
+
+		fsys := fstest.MapFS{
+			"schemas/redirect": &fstest.MapFile{Mode: fs.ModeSymlink | 0o777, Data: []byte("service.json")},
+		}
+
+		_, err := hash.Tree(fsys)
+		if err == nil {
+			t.Fatal("expected error on symlink entry, got nil")
+		}
+		if !errors.Is(err, hash.ErrForbiddenSymlink) {
+			t.Errorf("got error %v, want ErrForbiddenSymlink", err)
 		}
 	})
 }
