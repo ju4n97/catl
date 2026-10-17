@@ -11,7 +11,6 @@ catl
 .EX
 [--cwd|-C]=[value]
 [--quiet|-q]
-[--verbose|-v]
 .EE
 
 .PP
@@ -27,9 +26,6 @@ catl [flags] <command> [args...]
 
 .PP
 \fB--quiet, -q\fP: Suppress informational output and emit only errors
-
-.PP
-\fB--verbose, -v\fP: Print detailed diagnostics and progress to stderr
 
 
 .SH COMMANDS
@@ -63,9 +59,6 @@ catl init [flags] [dir]
 
 .PP
 \fB--name\fP="": Catalog namespace (defaults to directory base name)
-
-.PP
-\fB--template\fP="": Starter template to scaffold
 
 .SH check
 Validate schemas, paths, and lockfile integrity

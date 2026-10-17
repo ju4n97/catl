@@ -36,11 +36,6 @@ func newRootCommand() *cli.Command {
 				Aliases: []string{"q"},
 				Usage:   "Suppress informational output and emit only errors",
 			},
-			&cli.BoolFlag{
-				Name:    "verbose",
-				Aliases: []string{"v"},
-				Usage:   "Print detailed diagnostics and progress to stderr",
-			},
 		},
 		Before: func(ctx context.Context, cmd *cli.Command) (context.Context, error) {
 			if dir := cmd.String("cwd"); dir != "" {

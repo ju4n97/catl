@@ -55,6 +55,7 @@ func ValidatePathComponent(name string) error {
 // is clean, uses forward slashes, doesn't escape the catalog root, has no dot-prefixed components,
 // and consists exclusively of valid path components.
 func ValidateRelativePath(p string) error {
+	p = strings.TrimPrefix(p, "./")
 	if p == "" {
 		return fmt.Errorf("%w: path cannot be empty", errdef.ErrInvalidPath)
 	}

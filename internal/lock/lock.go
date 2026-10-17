@@ -8,7 +8,6 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"io/fs"
 	"net/url"
 	"os"
 	"path/filepath"
@@ -65,15 +64,6 @@ func Parse(data []byte) (*File, error) {
 // Load reads and parses a catl.lock file from the local filesystem.
 func Load(path string) (*File, error) {
 	data, err := os.ReadFile(path)
-	if err != nil {
-		return nil, fmt.Errorf("read lockfile %q: %w", path, err)
-	}
-	return Parse(data)
-}
-
-// LoadFS reads and parses a catl.lock file from an abstract fs.FS filesystem.
-func LoadFS(fsys fs.FS, path string) (*File, error) {
-	data, err := fs.ReadFile(fsys, path)
 	if err != nil {
 		return nil, fmt.Errorf("read lockfile %q: %w", path, err)
 	}

@@ -42,7 +42,7 @@ internal/
   version/              Build-time version info injected via ldflags
 
 schema/                 Embedded catl.schema.json and compiler
-docs/                   Rspress documentation site (Bun)
+docs/                   Rspress documentation site (pnpm)
 man/                    Generated man pages
 ```
 
@@ -51,7 +51,7 @@ man/                    Generated man pages
 - **Go:** 1.27 or newer
 - **Task:** [Taskfile runner](https://taskfile.dev) (`task`)
 - **golangci-lint:** Version 2.x
-- **Bun:** Only if you're editing documentation under `docs/`
+- **pnpm:** Only if you're editing documentation under `docs/`
 
 ## Daily workflow
 

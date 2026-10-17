@@ -19,7 +19,7 @@
         },
         "relpath": {
             "type": "string",
-            "pattern": "^[^/.](.*[^/])?$"
+            "pattern": "^(\\.\\/)?[^/.](.*[^/])?$"
         },
         "anypath": {
             "type": "string",

@@ -8,6 +8,7 @@ import (
 
 	"github.com/urfave/cli/v3"
 
+	"github.com/ju4n97/catl/internal/conf"
 	"github.com/ju4n97/catl/internal/skel"
 )
 
@@ -42,11 +43,6 @@ Examples:
 				Usage:  "Name of the initial collection to create",
 				Config: cli.StringConfig{TrimSpace: true},
 			},
-			&cli.StringFlag{
-				Name:   "template",
-				Usage:  "Starter template to scaffold",
-				Config: cli.StringConfig{TrimSpace: true},
-			},
 		},
 		Action: func(ctx context.Context, cmd *cli.Command) error {
 			dir := cmd.StringArg("dir")
@@ -63,17 +59,27 @@ Examples:
 				abs, _ := filepath.Abs(dir)
 				name = filepath.Base(abs)
 			}
+			if err := conf.ValidateIdent(name); err != nil {
+				return cli.Exit(err.Error(), 1)
+			}
+
+			collection := cmd.String("collection")
+			if err := conf.ValidateIdent(collection); err != nil {
+				return cli.Exit(err.Error(), 1)
+			}
 
 			created, err := skel.Copy(skel.TemplateMinimal, dir, skel.Data{
 				Name:       name,
-				Collection: cmd.String("collection"),
+				Collection: collection,
 			})
 			if err != nil {
 				return cli.Exit(err.Error(), 1)
 			}
 
-			for _, path := range created {
-				fmt.Printf("create %s\n", path)
+			if !cmd.Bool("quiet") {
+				for _, path := range created {
+					fmt.Printf("create %s\n", path)
+				}
 			}
 
 			return nil

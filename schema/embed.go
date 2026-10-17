@@ -1,4 +1,4 @@
-// Package schema embeds and compiles JSON Schema Draft 2020-12 specifications.
+// Package schema embeds the JSON Schema Draft 2020-12 specification for catl.toml.
 package schema
 
 import (
@@ -18,40 +18,37 @@ const CatlURL = "https://raw.githubusercontent.com/ju4n97/catl/refs/heads/main/s
 //go:embed catl.schema.json
 var CatlJSON []byte
 
-// Compile parses and compiles raw JSON Schema Draft 2020-12 bytes into an executable Schema.
-func Compile(url string, raw []byte) (*jsonschema.Schema, error) {
+// compile parses and compiles raw JSON Schema Draft 2020-12 bytes.
+func compile(url string, raw []byte) (*jsonschema.Schema, error) {
 	doc, err := jsonschema.UnmarshalJSON(bytes.NewReader(raw))
 	if err != nil {
 		return nil, fmt.Errorf("schema: unmarshal %s: %w", url, err)
 	}
 
-	c := jsonschema.NewCompiler()
-	c.AssertFormat()
-
-	if err := c.AddResource(url, doc); err != nil {
+	compiler := jsonschema.NewCompiler()
+	compiler.AssertFormat()
+	if err := compiler.AddResource(url, doc); err != nil {
 		return nil, fmt.Errorf("schema: add resource %s: %w", url, err)
 	}
 
-	sch, err := c.Compile(url)
+	compiled, err := compiler.Compile(url)
 	if err != nil {
 		return nil, fmt.Errorf("schema: compile %s: %w", url, err)
 	}
-
-	return sch, nil
+	return compiled, nil
 }
 
-// CatlCompiled returns the thread-safe singleton compiled Schema for catl.toml.
-var CatlCompiled = sync.OnceValues(func() (*jsonschema.Schema, error) {
-	return Compile(CatlURL, CatlJSON)
+var catlCompiled = sync.OnceValues(func() (*jsonschema.Schema, error) {
+	return compile(CatlURL, CatlJSON)
 })
 
-// ValidateCatl validates generic decoded data against catl.schema.json.
+// ValidateCatl validates generic decoded configuration data against catl.schema.json.
 func ValidateCatl(data any) error {
-	sch, err := CatlCompiled()
+	compiled, err := catlCompiled()
 	if err != nil {
 		return err
 	}
-	if err := sch.Validate(data); err != nil {
+	if err := compiled.Validate(data); err != nil {
 		return fmt.Errorf("schema validation: %w", err)
 	}
 	return nil

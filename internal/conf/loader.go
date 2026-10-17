@@ -23,8 +23,7 @@ func LoadFile(path string) (*File, error) {
 	return Parse(data)
 }
 
-// Parse decodes raw TOML configuration bytes. It checks for a UTF-8 BOM, validates
-// with strict field checking, executes JSON Schema validation, and runs relational validations.
+// Parse decodes raw TOML configuration bytes and validates the resulting configuration.
 func Parse(data []byte) (*File, error) {
 	if bytes.HasPrefix(data, utf8BOM) {
 		return nil, errors.New("catl.toml: UTF-8 BOM is forbidden")
@@ -52,7 +51,7 @@ func Parse(data []byte) (*File, error) {
 		return nil, err
 	}
 
-	if err := file.ValidateCollections(); err != nil {
+	if err := file.Validate(); err != nil {
 		return nil, err
 	}
 
@@ -61,7 +60,7 @@ func Parse(data []byte) (*File, error) {
 
 // Marshal serializes the configuration file into formatted TOML bytes.
 func (f *File) Marshal() ([]byte, error) {
-	if err := f.ValidateCollections(); err != nil {
+	if err := f.Validate(); err != nil {
 		return nil, fmt.Errorf("validate config before marshaling: %w", err)
 	}
 	return toml.Marshal(f)

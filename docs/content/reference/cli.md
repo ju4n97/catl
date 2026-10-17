@@ -9,7 +9,6 @@ catl
 ```
 [--cwd|-C]=[value]
 [--quiet|-q]
-[--verbose|-v]
 ```
 
 **Usage**:
@@ -23,8 +22,6 @@ catl [flags] <command> [args...]
 **--cwd, -C**="": Change working directory before executing
 
 **--quiet, -q**: Suppress informational output and emit only errors
-
-**--verbose, -v**: Print detailed diagnostics and progress to stderr
 
 # COMMANDS
 
@@ -45,8 +42,6 @@ Initialize a new catalog
 **--collection**="": Name of the initial collection to create (default: "items")
 
 **--name**="": Catalog namespace (defaults to directory base name)
-
-**--template**="": Starter template to scaffold
 
 ## check
 

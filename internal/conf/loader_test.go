@@ -206,3 +206,19 @@ infra = { git = "https://github.com/acme/infra", tag = "v1.0.0" }
 		)
 	}
 }
+
+// TestFileMarshalRejectsInvalidDependencySources verifies validation of constructed configurations before serialization.
+func TestFileMarshalRejectsInvalidDependencySources(t *testing.T) {
+	t.Parallel()
+
+	f := &conf.File{
+		Catalog:     conf.Catalog{Name: "my-catalog"},
+		Collections: map[string]conf.Collection{"items": {}},
+		Dependencies: map[string]conf.Dependency{
+			"core": {Path: "../core", Tag: "v1"},
+		},
+	}
+	if _, err := f.Marshal(); err == nil {
+		t.Fatal("Marshal() expected an error for a path dependency with a Git-only field")
+	}
+}

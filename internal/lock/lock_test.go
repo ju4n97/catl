@@ -6,7 +6,6 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
-	"testing/fstest"
 
 	"github.com/ju4n97/catl/internal/conf"
 	"github.com/ju4n97/catl/internal/errdef"
@@ -305,30 +304,6 @@ tree = "sha256:9f2c1a7b8e4f5a6b7c8d9e0f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b"
 	_, err = lock.Load(filepath.Join(tmpDir, "missing.lock"))
 	if err == nil {
 		t.Fatal("expected error on missing file, got nil")
-	}
-}
-
-// TestLoadFS verifies reading and parsing from an abstract fs.FS filesystem.
-func TestLoadFS(t *testing.T) {
-	t.Parallel()
-
-	fsys := fstest.MapFS{
-		"catl.lock": &fstest.MapFile{
-			Data: []byte("version = 1\n"),
-		},
-	}
-
-	f, err := lock.LoadFS(fsys, "catl.lock")
-	if err != nil {
-		t.Fatalf("LoadFS() unexpected error: %v", err)
-	}
-	if f.Version != 1 {
-		t.Errorf("f.Version = %d, want 1", f.Version)
-	}
-
-	_, err = lock.LoadFS(fsys, "missing.lock")
-	if err == nil {
-		t.Fatal("expected error on missing lockfile, got nil")
 	}
 }
 

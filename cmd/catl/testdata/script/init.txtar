@@ -12,6 +12,12 @@ cmp catalog-a/catl.toml expected-catalog-catl.toml
 ! exec catl init -C catalog-a
 stderr 'catl\.toml already exists'
 
+# Reject invalid catalog and collection identifiers
+! exec catl init --name Invalid_Name bad-catalog
+stderr 'invalid identifier'
+! exec catl init --name valid-name --collection Invalid_Name bad-collection
+stderr 'invalid identifier'
+
 -- expected-catalog-catl.toml --
 #:schema https://raw.githubusercontent.com/ju4n97/catl/refs/heads/main/schema/catl.schema.json
 

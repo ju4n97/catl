@@ -14,7 +14,7 @@ tasks:
 
   dev-docs:
     desc: Start a local development server for the documentation
-    cmd: bun run --cwd docs dev
+    cmd: ppmm -C docs dev
 
   build:
     desc: Fast local build for current OS/Arch
@@ -36,7 +36,7 @@ tasks:
 
   build-docs:
     desc: Build project documentation
-    cmd: bun run --cwd docs build
+    cmd: ppmm -C docs build
 
   clean:
     desc: Clean up build artifacts
@@ -72,7 +72,7 @@ tasks:
 
   fmt-docs:
     desc: Format documentation Markdown files
-    cmd: bunx prettier@latest --write docs/content
+    cmd: pnpx prettier@latest --write docs/content
 
   fix:
     desc: Apply Go fixes to all packages
@@ -88,7 +88,7 @@ tasks:
     desc: Generate CLI markdown documentation
     cmds:
       - go run -tags docs ./cmd/catl
-      - bunx prettier@latest --write docs/content/reference/cli.md
+      - pnpx prettier@latest --write docs/content/reference/cli.md
 
   gen-man:
     desc: Generate CLI man pages

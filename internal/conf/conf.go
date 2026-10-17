@@ -17,13 +17,40 @@ type File struct {
 	Dependencies map[string]Dependency `toml:"dependencies,omitzero" json:"dependencies,omitzero"`
 }
 
-// ValidateCollections checks relative path invariants and storage directory
-// uniqueness across declared collections.
+// Validate checks catalog identity, collection paths, and dependency sources.
+func (f *File) Validate() error {
+	if err := ValidateIdent(f.Catalog.Name); err != nil {
+		return fmt.Errorf("catalog name: %w", err)
+	}
+	if len(f.Collections) == 0 {
+		return errors.New("at least one collection is required")
+	}
+	for name := range f.Collections {
+		if err := ValidateIdent(name); err != nil {
+			return fmt.Errorf("invalid collection identifier %q: %w", name, err)
+		}
+	}
+	if err := f.ValidateCollections(); err != nil {
+		return err
+	}
+	for name, dep := range f.Dependencies {
+		if err := ValidateIdent(name); err != nil {
+			return fmt.Errorf("invalid dependency identifier %q: %w", name, err)
+		}
+		if _, err := dep.Source(); err != nil {
+			return fmt.Errorf("dependency %q: %w", name, err)
+		}
+	}
+	return nil
+}
+
+// ValidateCollections checks relative path invariants and prevents collection storage directories from overlapping.
 func (f *File) ValidateCollections() error {
 	seenDirs := make(map[string]string, len(f.Collections))
 
 	for name, coll := range f.Collections {
 		if coll.Schema != "" {
+			coll.Schema = strings.TrimPrefix(coll.Schema, "./")
 			if err := ValidateRelativePath(coll.Schema); err != nil {
 				return fmt.Errorf("collection %q schema: %w", name, err)
 			}
@@ -33,18 +60,24 @@ func (f *File) ValidateCollections() error {
 		if dir == "" {
 			dir = name
 		} else {
+			coll.Dir = strings.TrimPrefix(coll.Dir, "./")
+			dir = coll.Dir
 			if err := ValidateRelativePath(dir); err != nil {
 				return fmt.Errorf("collection %q dir: %w", name, err)
 			}
 		}
 
-		if existing, exists := seenDirs[dir]; exists {
-			return fmt.Errorf(
-				"collections %q and %q share the same directory %q",
-				existing,
-				name,
-				dir,
-			)
+		f.Collections[name] = coll
+		for existingDir, existingName := range seenDirs {
+			if dir == existingDir || strings.HasPrefix(dir, existingDir+"/") || strings.HasPrefix(existingDir, dir+"/") {
+				return fmt.Errorf(
+					"collections %q and %q have overlapping directories %q and %q",
+					existingName,
+					name,
+					existingDir,
+					dir,
+				)
+			}
 		}
 		seenDirs[dir] = name
 	}
@@ -100,14 +133,31 @@ func (GitSource) isSource() {}
 
 // validate implements [Source] by verifying repository presence and target ref exclusivity.
 func (s GitSource) validate() error {
+	subdir := strings.TrimPrefix(s.Subdir, "./")
 	if s.Repo == "" {
 		return errors.New("git: 'repo' is required")
+	}
+	if !strings.HasPrefix(s.Repo, "https://") && !strings.HasPrefix(s.Repo, "ssh://") {
+		return errors.New("git: 'repo' must use https:// or ssh://")
+	}
+	if s.Repo == "https://" || s.Repo == "ssh://" {
+		return errors.New("git: 'repo' must contain a repository after the scheme")
 	}
 	if countSet(s.Tag, s.Branch, s.Rev) != 1 {
 		return errors.New("git: exactly one of 'tag', 'branch', or 'rev' is required")
 	}
-	if s.Subdir != "" {
-		if err := ValidateRelativePath(s.Subdir); err != nil {
+	if s.Rev != "" {
+		if len(s.Rev) != 40 {
+			return errors.New("git: 'rev' must be a 40-character lowercase hexadecimal commit hash")
+		}
+		for _, c := range s.Rev {
+			if (c < '0' || c > '9') && (c < 'a' || c > 'f') {
+				return errors.New("git: 'rev' must be a 40-character lowercase hexadecimal commit hash")
+			}
+		}
+	}
+	if subdir != "" {
+		if err := ValidateRelativePath(subdir); err != nil {
 			return fmt.Errorf("git: invalid subdir: %w", err)
 		}
 	}
@@ -141,16 +191,23 @@ func (d Dependency) Source() (Source, error) {
 		names []string
 	)
 	if d.Git != "" {
+		subdir := strings.TrimPrefix(d.Subdir, "./")
+		if d.Subdir != "" && subdir == "" {
+			return nil, fmt.Errorf("git: invalid subdir: %w", ValidateRelativePath(subdir))
+		}
 		src = GitSource{
 			Repo:   d.Git,
 			Tag:    d.Tag,
 			Branch: d.Branch,
 			Rev:    d.Rev,
-			Subdir: d.Subdir,
+			Subdir: subdir,
 		}
 		names = append(names, "git")
 	}
 	if d.Path != "" {
+		if d.Git != "" || d.Tag != "" || d.Branch != "" || d.Rev != "" || d.Subdir != "" {
+			return nil, errors.New("path: Git-only fields cannot be set")
+		}
 		src = PathSource{
 			Dir: d.Path,
 		}
@@ -170,26 +227,6 @@ func (d Dependency) Source() (Source, error) {
 			"multiple sources specified (%s); choose exactly one",
 			strings.Join(names, ", "),
 		)
-	}
-}
-
-// NewDependency converts a concrete Source variant into its flat Dependency representation.
-func NewDependency(src Source) (Dependency, error) {
-	switch s := src.(type) {
-	case GitSource:
-		return Dependency{
-			Git:    s.Repo,
-			Tag:    s.Tag,
-			Branch: s.Branch,
-			Rev:    s.Rev,
-			Subdir: s.Subdir,
-		}, nil
-	case PathSource:
-		return Dependency{
-			Path: s.Dir,
-		}, nil
-	default:
-		return Dependency{}, fmt.Errorf("unsupported source type %T", src)
 	}
 }
 

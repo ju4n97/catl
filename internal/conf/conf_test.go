@@ -57,6 +57,26 @@ func TestFile_ValidateCollections(t *testing.T) {
 			},
 			wantErr: true,
 		},
+		{
+			name: "normalizes leading current directory in schema and directory",
+			file: conf.File{
+				Catalog: conf.Catalog{Name: "my-cat"},
+				Collections: map[string]conf.Collection{
+					"services": {Schema: "./schemas/rules.json", Dir: "./storage/services"},
+				},
+			},
+		},
+		{
+			name: "overlapping directories",
+			file: conf.File{
+				Catalog: conf.Catalog{Name: "my-cat"},
+				Collections: map[string]conf.Collection{
+					"telemetry":          {Dir: "telemetry"},
+					"telemetry-monitors": {Dir: "./telemetry/monitors"},
+				},
+			},
+			wantErr: true,
+		},
 	}
 
 	for _, tt := range tests {
@@ -66,6 +86,12 @@ func TestFile_ValidateCollections(t *testing.T) {
 			err := tt.file.ValidateCollections()
 			if gotErr := err != nil; gotErr != tt.wantErr {
 				t.Fatalf("Validate() error = %v, wantErr %t", err, tt.wantErr)
+			}
+			if !tt.wantErr && tt.name == "normalizes leading current directory in schema and directory" {
+				coll := tt.file.Collections["services"]
+				if coll.Schema != "schemas/rules.json" || coll.Dir != "storage/services" {
+					t.Errorf("normalized collection = %+v, want schema and dir without leading ./", coll)
+				}
 			}
 		})
 	}
@@ -96,6 +122,19 @@ func TestDependencySource(t *testing.T) {
 				Git:    "https://github.com/acme/infra",
 				Branch: "main",
 				Subdir: "catalogs/base",
+			},
+			wantSource: conf.GitSource{
+				Repo:   "https://github.com/acme/infra",
+				Branch: "main",
+				Subdir: "catalogs/base",
+			},
+		},
+		{
+			name: "normalizes leading current directory in subdir",
+			dep: conf.Dependency{
+				Git:    "https://github.com/acme/infra",
+				Branch: "main",
+				Subdir: "./catalogs/base",
 			},
 			wantSource: conf.GitSource{
 				Repo:   "https://github.com/acme/infra",
@@ -161,6 +200,39 @@ func TestDependencySource(t *testing.T) {
 			wantErr: true,
 		},
 		{
+			name: "git with empty normalized subdir",
+			dep: conf.Dependency{
+				Git:    "https://github.com/acme/infra",
+				Branch: "main",
+				Subdir: "./",
+			},
+			wantErr: true,
+		},
+		{
+			name: "git with unsupported repository scheme",
+			dep: conf.Dependency{
+				Git: "http://github.com/acme/infra",
+				Tag: "v1.0.0",
+			},
+			wantErr: true,
+		},
+		{
+			name: "git repository containing only scheme",
+			dep: conf.Dependency{
+				Git: "https://",
+				Tag: "v1.0.0",
+			},
+			wantErr: true,
+		},
+		{
+			name: "git with uppercase revision",
+			dep: conf.Dependency{
+				Git: "https://github.com/acme/infra",
+				Rev: "D6e89a7123bf01c4a0b1e5f7a3c9d2e8b4f60718",
+			},
+			wantErr: true,
+		},
+		{
 			name: "path with absolute directory",
 			dep: conf.Dependency{
 				Path: "/absolute/path/not/allowed",
@@ -171,6 +243,14 @@ func TestDependencySource(t *testing.T) {
 			name: "path containing backslashes",
 			dep: conf.Dependency{
 				Path: "..\\core",
+			},
+			wantErr: true,
+		},
+		{
+			name: "path source with a git-only field",
+			dep: conf.Dependency{
+				Path: "../core",
+				Tag:  "v1.0.0",
 			},
 			wantErr: true,
 		},
@@ -189,29 +269,5 @@ func TestDependencySource(t *testing.T) {
 				t.Errorf("Source() = %+v, want %+v", src, tt.wantSource)
 			}
 		})
-	}
-}
-
-// TestNewDependency verifies helper conversion from typed Source variants
-// back into flat Dependency structs for serialization.
-func TestNewDependency(t *testing.T) {
-	t.Parallel()
-
-	gitSrc := conf.GitSource{Repo: "https://github.com/acme/infra", Tag: "v1.0.0"}
-	dep, err := conf.NewDependency(gitSrc)
-	if err != nil {
-		t.Fatalf("NewDependency(GitSource) error = %v", err)
-	}
-	if dep.Git != gitSrc.Repo || dep.Tag != gitSrc.Tag {
-		t.Errorf("unexpected dependency fields: %+v", dep)
-	}
-
-	pathSrc := conf.PathSource{Dir: "../core"}
-	dep, err = conf.NewDependency(pathSrc)
-	if err != nil {
-		t.Fatalf("NewDependency(PathSource) error = %v", err)
-	}
-	if dep.Path != pathSrc.Dir {
-		t.Errorf("unexpected dependency fields: %+v", dep)
 	}
 }

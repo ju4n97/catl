@@ -73,6 +73,7 @@ func TestValidateRelativePath(t *testing.T) {
 		// Valid relative paths
 		{name: "single directory", input: "schemas"},
 		{name: "nested file", input: "schemas/service.json"},
+		{name: "leading current directory", input: "./schemas/service.json"},
 		{name: "deeply nested path", input: "nested/dir/deep/file.json"},
 		{name: "NFC Unicode", input: "caf\u00e9/manifest.yaml"},
 		{name: "maximum component length", input: strings.Repeat("a", 255)},
@@ -80,6 +81,8 @@ func TestValidateRelativePath(t *testing.T) {
 		// Invalid path structure
 		{name: "empty", input: "", wantErr: true},
 		{name: "dot", input: ".", wantErr: true},
+		{name: "current directory", input: "./", wantErr: true},
+		{name: "repeated current directory", input: "././schemas/service.json", wantErr: true},
 		{name: "root", input: "/", wantErr: true},
 		{name: "leading slash", input: "/schemas", wantErr: true},
 		{name: "trailing slash", input: "schemas/", wantErr: true},
