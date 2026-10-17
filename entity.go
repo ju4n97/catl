@@ -1,6 +1,7 @@
 package catl
 
 import (
+	"bytes"
 	"context"
 	"io/fs"
 
@@ -34,5 +35,5 @@ func (e *Entity) FS(ctx context.Context) (fs.FS, error) {
 
 // RawManifest returns the raw unparsed manifest bytes.
 func (e *Entity) RawManifest() []byte {
-	return e.raw
+	return bytes.Clone(e.raw)
 }
