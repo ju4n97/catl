@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/ju4n97/catl/internal/conf"
+	"github.com/ju4n97/catl/internal/errdef"
 )
 
 func TestValidateIdent(t *testing.T) {
@@ -96,12 +97,12 @@ func TestValidateIdent(t *testing.T) {
 				t.Fatalf("ValidateIdent(%q) error = %v, wantErr %t", tt.input, err, tt.wantErr)
 			}
 
-			if tt.wantErr && !errors.Is(err, conf.ErrInvalidIdent) {
+			if tt.wantErr && !errors.Is(err, errdef.ErrInvalidIdent) {
 				t.Errorf(
 					"ValidateIdent(%q) error = %v, want %v",
 					tt.input,
 					err,
-					conf.ErrInvalidIdent,
+					errdef.ErrInvalidIdent,
 				)
 			}
 		})

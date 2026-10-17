@@ -8,6 +8,7 @@ import (
 
 	"github.com/pelletier/go-toml/v2"
 
+	"github.com/ju4n97/catl/internal/errdef"
 	"github.com/ju4n97/catl/schema"
 )
 
@@ -30,7 +31,7 @@ func Parse(data []byte) (*File, error) {
 	}
 
 	if bytes.Contains(data, []byte("\r")) {
-		return nil, errors.New("catl.toml: CRLF line endings are forbidden (use LF)")
+		return nil, fmt.Errorf("catl.toml: %w", errdef.ErrCRLFForbidden)
 	}
 
 	var file File
@@ -38,7 +39,7 @@ func Parse(data []byte) (*File, error) {
 	dec.DisallowUnknownFields()
 	if err := dec.Decode(&file); err != nil {
 		if strictErr, ok := errors.AsType[*toml.StrictMissingError](err); ok {
-			return nil, fmt.Errorf("%w: %s", ErrRequiresNewer, strictErr.String())
+			return nil, fmt.Errorf("%w: %s", errdef.ErrRequiresNewer, strictErr.String())
 		}
 		return nil, fmt.Errorf("decode catl.toml: %w", err)
 	}

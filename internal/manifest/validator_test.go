@@ -6,6 +6,7 @@ import (
 	"testing"
 	"testing/fstest"
 
+	"github.com/ju4n97/catl/internal/errdef"
 	"github.com/ju4n97/catl/internal/manifest"
 	"github.com/ju4n97/catl/internal/scan"
 )
@@ -65,7 +66,7 @@ func TestValidatorSchemaEnforcement(t *testing.T) {
 			t.Fatal("expected validation error, got nil")
 		}
 
-		var valErr *manifest.ValidationError
+		var valErr *errdef.ValidationError
 		if !errors.As(err, &valErr) {
 			t.Fatalf("expected *schema.ValidationError, got %T", err)
 		}
@@ -94,7 +95,7 @@ func TestValidatorSchemaEnforcement(t *testing.T) {
 			t.Fatal("expected validation error on string boolean, got nil")
 		}
 
-		var valErr *manifest.ValidationError
+		var valErr *errdef.ValidationError
 		if !errors.As(err, &valErr) {
 			t.Fatalf("expected *schema.ValidationError, got %T", err)
 		}
@@ -136,7 +137,7 @@ func TestValidatorSchemaEnforcement(t *testing.T) {
 		if err == nil {
 			t.Fatal("expected error on schema with CRLF, got nil")
 		}
-		if !errors.Is(err, manifest.ErrCRLFForbidden) {
+		if !errors.Is(err, errdef.ErrCRLFForbidden) {
 			t.Errorf("got %v, want ErrCRLFForbidden", err)
 		}
 	})
@@ -209,7 +210,7 @@ func TestValidatorCatlFileFormat(t *testing.T) {
 			t.Fatal("expected error for missing companion file, got nil")
 		}
 
-		var valErr *manifest.ValidationError
+		var valErr *errdef.ValidationError
 		if !errors.As(err, &valErr) {
 			t.Fatalf("expected *schema.ValidationError, got %T", err)
 		}
@@ -234,7 +235,7 @@ func TestValidatorCatlFileFormat(t *testing.T) {
 			t.Fatal("expected error when using catl-file on flat entity, got nil")
 		}
 
-		var valErr *manifest.ValidationError
+		var valErr *errdef.ValidationError
 		if !errors.As(err, &valErr) {
 			t.Fatalf("expected *schema.ValidationError, got %T", err)
 		}

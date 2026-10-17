@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/ju4n97/catl/internal/conf"
+	"github.com/ju4n97/catl/internal/errdef"
 )
 
 // Tree holds all collections and entities discovered within a catalog directory tree.
@@ -89,11 +90,11 @@ func validateRoot(fsys fs.FS, cfg *conf.File) error {
 		}
 
 		if entry.Type()&fs.ModeSymlink != 0 {
-			return fmt.Errorf("%w: root entry %q", ErrForbiddenSymlink, name)
+			return fmt.Errorf("%w: root entry %q", errdef.ErrForbiddenSymlink, name)
 		}
 
 		if _, allowed := allowedRoots[name]; !allowed {
-			return fmt.Errorf("%w: %q", ErrStrayRootEntry, name)
+			return fmt.Errorf("%w: %q", errdef.ErrStrayRootEntry, name)
 		}
 	}
 
@@ -131,7 +132,7 @@ func scanCollection(fsys fs.FS, collName, collDir string) ([]Entity, error) {
 		}
 
 		if entry.Type()&fs.ModeSymlink != 0 {
-			return nil, fmt.Errorf("%w: %s/%s", ErrForbiddenSymlink, collDir, name)
+			return nil, fmt.Errorf("%w: %s/%s", errdef.ErrForbiddenSymlink, collDir, name)
 		}
 
 		var id string
@@ -140,7 +141,7 @@ func scanCollection(fsys fs.FS, collName, collDir string) ([]Entity, error) {
 		} else {
 			ext := path.Ext(name)
 			if ext != ".yaml" && ext != ".json" {
-				return nil, fmt.Errorf("%w: %s/%s", ErrInvalidManifestType, collDir, name)
+				return nil, fmt.Errorf("%w: %s/%s", errdef.ErrInvalidManifestType, collDir, name)
 			}
 			id = strings.TrimSuffix(name, ext)
 		}
@@ -150,7 +151,7 @@ func scanCollection(fsys fs.FS, collName, collDir string) ([]Entity, error) {
 		}
 
 		if _, exists := seenIDs[id]; exists {
-			return nil, fmt.Errorf("%w: %q in collection %q", ErrConflictingEntity, id, collName)
+			return nil, fmt.Errorf("%w: %q in collection %q", errdef.ErrConflictingEntity, id, collName)
 		}
 		seenIDs[id] = struct{}{}
 
@@ -212,7 +213,7 @@ func scanBundle(fsys fs.FS, collName, collDir, id string) (Entity, error) {
 		}
 
 		if d.Type()&fs.ModeSymlink != 0 {
-			return fmt.Errorf("%w: inside bundle %q at %q", ErrForbiddenSymlink, id, p)
+			return fmt.Errorf("%w: inside bundle %q at %q", errdef.ErrForbiddenSymlink, id, p)
 		}
 
 		if d.IsDir() {
@@ -225,7 +226,7 @@ func scanBundle(fsys fs.FS, collName, collDir, id string) (Entity, error) {
 			if manifestPath != "" && manifestFormat != ext {
 				return fmt.Errorf(
 					"%w: %q contains both manifest.yaml and manifest.json",
-					ErrAmbiguousManifest,
+					errdef.ErrAmbiguousManifest,
 					bundleDir,
 				)
 			}
@@ -242,7 +243,7 @@ func scanBundle(fsys fs.FS, collName, collDir, id string) (Entity, error) {
 	}
 
 	if manifestPath == "" {
-		return Entity{}, fmt.Errorf("%w: %q", ErrMissingManifest, bundleDir)
+		return Entity{}, fmt.Errorf("%w: %q", errdef.ErrMissingManifest, bundleDir)
 	}
 
 	slices.Sort(companionFiles)

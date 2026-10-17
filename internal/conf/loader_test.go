@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/ju4n97/catl/internal/conf"
+	"github.com/ju4n97/catl/internal/errdef"
 )
 
 // TestParse verifies parsing of valid and invalid TOML payloads into File structures.
@@ -15,11 +16,12 @@ func TestParse(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
-		name      string
-		toml      string
-		wantErr   bool
-		targetErr error
-		check     func(t *testing.T, f *conf.File)
+		name       string
+		toml       string
+		wantErr    bool
+		targetErr  error
+		targetErrs []error
+		check      func(t *testing.T, f *conf.File)
 	}{
 		{
 			name: "valid catalog with flat inline dependencies",
@@ -58,9 +60,10 @@ core = { path = "../core" }
 			wantErr: true,
 		},
 		{
-			name:    "rejects crlf line endings",
-			toml:    "[catalog]\r\nname = \"crlf-cat\"\r\n[collections.a]\r\n",
-			wantErr: true,
+			name:       "rejects crlf line endings",
+			toml:       "[catalog]\r\nname = \"crlf-cat\"\r\n[collections.a]\r\n",
+			wantErr:    true,
+			targetErrs: []error{errdef.ErrCRLFForbidden},
 		},
 		{
 			name: "rejects unknown keys at root level",
@@ -72,7 +75,7 @@ unknown_field = 123
 [collections.rules]
 `,
 			wantErr:   true,
-			targetErr: conf.ErrRequiresNewer,
+			targetErr: errdef.ErrRequiresNewer,
 		},
 		{
 			name: "rejects unknown properties in dependency tables",
@@ -86,7 +89,7 @@ name = "my-cat"
 infra = { git = "https://github.com/acme/infra", tag = "v1", extra = true }
 `,
 			wantErr:   true,
-			targetErr: conf.ErrRequiresNewer,
+			targetErr: errdef.ErrRequiresNewer,
 		},
 		{
 			name: "rejects unexpected trailing document content",
@@ -113,6 +116,12 @@ extra = "document"
 
 			if tt.targetErr != nil && !errors.Is(err, tt.targetErr) {
 				t.Errorf("Parse() error = %v, want %v", err, tt.targetErr)
+			}
+
+			for _, target := range tt.targetErrs {
+				if !errors.Is(err, target) {
+					t.Errorf("Parse() error = %v, want %v", err, target)
+				}
 			}
 
 			if tt.check != nil && err == nil {

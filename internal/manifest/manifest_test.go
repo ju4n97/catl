@@ -4,6 +4,7 @@ import (
 	"errors"
 	"testing"
 
+	"github.com/ju4n97/catl/internal/errdef"
 	"github.com/ju4n97/catl/internal/manifest"
 )
 
@@ -80,7 +81,7 @@ endpoints:
 		if err == nil {
 			t.Fatal("expected error on CRLF line endings, got nil")
 		}
-		if !errors.Is(err, manifest.ErrCRLFForbidden) {
+		if !errors.Is(err, errdef.ErrCRLFForbidden) {
 			t.Errorf("got %v, want ErrCRLFForbidden", err)
 		}
 	})
@@ -103,7 +104,7 @@ endpoints:
 		if err == nil {
 			t.Fatal("expected error on multi-document yaml, got nil")
 		}
-		if !errors.Is(err, manifest.ErrMultiDocument) {
+		if !errors.Is(err, errdef.ErrMultiDocument) {
 			t.Errorf("got %v, want ErrMultiDocument", err)
 		}
 	})
@@ -120,7 +121,7 @@ server:
 		if err == nil {
 			t.Fatal("expected error on merge keys, got nil")
 		}
-		if !errors.Is(err, manifest.ErrMergeKeyForbidden) {
+		if !errors.Is(err, errdef.ErrMergeKeyForbidden) {
 			t.Errorf("got %v, want ErrMergeKeyForbidden", err)
 		}
 	})
@@ -133,7 +134,7 @@ server:
 		if err == nil {
 			t.Fatal("expected error on manifest exceeding 4 MiB, got nil")
 		}
-		if !errors.Is(err, manifest.ErrManifestTooLarge) {
+		if !errors.Is(err, errdef.ErrManifestTooLarge) {
 			t.Errorf("got %v, want ErrManifestTooLarge", err)
 		}
 	})
@@ -146,7 +147,7 @@ server:
 		if err == nil {
 			t.Fatal("expected error on custom yaml tags, got nil")
 		}
-		if !errors.Is(err, manifest.ErrCustomTagForbidden) {
+		if !errors.Is(err, errdef.ErrCustomTagForbidden) {
 			t.Errorf("got %v, want ErrCustomTagForbidden", err)
 		}
 	})

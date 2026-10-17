@@ -1,3 +1,11 @@
+// Package catl loads and validates declarative entity catalogs.
+//
+// A catalog is a tree of YAML or JSON manifests organized into collections,
+// declared by catl.toml and pinned by catl.lock. Open and OpenFS load a
+// catalog into an immutable Catalog that is safe for concurrent use;
+// Registry holds several catalogs side by side. Validation failures are
+// reported as ValidationError values. Loading performs no network I/O:
+// dependencies come from local paths, .catl/vendor, or the global cache.
 package catl
 
 import (
@@ -104,7 +112,7 @@ func openInternal(ctx context.Context, fsys fs.FS, rootPath string, isDependency
 	}
 
 	validator := manifest.NewValidator(fsys)
-	var allDiags []manifest.Diagnostic
+	var allDiags []Diagnostic
 
 	collNames := make([]string, 0, len(cfg.Collections))
 	for name := range cfg.Collections {
@@ -149,20 +157,14 @@ func openInternal(ctx context.Context, fsys fs.FS, rootPath string, isDependency
 			}
 
 			if err := validator.Validate(decoded, coll.Schema, &se, bundleFS); err != nil {
-				if valErr, ok := errors.AsType[*manifest.ValidationError](err); ok {
+				if valErr, ok := errors.AsType[*ValidationError](err); ok {
 					allDiags = append(allDiags, valErr.Diagnostics...)
 				} else {
 					return nil, err
 				}
 			}
 
-			ent := &Entity{
-				Entity:      se,
-				Namespace:   cfg.Catalog.Name,
-				QualifiedID: cfg.Catalog.Name + "." + se.ID,
-				cat:         cat,
-				raw:         manifestBytes,
-			}
+			ent := newEntity(cat, cfg.Catalog.Name, se, manifestBytes)
 
 			cat.entitiesByCollection[collName] = append(cat.entitiesByCollection[collName], ent)
 			cat.entityByCollectionAndID[collName][se.ID] = ent
@@ -171,7 +173,7 @@ func openInternal(ctx context.Context, fsys fs.FS, rootPath string, isDependency
 	}
 
 	if len(allDiags) > 0 {
-		return nil, &manifest.ValidationError{Diagnostics: allDiags}
+		return nil, &ValidationError{Diagnostics: allDiags}
 	}
 
 	// Dependencies are direct only. This doesn't load dependencies of dependencies
@@ -255,13 +257,13 @@ func (c *Catalog) loadDependencies(ctx context.Context, rootPath string) error {
 
 		entry, ok := lockFile.FindEntry(req)
 		if !ok {
-			return fmt.Errorf("%w: missing pin for %q", lock.ErrLockStale, name)
+			return fmt.Errorf("%w: missing pin for %q", ErrLockStale, name)
 		}
 
 		vendorPath := path.Join(".catl", "vendor", name)
 		sub, err := fs.Sub(c.fsys, vendorPath)
 		if err != nil {
-			return fmt.Errorf("%w: dependency %q not found in vendor: %w", source.ErrMissing, name, err)
+			return fmt.Errorf("%w: dependency %q not found in vendor: %w", ErrMissing, name, err)
 		}
 
 		actualHash, err := hash.Tree(sub)
@@ -269,7 +271,7 @@ func (c *Catalog) loadDependencies(ctx context.Context, rootPath string) error {
 			return fmt.Errorf("tree hash for vendored %q: %w", name, err)
 		}
 		if actualHash != entry.Tree {
-			return fmt.Errorf("%w: dependency %q tree hash is %s, want %s", source.ErrTamperedVendor, name, actualHash, entry.Tree)
+			return fmt.Errorf("%w: dependency %q tree hash is %s, want %s", ErrTamperedVendor, name, actualHash, entry.Tree)
 		}
 
 		depCat, err := openInternal(ctx, sub, "", true)
@@ -370,16 +372,16 @@ func (c *Catalog) Schema(collection string) ([]byte, error) {
 // With no filters, the result is sorted by collection name and then entity ID.
 // Pass collection names to limit the result to those collections.
 //
-// The returned slice is a copy, but the Entity pointers still refer to the
-// catalog's entries. Use AllEntities() to include dependencies.
+// The returned slice and every returned *Entity are independent copies, safe
+// for the caller to mutate. Use AllEntities() to include dependencies.
 func (c *Catalog) Entities(collections ...string) []*Entity {
 	if len(collections) == 0 {
-		return slices.Clone(c.localEntities)
+		return cloneEntities(c.localEntities)
 	}
 
 	var res []*Entity
 	for _, coll := range collections {
-		res = append(res, c.entitiesByCollection[coll]...)
+		res = append(res, cloneEntities(c.entitiesByCollection[coll])...)
 	}
 	return res
 }
@@ -393,8 +395,8 @@ func (c *Catalog) Entities(collections ...string) []*Entity {
 // Manifest paths for dependency entities are prefixed with the path to the
 // dependency relative to this catalog's root.
 //
-// The slice is newly allocated. Local Entity values are still shared with
-// the catalog, while dependency entities are copied when their paths are adjusted.
+// The slice is newly allocated and all returned entities are copies, safe for
+// the caller to mutate.
 func (c *Catalog) AllEntities(collections ...string) []*Entity {
 	var all []*Entity
 	all = append(all, c.Entities(collections...)...)
@@ -404,11 +406,11 @@ func (c *Catalog) AllEntities(collections ...string) []*Entity {
 		prefix := c.dependencyPathPrefixes[depName]
 
 		for _, ent := range depCat.Entities(collections...) {
-			entCopy := *ent
+			entCopy := ent.clone()
 			if prefix != "" {
 				entCopy.ManifestPath = path.Join(prefix, ent.ManifestPath)
 			}
-			all = append(all, &entCopy)
+			all = append(all, entCopy)
 		}
 	}
 
@@ -454,7 +456,7 @@ func (c *Catalog) Resolve(collection, qualifiedID string) (*Entity, error) {
 		if !ok {
 			return nil, fmt.Errorf("%w: entity %q in collection %q", ErrNotFound, id, collection)
 		}
-		return ent, nil
+		return ent.clone(), nil
 	}
 
 	// Otherwise, try a direct dependency
@@ -470,9 +472,9 @@ func (c *Catalog) Resolve(collection, qualifiedID string) (*Entity, error) {
 
 	// Make the path relative to the current catalog's root
 	if prefix := c.dependencyPathPrefixes[ns]; prefix != "" {
-		entCopy := *ent
+		entCopy := ent.clone()
 		entCopy.ManifestPath = path.Join(prefix, ent.ManifestPath)
-		return &entCopy, nil
+		return entCopy, nil
 	}
 
 	return ent, nil

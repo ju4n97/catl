@@ -8,6 +8,7 @@ import (
 	"testing"
 	"testing/fstest"
 
+	"github.com/ju4n97/catl/internal/errdef"
 	"github.com/ju4n97/catl/internal/hash"
 )
 
@@ -103,7 +104,7 @@ func TestTree(t *testing.T) {
 		if err == nil {
 			t.Fatal("expected error on backslash path, got nil")
 		}
-		if !errors.Is(err, hash.ErrInvalidPath) {
+		if !errors.Is(err, errdef.ErrInvalidPath) {
 			t.Errorf("got error %v, want ErrInvalidPath", err)
 		}
 	})
@@ -119,7 +120,7 @@ func TestTree(t *testing.T) {
 		if err == nil {
 			t.Fatal("expected error on control character path, got nil")
 		}
-		if !errors.Is(err, hash.ErrInvalidPath) {
+		if !errors.Is(err, errdef.ErrInvalidPath) {
 			t.Errorf("got error %v, want ErrInvalidPath", err)
 		}
 	})
@@ -135,7 +136,7 @@ func TestTree(t *testing.T) {
 		if err == nil {
 			t.Fatal("expected error on symlink entry, got nil")
 		}
-		if !errors.Is(err, hash.ErrForbiddenSymlink) {
+		if !errors.Is(err, errdef.ErrForbiddenSymlink) {
 			t.Errorf("got error %v, want ErrForbiddenSymlink", err)
 		}
 	})

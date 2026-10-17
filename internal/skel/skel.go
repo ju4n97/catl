@@ -1,3 +1,5 @@
+// Package skel scaffolds new catalogs from embedded templates, rendering
+// variable placeholders in file names and file contents.
 package skel
 
 import (

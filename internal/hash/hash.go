@@ -1,22 +1,16 @@
+// Package hash computes deterministic SHA-256 hashes for catalog content.
 package hash
 
 import (
 	"crypto/sha256"
 	"encoding/hex"
-	"errors"
 	"fmt"
 	"io"
 	"io/fs"
 	"slices"
 	"strings"
-)
 
-var (
-	// ErrInvalidPath indicates a file path contains forbidden characters like control codes or backslashes.
-	ErrInvalidPath = errors.New("path contains forbidden characters")
-
-	// ErrForbiddenSymlink indicates a symbolic link was encountered during hashing.
-	ErrForbiddenSymlink = errors.New("symbolic links are forbidden in catalog contents")
+	"github.com/ju4n97/catl/internal/errdef"
 )
 
 // EmptyTreeHash is the SHA-256 digest of zero bytes with the canonical sha256: prefix.
@@ -55,12 +49,12 @@ func Tree(fsys fs.FS) (string, error) {
 		for i := range len(path) {
 			c := path[i]
 			if c <= 0x1F || c == 0x7F || c == '\\' {
-				return fmt.Errorf("%w: path %q contains control characters or backslashes", ErrInvalidPath, path)
+				return fmt.Errorf("%w: path %q contains control characters or backslashes", errdef.ErrInvalidPath, path)
 			}
 		}
 
 		if d.Type()&fs.ModeSymlink != 0 {
-			return fmt.Errorf("%w: %s", ErrForbiddenSymlink, path)
+			return fmt.Errorf("%w: %s", errdef.ErrForbiddenSymlink, path)
 		}
 
 		if !d.IsDir() {

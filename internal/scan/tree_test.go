@@ -7,6 +7,7 @@ import (
 	"testing/fstest"
 
 	"github.com/ju4n97/catl/internal/conf"
+	"github.com/ju4n97/catl/internal/errdef"
 	"github.com/ju4n97/catl/internal/scan"
 )
 
@@ -95,7 +96,7 @@ func TestTreeScan(t *testing.T) {
 		if err == nil {
 			t.Fatal("expected error on stray root file, got nil")
 		}
-		if !errors.Is(err, scan.ErrStrayRootEntry) {
+		if !errors.Is(err, errdef.ErrStrayRootEntry) {
 			t.Errorf("got %v, want ErrStrayRootEntry", err)
 		}
 	})
@@ -120,7 +121,7 @@ func TestTreeScan(t *testing.T) {
 		if err == nil {
 			t.Fatal("expected error on stray root directory, got nil")
 		}
-		if !errors.Is(err, scan.ErrStrayRootEntry) {
+		if !errors.Is(err, errdef.ErrStrayRootEntry) {
 			t.Errorf("got %v, want ErrStrayRootEntry", err)
 		}
 	})
@@ -145,7 +146,7 @@ func TestTreeScan(t *testing.T) {
 		if err == nil {
 			t.Fatal("expected error on conflicting entity shapes, got nil")
 		}
-		if !errors.Is(err, scan.ErrConflictingEntity) {
+		if !errors.Is(err, errdef.ErrConflictingEntity) {
 			t.Errorf("got %v, want ErrConflictingEntity", err)
 		}
 	})
@@ -169,7 +170,7 @@ func TestTreeScan(t *testing.T) {
 		if err == nil {
 			t.Fatal("expected error on missing bundle manifest, got nil")
 		}
-		if !errors.Is(err, scan.ErrMissingManifest) {
+		if !errors.Is(err, errdef.ErrMissingManifest) {
 			t.Errorf("got %v, want ErrMissingManifest", err)
 		}
 	})
@@ -194,7 +195,7 @@ func TestTreeScan(t *testing.T) {
 		if err == nil {
 			t.Fatal("expected error on ambiguous manifest formats, got nil")
 		}
-		if !errors.Is(err, scan.ErrAmbiguousManifest) {
+		if !errors.Is(err, errdef.ErrAmbiguousManifest) {
 			t.Errorf("got %v, want ErrAmbiguousManifest", err)
 		}
 	})
@@ -218,7 +219,7 @@ func TestTreeScan(t *testing.T) {
 		if err == nil {
 			t.Fatal("expected error on invalid manifest extension, got nil")
 		}
-		if !errors.Is(err, scan.ErrInvalidManifestType) {
+		if !errors.Is(err, errdef.ErrInvalidManifestType) {
 			t.Errorf("got %v, want ErrInvalidManifestType", err)
 		}
 	})
@@ -243,7 +244,7 @@ func TestTreeScan(t *testing.T) {
 		if err == nil {
 			t.Fatal("expected error on symlink at root, got nil")
 		}
-		if !errors.Is(err, scan.ErrForbiddenSymlink) {
+		if !errors.Is(err, errdef.ErrForbiddenSymlink) {
 			t.Errorf("got %v, want ErrForbiddenSymlink", err)
 		}
 	})
@@ -268,7 +269,7 @@ func TestTreeScan(t *testing.T) {
 		if err == nil {
 			t.Fatal("expected error on symlinked collection entry, got nil")
 		}
-		if !errors.Is(err, scan.ErrForbiddenSymlink) {
+		if !errors.Is(err, errdef.ErrForbiddenSymlink) {
 			t.Errorf("got %v, want ErrForbiddenSymlink", err)
 		}
 	})
@@ -293,7 +294,7 @@ func TestTreeScan(t *testing.T) {
 		if err == nil {
 			t.Fatal("expected error on symlinked file inside bundle, got nil")
 		}
-		if !errors.Is(err, scan.ErrForbiddenSymlink) {
+		if !errors.Is(err, errdef.ErrForbiddenSymlink) {
 			t.Errorf("got %v, want ErrForbiddenSymlink", err)
 		}
 	})

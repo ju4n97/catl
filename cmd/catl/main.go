@@ -10,14 +10,14 @@ import (
 
 	"github.com/urfave/cli/v3"
 
-	"github.com/ju4n97/catl/internal/manifest"
+	"github.com/ju4n97/catl"
 )
 
 func main() {
 	ctx := context.Background()
 
 	if err := newRootCommand().Run(ctx, os.Args); err != nil {
-		if valErr, ok := errors.AsType[*manifest.ValidationError](err); ok {
+		if valErr, ok := errors.AsType[*catl.ValidationError](err); ok {
 			fmt.Fprintln(os.Stderr, valErr.Error())
 		} else {
 			msg := err.Error()

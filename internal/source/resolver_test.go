@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/ju4n97/catl/internal/conf"
+	"github.com/ju4n97/catl/internal/errdef"
 	"github.com/ju4n97/catl/internal/hash"
 	"github.com/ju4n97/catl/internal/lock"
 	"github.com/ju4n97/catl/internal/source"
@@ -152,7 +153,7 @@ func TestResolverPathSource(t *testing.T) {
 		if err == nil {
 			t.Fatal("expected error on missing path, got nil")
 		}
-		if !errors.Is(err, source.ErrMissing) {
+		if !errors.Is(err, errdef.ErrMissing) {
 			t.Errorf("got %v, want ErrMissing", err)
 		}
 	})
@@ -166,7 +167,7 @@ func TestResolverPathSource(t *testing.T) {
 		if err == nil {
 			t.Fatal("expected error on name mismatch, got nil")
 		}
-		if !errors.Is(err, source.ErrTargetMismatch) {
+		if !errors.Is(err, errdef.ErrTargetMismatch) {
 			t.Errorf("got %v, want ErrTargetMismatch", err)
 		}
 	})
@@ -227,7 +228,7 @@ func TestResolverVendoredMode(t *testing.T) {
 		if err == nil {
 			t.Fatal("expected error on missing vendored dependency, got nil")
 		}
-		if !errors.Is(err, source.ErrMissing) {
+		if !errors.Is(err, errdef.ErrMissing) {
 			t.Errorf("got %v, want ErrMissing", err)
 		}
 		if !strings.Contains(err.Error(), "run 'catl vendor'") {
@@ -263,7 +264,7 @@ func TestResolverVendoredMode(t *testing.T) {
 		if err == nil {
 			t.Fatal("expected error on tampered vendor file, got nil")
 		}
-		if !errors.Is(err, source.ErrTamperedVendor) {
+		if !errors.Is(err, errdef.ErrTamperedVendor) {
 			t.Errorf("got %v, want ErrTamperedVendor", err)
 		}
 	})
@@ -358,7 +359,7 @@ func TestResolverCachedMode(t *testing.T) {
 		if err == nil {
 			t.Fatal("expected error on missing cache entry, got nil")
 		}
-		if !errors.Is(err, source.ErrMissing) {
+		if !errors.Is(err, errdef.ErrMissing) {
 			t.Errorf("got %v, want ErrMissing", err)
 		}
 		if !strings.Contains(err.Error(), "run 'catl update'") {
@@ -380,7 +381,7 @@ func TestResolverCachedMode(t *testing.T) {
 		if err == nil {
 			t.Fatal("expected error on corrupt cache entry, got nil")
 		}
-		if !errors.Is(err, source.ErrCorruptCache) {
+		if !errors.Is(err, errdef.ErrCorruptCache) {
 			t.Errorf("got %v, want ErrCorruptCache", err)
 		}
 	})
@@ -453,8 +454,8 @@ func TestResolverResolveAll(t *testing.T) {
 		if err == nil {
 			t.Fatal("expected error for stale lockfile, got nil")
 		}
-		if !errors.Is(err, lock.ErrLockStale) {
-			t.Errorf("got %v, want lock.ErrLockStale", err)
+		if !errors.Is(err, errdef.ErrLockStale) {
+			t.Errorf("got %v, want errdef.ErrLockStale", err)
 		}
 	})
 

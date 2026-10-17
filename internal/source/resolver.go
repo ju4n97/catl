@@ -1,3 +1,7 @@
+// Package source resolves declared dependency sources to on-disk catalogs
+// without network access. It locates each dependency in the vendor directory,
+// the global cache, or a local path, and verifies recorded tree hashes against
+// catl.lock.
 package source
 
 import (
@@ -11,25 +15,9 @@ import (
 	"strings"
 
 	"github.com/ju4n97/catl/internal/conf"
+	"github.com/ju4n97/catl/internal/errdef"
 	"github.com/ju4n97/catl/internal/hash"
 	"github.com/ju4n97/catl/internal/lock"
-)
-
-var (
-	// ErrMissing indicates a dependency's catalog files were not found on disk.
-	ErrMissing = errors.New("dependency files not found")
-
-	// ErrTamperedVendor indicates vendored dependency content does not match the recorded tree hash.
-	ErrTamperedVendor = errors.New("vendor directory content does not match tree hash")
-
-	// ErrCorruptCache indicates cached dependency content does not match the recorded tree hash.
-	ErrCorruptCache = errors.New("cached dependency content does not match tree hash")
-
-	// ErrTargetMismatch indicates the resolved catalog's declared name does not match the dependency key.
-	ErrTargetMismatch = errors.New("target catalog name does not match dependency key")
-
-	// ErrLockRequired indicates a remote dependency is missing its required lockfile pin.
-	ErrLockRequired = errors.New("remote dependency requires lockfile entry")
 )
 
 // Resolved represents an external catalog dependency resolved to an on-disk location.
@@ -133,7 +121,7 @@ func (r *Resolver) HasVendor() bool {
 }
 
 // ResolveAll verifies lockfile freshness and resolves all declared dependencies.
-// If any remote dependency is unpinned or stale, it returns lock.ErrLockStale.
+// If any remote dependency is unpinned or stale, it returns errdef.ErrLockStale.
 // If any dependency files are missing or tampered with, it returns the respective error.
 func (r *Resolver) ResolveAll(declared map[string]conf.Dependency, lockFile *lock.File) (map[string]*Resolved, error) {
 	if err := lock.VerifyFreshness(declared, lockFile); err != nil {
@@ -183,7 +171,7 @@ func (r *Resolver) Resolve(name string, dep conf.Dependency, lockEntry *lock.Ent
 		return r.resolvePath(name, s)
 	case conf.GitSource:
 		if lockEntry == nil {
-			return nil, fmt.Errorf("%w: dependency %q", ErrLockRequired, name)
+			return nil, fmt.Errorf("%w: dependency %q", errdef.ErrLockRequired, name)
 		}
 		return r.resolveGit(name, s, lockEntry)
 	default:
@@ -202,12 +190,12 @@ func (r *Resolver) resolvePath(name string, s conf.PathSource) (*Resolved, error
 	st, err := os.Stat(absPath)
 	if err != nil {
 		if errors.Is(err, os.ErrNotExist) {
-			return nil, fmt.Errorf("%w: local path %q for dependency %q does not exist", ErrMissing, target, name)
+			return nil, fmt.Errorf("%w: local path %q for dependency %q does not exist", errdef.ErrMissing, target, name)
 		}
 		return nil, fmt.Errorf("stat path for dependency %q: %w", name, err)
 	}
 	if !st.IsDir() {
-		return nil, fmt.Errorf("%w: path %q for dependency %q is not a directory", ErrMissing, target, name)
+		return nil, fmt.Errorf("%w: path %q for dependency %q is not a directory", errdef.ErrMissing, target, name)
 	}
 
 	if err := verifyCatalogTree(name, absPath, "", nil); err != nil {
@@ -243,7 +231,7 @@ func (r *Resolver) resolveVendored(name string, entry *lock.Entry) (*Resolved, e
 		if errors.Is(err, os.ErrNotExist) {
 			return nil, fmt.Errorf(
 				"%w: dependency %q not found in .catl/vendor (%s); run 'catl vendor'",
-				ErrMissing,
+				errdef.ErrMissing,
 				name,
 				target,
 			)
@@ -251,10 +239,10 @@ func (r *Resolver) resolveVendored(name string, entry *lock.Entry) (*Resolved, e
 		return nil, fmt.Errorf("stat vendor directory for dependency %q: %w", name, err)
 	}
 	if !st.IsDir() {
-		return nil, fmt.Errorf("%w: vendored path %q is not a directory", ErrMissing, target)
+		return nil, fmt.Errorf("%w: vendored path %q is not a directory", errdef.ErrMissing, target)
 	}
 
-	if err := verifyCatalogTree(name, absPath, entry.Tree, ErrTamperedVendor); err != nil {
+	if err := verifyCatalogTree(name, absPath, entry.Tree, errdef.ErrTamperedVendor); err != nil {
 		return nil, err
 	}
 
@@ -285,7 +273,7 @@ func (r *Resolver) resolveCached(name string, s conf.GitSource, entry *lock.Entr
 			}
 			return nil, fmt.Errorf(
 				"%w: dependency %q (commit %s) not found in cache (%s); run 'catl update'",
-				ErrMissing,
+				errdef.ErrMissing,
 				name,
 				shortCommit,
 				target,
@@ -294,10 +282,10 @@ func (r *Resolver) resolveCached(name string, s conf.GitSource, entry *lock.Entr
 		return nil, fmt.Errorf("stat cached directory for dependency %q: %w", name, err)
 	}
 	if !st.IsDir() {
-		return nil, fmt.Errorf("%w: cached path %q is not a directory", ErrMissing, target)
+		return nil, fmt.Errorf("%w: cached path %q is not a directory", errdef.ErrMissing, target)
 	}
 
-	if err := verifyCatalogTree(name, absPath, entry.Tree, ErrCorruptCache); err != nil {
+	if err := verifyCatalogTree(name, absPath, entry.Tree, errdef.ErrCorruptCache); err != nil {
 		return nil, err
 	}
 
@@ -316,7 +304,7 @@ func verifyCatalogTree(name, absPath, wantTreeHash string, mismatchErr error) er
 	cfg, err := conf.LoadFile(confPath)
 	if err != nil {
 		if errors.Is(err, os.ErrNotExist) {
-			return fmt.Errorf("%w: target directory %q is missing catl.toml", ErrMissing, absPath)
+			return fmt.Errorf("%w: target directory %q is missing catl.toml", errdef.ErrMissing, absPath)
 		}
 		return fmt.Errorf("load config for dependency %q at %q: %w", name, absPath, err)
 	}
@@ -324,7 +312,7 @@ func verifyCatalogTree(name, absPath, wantTreeHash string, mismatchErr error) er
 	if cfg.Catalog.Name != name {
 		return fmt.Errorf(
 			"%w: dependency key %q does not match target catalog name %q in %s",
-			ErrTargetMismatch,
+			errdef.ErrTargetMismatch,
 			name,
 			cfg.Catalog.Name,
 			confPath,

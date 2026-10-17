@@ -9,6 +9,7 @@ import (
 	"testing/fstest"
 
 	"github.com/ju4n97/catl/internal/conf"
+	"github.com/ju4n97/catl/internal/errdef"
 	"github.com/ju4n97/catl/internal/lock"
 )
 
@@ -66,13 +67,13 @@ tree = "sha256:9f2c1a7b8e4f5a6b7c8d9e0f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b"
 			name:      "rejects utf8 byte order mark",
 			toml:      "\xef\xbb\xbfversion = 1\n",
 			wantErr:   true,
-			targetErr: lock.ErrInvalidLockfile,
+			targetErr: errdef.ErrInvalidLockfile,
 		},
 		{
 			name:      "rejects crlf line endings",
 			toml:      "version = 1\r\n",
 			wantErr:   true,
-			targetErr: lock.ErrInvalidLockfile,
+			targetErr: errdef.ErrInvalidLockfile,
 		},
 		{
 			name: "rejects unknown fields strictly",
@@ -81,7 +82,7 @@ version = 1
 unknown_property = true
 `,
 			wantErr:   true,
-			targetErr: lock.ErrInvalidLockfile,
+			targetErr: errdef.ErrInvalidLockfile,
 		},
 		{
 			name: "rejects missing version",
@@ -92,7 +93,7 @@ resolved = "d6e89a7123bf01c4a0b1e5f7a3c9d2e8b4f60718"
 tree = "sha256:9f2c1a7b8e4f5a6b7c8d9e0f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b"
 `,
 			wantErr:   true,
-			targetErr: lock.ErrInvalidLockfile,
+			targetErr: errdef.ErrInvalidLockfile,
 		},
 		{
 			name: "rejects unsupported version",
@@ -100,7 +101,7 @@ tree = "sha256:9f2c1a7b8e4f5a6b7c8d9e0f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b"
 version = 2
 `,
 			wantErr:   true,
-			targetErr: lock.ErrUnsupportedVersion,
+			targetErr: errdef.ErrUnsupportedVersion,
 		},
 		{
 			name: "rejects missing requested string",
@@ -112,7 +113,7 @@ resolved = "d6e89a7123bf01c4a0b1e5f7a3c9d2e8b4f60718"
 tree = "sha256:9f2c1a7b8e4f5a6b7c8d9e0f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b"
 `,
 			wantErr:   true,
-			targetErr: lock.ErrInvalidLockfile,
+			targetErr: errdef.ErrInvalidLockfile,
 		},
 		{
 			name: "rejects missing resolved commit",
@@ -124,7 +125,7 @@ requested = "git+https://github.com/acme/infra#tag=v1"
 tree = "sha256:9f2c1a7b8e4f5a6b7c8d9e0f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b"
 `,
 			wantErr:   true,
-			targetErr: lock.ErrInvalidLockfile,
+			targetErr: errdef.ErrInvalidLockfile,
 		},
 		{
 			name: "rejects short git commit hash",
@@ -137,7 +138,7 @@ resolved = "d6e89a7"
 tree = "sha256:9f2c1a7b8e4f5a6b7c8d9e0f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b"
 `,
 			wantErr:   true,
-			targetErr: lock.ErrInvalidLockfile,
+			targetErr: errdef.ErrInvalidLockfile,
 		},
 		{
 			name: "rejects non-hex characters in git commit hash",
@@ -150,7 +151,7 @@ resolved = "d6e89a7123bf01c4a0b1e5f7a3c9d2e8b4f6071z"
 tree = "sha256:9f2c1a7b8e4f5a6b7c8d9e0f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b"
 `,
 			wantErr:   true,
-			targetErr: lock.ErrInvalidLockfile,
+			targetErr: errdef.ErrInvalidLockfile,
 		},
 		{
 			name: "rejects malformed tree hash format",
@@ -163,7 +164,7 @@ resolved = "d6e89a7123bf01c4a0b1e5f7a3c9d2e8b4f60718"
 tree = "invalid-tree-hash"
 `,
 			wantErr:   true,
-			targetErr: lock.ErrInvalidLockfile,
+			targetErr: errdef.ErrInvalidLockfile,
 		},
 		{
 			name: "rejects uppercase characters in tree hash",
@@ -176,7 +177,7 @@ resolved = "d6e89a7123bf01c4a0b1e5f7a3c9d2e8b4f60718"
 tree = "sha256:9F2C1A7B8E4F5A6B7C8D9E0F1A2B3C4D5E6F7A8B9C0D1E2F3A4B5C6D7E8F9A0B"
 `,
 			wantErr:   true,
-			targetErr: lock.ErrInvalidLockfile,
+			targetErr: errdef.ErrInvalidLockfile,
 		},
 		{
 			name: "rejects non-hex characters in tree hash",
@@ -189,7 +190,7 @@ resolved = "d6e89a7123bf01c4a0b1e5f7a3c9d2e8b4f60718"
 tree = "sha256:9f2c1a7b8e4f5a6b7c8d9e0f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0bz"
 `,
 			wantErr:   true,
-			targetErr: lock.ErrInvalidLockfile,
+			targetErr: errdef.ErrInvalidLockfile,
 		},
 		{
 			name: "rejects duplicate requested entries",
@@ -207,7 +208,7 @@ resolved = "4fe2c9b0123bf01c4a0b1e5f7a3c9d2e8b4f6071a"
 tree = "sha256:9f2c1a7b8e4f5a6b7c8d9e0f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b"
 `,
 			wantErr:   true,
-			targetErr: lock.ErrInvalidLockfile,
+			targetErr: errdef.ErrInvalidLockfile,
 		},
 	}
 
@@ -516,7 +517,7 @@ func TestVerifyFreshness(t *testing.T) {
 		if err == nil {
 			t.Fatal("expected error for missing lockfile, got nil")
 		}
-		if !errors.Is(err, lock.ErrLockStale) {
+		if !errors.Is(err, errdef.ErrLockStale) {
 			t.Errorf("got error %v, want ErrLockStale", err)
 		}
 	})
@@ -534,7 +535,7 @@ func TestVerifyFreshness(t *testing.T) {
 		if err == nil {
 			t.Fatal("expected error for missing pin, got nil")
 		}
-		if !errors.Is(err, lock.ErrLockStale) {
+		if !errors.Is(err, errdef.ErrLockStale) {
 			t.Errorf("got error %v, want ErrLockStale", err)
 		}
 	})
@@ -551,7 +552,7 @@ func TestVerifyFreshness(t *testing.T) {
 		if err == nil {
 			t.Fatal("expected error for extraneous pin, got nil")
 		}
-		if !errors.Is(err, lock.ErrLockStale) {
+		if !errors.Is(err, errdef.ErrLockStale) {
 			t.Errorf("got error %v, want ErrLockStale", err)
 		}
 	})
@@ -578,7 +579,7 @@ func TestVerifyFreshness(t *testing.T) {
 		}
 
 		err := lock.VerifyFreshness(declared, lockWithExtraPin)
-		if !errors.Is(err, lock.ErrLockStale) {
+		if !errors.Is(err, errdef.ErrLockStale) {
 			t.Fatalf("VerifyFreshness() error = %v, want ErrLockStale", err)
 		}
 
@@ -611,7 +612,7 @@ func TestVerifyFreshness(t *testing.T) {
 		if err == nil {
 			t.Fatal("expected error when lockfile contains pins but no remote dependencies declared, got nil")
 		}
-		if !errors.Is(err, lock.ErrLockStale) {
+		if !errors.Is(err, errdef.ErrLockStale) {
 			t.Errorf("got error %v, want ErrLockStale", err)
 		}
 	})

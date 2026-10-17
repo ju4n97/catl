@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/ju4n97/catl/internal/conf"
+	"github.com/ju4n97/catl/internal/errdef"
 )
 
 // TestValidatePathComponent checks path component validation.
@@ -48,12 +49,12 @@ func TestValidatePathComponent(t *testing.T) {
 					tt.wantErr,
 				)
 			}
-			if tt.wantErr && !errors.Is(err, conf.ErrInvalidPath) {
+			if tt.wantErr && !errors.Is(err, errdef.ErrInvalidPath) {
 				t.Errorf(
 					"ValidatePathComponent(%q) error = %v, want %v",
 					tt.input,
 					err,
-					conf.ErrInvalidPath,
+					errdef.ErrInvalidPath,
 				)
 			}
 		})
@@ -117,12 +118,12 @@ func TestValidateRelativePath(t *testing.T) {
 					tt.wantErr,
 				)
 			}
-			if tt.wantErr && !errors.Is(err, conf.ErrInvalidPath) {
+			if tt.wantErr && !errors.Is(err, errdef.ErrInvalidPath) {
 				t.Errorf(
 					"ValidateRelativePath(%q) error = %v, want %v",
 					tt.input,
 					err,
-					conf.ErrInvalidPath,
+					errdef.ErrInvalidPath,
 				)
 			}
 		})

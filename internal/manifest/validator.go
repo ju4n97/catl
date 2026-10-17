@@ -11,6 +11,7 @@ import (
 
 	"github.com/santhosh-tekuri/jsonschema/v6"
 
+	"github.com/ju4n97/catl/internal/errdef"
 	"github.com/ju4n97/catl/internal/scan"
 )
 
@@ -52,7 +53,7 @@ func (v *Validator) Compile(schemaPath string) error {
 	}
 
 	if bytes.Contains(data, []byte("\r")) {
-		return fmt.Errorf("%s: %w", schemaPath, ErrCRLFForbidden)
+		return fmt.Errorf("%s: %w", schemaPath, errdef.ErrCRLFForbidden)
 	}
 
 	doc, err := jsonschema.UnmarshalJSON(bytes.NewReader(data))
@@ -168,7 +169,7 @@ func (v *Validator) formatValidationError(
 	schemaErr *jsonschema.ValidationError,
 ) error {
 	unit := schemaErr.BasicOutput()
-	var diags []Diagnostic
+	var diags []errdef.Diagnostic
 
 	var collect func(u *jsonschema.OutputUnit)
 	collect = func(u *jsonschema.OutputUnit) {
@@ -182,7 +183,7 @@ func (v *Validator) formatValidationError(
 			}
 			line := m.FindLine(ptr)
 
-			diags = append(diags, Diagnostic{
+			diags = append(diags, errdef.Diagnostic{
 				Path:    m.Path,
 				Line:    line,
 				Pointer: ptr,
@@ -197,8 +198,8 @@ func (v *Validator) formatValidationError(
 	collect(unit)
 
 	if len(diags) == 0 {
-		return &ValidationError{
-			Diagnostics: []Diagnostic{
+		return &errdef.ValidationError{
+			Diagnostics: []errdef.Diagnostic{
 				{
 					Path:    m.Path,
 					Line:    1,
@@ -209,5 +210,5 @@ func (v *Validator) formatValidationError(
 		}
 	}
 
-	return &ValidationError{Diagnostics: diags}
+	return &errdef.ValidationError{Diagnostics: diags}
 }

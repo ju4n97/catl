@@ -1,3 +1,6 @@
+// Package conf loads and validates catl.toml, the root configuration of a
+// catalog. It models the catalog identity, declared collections, and direct
+// dependencies, and enforces identifier, path, and source invariants.
 package conf
 
 import (

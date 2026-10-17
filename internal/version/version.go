@@ -1,3 +1,5 @@
+// Package version reports the build metadata of the catl binary: version,
+// commits, and build date. Values are injected at build time via -ldflags.
 package version
 
 import (

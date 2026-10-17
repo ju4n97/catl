@@ -1,3 +1,7 @@
+// Package lock reads, validates, and writes catl.lock, the lockfile that pins
+// each direct dependency to a resolved ref and content tree hash. It verifies
+// lockfile freshness against the dependencies declared in catl.toml and writes
+// updates atomically.
 package lock
 
 import (
@@ -14,21 +18,11 @@ import (
 	"github.com/pelletier/go-toml/v2"
 
 	"github.com/ju4n97/catl/internal/conf"
+	"github.com/ju4n97/catl/internal/errdef"
 )
 
 // CurrentVersion is the authoritative lockfile format version.
 const CurrentVersion = 1
-
-var (
-	// ErrLockStale indicates that catl.lock does not match declared dependencies in catl.toml.
-	ErrLockStale = errors.New("catl.lock is out of date; run 'catl update'")
-
-	// ErrInvalidLockfile indicates that the lockfile contains syntax or schema violations.
-	ErrInvalidLockfile = errors.New("invalid lockfile format")
-
-	// ErrUnsupportedVersion indicates the lockfile format version is newer or unsupported.
-	ErrUnsupportedVersion = errors.New("unsupported lockfile version")
-)
 
 // File models the root structure of a catl.lock file.
 type File struct {
@@ -46,11 +40,11 @@ type Entry struct {
 // Parse decodes and strictly validates raw TOML bytes into a File instance.
 func Parse(data []byte) (*File, error) {
 	if bytes.HasPrefix(data, []byte("\xef\xbb\xbf")) {
-		return nil, fmt.Errorf("%w: UTF-8 BOM is forbidden", ErrInvalidLockfile)
+		return nil, fmt.Errorf("%w: UTF-8 BOM is forbidden", errdef.ErrInvalidLockfile)
 	}
 
 	if bytes.Contains(data, []byte("\r")) {
-		return nil, fmt.Errorf("%w: CRLF line endings are forbidden (use LF)", ErrInvalidLockfile)
+		return nil, fmt.Errorf("%w: %w", errdef.ErrInvalidLockfile, errdef.ErrCRLFForbidden)
 	}
 
 	var f File
@@ -58,7 +52,7 @@ func Parse(data []byte) (*File, error) {
 	dec.DisallowUnknownFields()
 
 	if err := dec.Decode(&f); err != nil {
-		return nil, fmt.Errorf("%w: %s", ErrInvalidLockfile, err.Error())
+		return nil, fmt.Errorf("%w: %s", errdef.ErrInvalidLockfile, err.Error())
 	}
 
 	if err := f.Validate(); err != nil {
@@ -140,7 +134,7 @@ func Save(targetPath string, f *File) error {
 }
 
 // VerifyFreshness asserts that catl.lock strictly matches the declared dependencies in catl.toml.
-// Returns ErrLockStale if any remote dependency is missing, extraneous, or mismatching.
+// Returns errdef.ErrLockStale if any remote dependency is missing, extraneous, or mismatching.
 func VerifyFreshness(declared map[string]conf.Dependency, lockFile *File) error {
 	expected := make(map[string]string, len(declared))
 
@@ -161,7 +155,7 @@ func VerifyFreshness(declared map[string]conf.Dependency, lockFile *File) error 
 		if lockFile != nil && len(lockFile.Dependencies) > 0 {
 			return fmt.Errorf(
 				"%w: catl.lock contains %d pins but catl.toml declares no remote dependencies",
-				ErrLockStale,
+				errdef.ErrLockStale,
 				len(lockFile.Dependencies),
 			)
 		}
@@ -170,7 +164,7 @@ func VerifyFreshness(declared map[string]conf.Dependency, lockFile *File) error 
 
 	// Remote dependencies are declared, so a valid lockfile is strictly required
 	if lockFile == nil {
-		return fmt.Errorf("%w: catalog declares remote dependencies but catl.lock is missing", ErrLockStale)
+		return fmt.Errorf("%w: catalog declares remote dependencies but catl.lock is missing", errdef.ErrLockStale)
 	}
 
 	locked := make(map[string]string, len(lockFile.Dependencies))
@@ -181,7 +175,7 @@ func VerifyFreshness(declared map[string]conf.Dependency, lockFile *File) error 
 	// Verify every declared remote dependency has an exact pin in the lockfile
 	for canonical, depName := range expected {
 		if _, exists := locked[canonical]; !exists {
-			return fmt.Errorf("%w: missing pin for dependency %q (%s)", ErrLockStale, depName, canonical)
+			return fmt.Errorf("%w: missing pin for dependency %q (%s)", errdef.ErrLockStale, depName, canonical)
 		}
 	}
 
@@ -189,7 +183,7 @@ func VerifyFreshness(declared map[string]conf.Dependency, lockFile *File) error 
 	if len(locked) != remoteCount {
 		return fmt.Errorf(
 			"%w: catl.lock contains %d pins but catl.toml declares %d remote dependencies",
-			ErrLockStale,
+			errdef.ErrLockStale,
 			len(locked),
 			remoteCount,
 		)
@@ -245,29 +239,29 @@ func (f *File) FindEntry(requested string) (Entry, bool) {
 // Validate checks structural constraints, version numbers, and hash formats on f.
 func (f *File) Validate() error {
 	if f.Version == 0 {
-		return fmt.Errorf("%w: version is required", ErrInvalidLockfile)
+		return fmt.Errorf("%w: version is required", errdef.ErrInvalidLockfile)
 	}
 	if f.Version != CurrentVersion {
-		return fmt.Errorf("%w: got version %d, want %d", ErrUnsupportedVersion, f.Version, CurrentVersion)
+		return fmt.Errorf("%w: got version %d, want %d", errdef.ErrUnsupportedVersion, f.Version, CurrentVersion)
 	}
 
 	seen := make(map[string]struct{}, len(f.Dependencies))
 	for _, entry := range f.Dependencies {
 		if entry.Requested == "" {
-			return fmt.Errorf("%w: entry requested string cannot be empty", ErrInvalidLockfile)
+			return fmt.Errorf("%w: entry requested string cannot be empty", errdef.ErrInvalidLockfile)
 		}
 		if entry.Resolved == "" {
-			return fmt.Errorf("%w: entry resolved string cannot be empty for %q", ErrInvalidLockfile, entry.Requested)
+			return fmt.Errorf("%w: entry resolved string cannot be empty for %q", errdef.ErrInvalidLockfile, entry.Requested)
 		}
 		if err := validateGitCommit(entry.Resolved); err != nil {
-			return fmt.Errorf("%w: invalid resolved commit for %q: %s", ErrInvalidLockfile, entry.Requested, err.Error())
+			return fmt.Errorf("%w: invalid resolved commit for %q: %s", errdef.ErrInvalidLockfile, entry.Requested, err.Error())
 		}
 		if err := validateTreeHash(entry.Tree); err != nil {
-			return fmt.Errorf("%w: invalid tree hash for %q: %s", ErrInvalidLockfile, entry.Requested, err.Error())
+			return fmt.Errorf("%w: invalid tree hash for %q: %s", errdef.ErrInvalidLockfile, entry.Requested, err.Error())
 		}
 
 		if _, exists := seen[entry.Requested]; exists {
-			return fmt.Errorf("%w: duplicate entry for %q", ErrInvalidLockfile, entry.Requested)
+			return fmt.Errorf("%w: duplicate entry for %q", errdef.ErrInvalidLockfile, entry.Requested)
 		}
 		seen[entry.Requested] = struct{}{}
 	}

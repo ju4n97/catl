@@ -63,6 +63,9 @@ func TestEntity(t *testing.T) {
 		if ent.ManifestPath != "flags/simple.yaml" {
 			t.Errorf("ManifestPath = %q, want 'flags/simple.yaml'", ent.ManifestPath)
 		}
+		if !ent.IsFlat() {
+			t.Errorf("IsFlat() = false, want true")
+		}
 		if ent.IsBundle() {
 			t.Errorf("IsBundle() = true, want false")
 		}
@@ -109,6 +112,36 @@ func TestEntity(t *testing.T) {
 		}
 		if string(data) != "# Rollout Notes\n" {
 			t.Errorf("companion file content mismatch: %q", string(data))
+		}
+	})
+
+	t.Run("mutating returned entity does not mutate catalog state", func(t *testing.T) {
+		t.Parallel()
+
+		ent, err := cat.Resolve("flags", "test-cat.complex")
+		if err != nil {
+			t.Fatalf("Resolve() failed: %v", err)
+		}
+
+		ent.ID = "mutated"
+		ent.CompanionFiles[0] = "mutated.md"
+
+		again, err := cat.Resolve("flags", "test-cat.complex")
+		if err != nil {
+			t.Fatalf("Resolve() after mutation failed: %v", err)
+		}
+		if again.ID != "complex" {
+			t.Errorf("ID = %q, want %q", again.ID, "complex")
+		}
+		if len(again.CompanionFiles) != 1 || again.CompanionFiles[0] != "notes.md" {
+			t.Errorf("CompanionFiles = %v, want [notes.md]", again.CompanionFiles)
+		}
+
+		listed := cat.Entities("flags")
+		for _, item := range listed {
+			if item.ID == "mutated" {
+				t.Error("Entities() returned a mutated entity")
+			}
 		}
 	})
 }

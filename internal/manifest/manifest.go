@@ -1,8 +1,8 @@
+// Package manifest decodes and validates entity manifests.
 package manifest
 
 import (
 	"bytes"
-	"errors"
 	"fmt"
 	"strconv"
 	"strings"
@@ -10,28 +10,13 @@ import (
 	"github.com/goccy/go-yaml"
 	"github.com/goccy/go-yaml/ast"
 	"github.com/goccy/go-yaml/parser"
+
+	"github.com/ju4n97/catl/internal/errdef"
 )
 
 const (
 	// MaxManifestSize enforces the catalog limit of 4 MiB per manifest file.
 	MaxManifestSize = 4 * 1024 * 1024
-)
-
-var (
-	// ErrManifestTooLarge is returned when a manifest file exceeds 4 MiB.
-	ErrManifestTooLarge = errors.New("manifest file exceeds 4 MiB limit")
-
-	// ErrMultiDocument is returned when a YAML stream contains multiple documents separated by '---'.
-	ErrMultiDocument = errors.New("multi-document YAML streams are forbidden")
-
-	// ErrMergeKeyForbidden is returned when a YAML mapping contains merge keys ('<<').
-	ErrMergeKeyForbidden = errors.New("YAML merge keys ('<<') are forbidden")
-
-	// ErrCustomTagForbidden is returned when a YAML node uses a custom tag (e.g. '!custom').
-	ErrCustomTagForbidden = errors.New("custom YAML tags are forbidden")
-
-	// ErrCRLFForbidden is returned when a structured file contains CRLF line endings.
-	ErrCRLFForbidden = errors.New("CRLF line endings are forbidden (use LF)")
 )
 
 // Manifest holds decoded manifest data along with its parsed AST for line lookups.
@@ -45,11 +30,11 @@ type Manifest struct {
 // unique keys, single document streams, and limits.
 func Decode(data []byte, relPath string) (*Manifest, error) {
 	if len(data) > MaxManifestSize {
-		return nil, fmt.Errorf("%w: %s (%d bytes)", ErrManifestTooLarge, relPath, len(data))
+		return nil, fmt.Errorf("%w: %s (%d bytes)", errdef.ErrManifestTooLarge, relPath, len(data))
 	}
 
 	if bytes.Contains(data, []byte("\r")) {
-		return nil, fmt.Errorf("%s: %w", relPath, ErrCRLFForbidden)
+		return nil, fmt.Errorf("%s: %w", relPath, errdef.ErrCRLFForbidden)
 	}
 
 	// Parse AST to verify document boundaries and token line positions
@@ -68,7 +53,7 @@ func Decode(data []byte, relPath string) (*Manifest, error) {
 	if len(file.Docs) > 1 {
 		return nil, fmt.Errorf(
 			"%w: %s contains %d documents",
-			ErrMultiDocument,
+			errdef.ErrMultiDocument,
 			relPath,
 			len(file.Docs),
 		)
@@ -150,17 +135,17 @@ func inspectAST(node ast.Node) error {
 	}
 
 	if node.Type() == ast.TagType {
-		return fmt.Errorf("%w: %q", ErrCustomTagForbidden, node.GetToken().Value)
+		return fmt.Errorf("%w: %q", errdef.ErrCustomTagForbidden, node.GetToken().Value)
 	}
 	if node.Type() == ast.MergeKeyType {
-		return ErrMergeKeyForbidden
+		return errdef.ErrMergeKeyForbidden
 	}
 
 	switch n := node.(type) {
 	case *ast.MappingNode:
 		for _, entry := range n.Values {
 			if entry.Key != nil && entry.Key.Type() == ast.MergeKeyType {
-				return ErrMergeKeyForbidden
+				return errdef.ErrMergeKeyForbidden
 			}
 			if err := inspectAST(entry.Key); err != nil {
 				return err

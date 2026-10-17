@@ -1,9 +1,10 @@
-package manifest_test
+package errdef_test
 
 import (
+	"encoding/json"
 	"testing"
 
-	"github.com/ju4n97/catl/internal/manifest"
+	"github.com/ju4n97/catl/internal/errdef"
 )
 
 // TestDiagnosticString verifies standard compiler-style formatting of individual diagnostics.
@@ -12,12 +13,12 @@ func TestDiagnosticString(t *testing.T) {
 
 	tests := []struct {
 		name string
-		diag manifest.Diagnostic
+		diag errdef.Diagnostic
 		want string
 	}{
 		{
 			name: "diagnostic with line number",
-			diag: manifest.Diagnostic{
+			diag: errdef.Diagnostic{
 				Path:    "rules/auth.yaml",
 				Line:    12,
 				Pointer: "/threshold",
@@ -27,7 +28,7 @@ func TestDiagnosticString(t *testing.T) {
 		},
 		{
 			name: "diagnostic without line number",
-			diag: manifest.Diagnostic{
+			diag: errdef.Diagnostic{
 				Path:    "rules/auth.yaml",
 				Line:    0,
 				Pointer: "/threshold",
@@ -48,6 +49,26 @@ func TestDiagnosticString(t *testing.T) {
 	}
 }
 
+// TestDiagnosticJSON verifies that marshaled diagnostics use the documented lowercase keys.
+func TestDiagnosticJSON(t *testing.T) {
+	t.Parallel()
+
+	got, err := json.Marshal(errdef.Diagnostic{
+		Path:    "a.yaml",
+		Line:    2,
+		Pointer: "/x",
+		Message: "bad",
+	})
+	if err != nil {
+		t.Fatalf("json.Marshal() failed: %v", err)
+	}
+
+	want := `{"path":"a.yaml","line":2,"pointer":"/x","message":"bad"}`
+	if string(got) != want {
+		t.Errorf("json.Marshal() = %s, want %s", got, want)
+	}
+}
+
 // TestValidationError verifies that ValidationError aggregates multiple diagnostics separated by newlines.
 func TestValidationError(t *testing.T) {
 	t.Parallel()
@@ -55,7 +76,7 @@ func TestValidationError(t *testing.T) {
 	t.Run("empty diagnostics fallback", func(t *testing.T) {
 		t.Parallel()
 
-		err := &manifest.ValidationError{}
+		err := &errdef.ValidationError{}
 		if got := err.Error(); got != "schema validation failed" {
 			t.Errorf("Error() = %q, want 'schema validation failed'", got)
 		}
@@ -64,8 +85,8 @@ func TestValidationError(t *testing.T) {
 	t.Run("multiple diagnostics formatted across lines", func(t *testing.T) {
 		t.Parallel()
 
-		err := &manifest.ValidationError{
-			Diagnostics: []manifest.Diagnostic{
+		err := &errdef.ValidationError{
+			Diagnostics: []errdef.Diagnostic{
 				{Path: "a.yaml", Line: 1, Pointer: "/p1", Message: "err1"},
 				{Path: "b.yaml", Line: 2, Pointer: "/p2", Message: "err2"},
 			},

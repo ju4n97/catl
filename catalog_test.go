@@ -189,6 +189,47 @@ func TestOpenFS(t *testing.T) {
 			t.Errorf("expected error mentioning catl.toml, got %v", err)
 		}
 	})
+
+	t.Run("crlf in catl.toml returns ErrCRLFForbidden", func(t *testing.T) {
+		t.Parallel()
+
+		fsys := fstest.MapFS{
+			"catl.toml": &fstest.MapFile{
+				Data: []byte("[catalog]\r\nname = \"platform\"\r\n\r\n[collections.drafts]\r\n"),
+			},
+		}
+
+		_, err := catl.OpenFS(context.Background(), fsys)
+		if err == nil {
+			t.Fatal("expected error on CRLF catl.toml, got nil")
+		}
+		if !errors.Is(err, catl.ErrCRLFForbidden) {
+			t.Errorf("got %v, want catl.ErrCRLFForbidden", err)
+		}
+	})
+
+	t.Run("tree hash rejects symlink with public sentinel", func(t *testing.T) {
+		t.Parallel()
+
+		fsys := validCatalogFS()
+		fsys["schemas/redirect"] = &fstest.MapFile{
+			Mode: fs.ModeSymlink | 0o777,
+			Data: []byte("service.json"),
+		}
+
+		cat, err := catl.OpenFS(context.Background(), fsys)
+		if err != nil {
+			t.Fatalf("OpenFS() unexpected error: %v", err)
+		}
+
+		_, err = cat.TreeHash()
+		if err == nil {
+			t.Fatal("expected TreeHash() error on symlink, got nil")
+		}
+		if !errors.Is(err, catl.ErrForbiddenSymlink) {
+			t.Errorf("got %v, want catl.ErrForbiddenSymlink", err)
+		}
+	})
 }
 
 // TestOpen verifies on-disk catalog loading, RootPath assignment, and error handling.
