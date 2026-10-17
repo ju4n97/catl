@@ -221,7 +221,12 @@ func (sh *singleHandler) handleReloadCatalog(w http.ResponseWriter, r *http.Requ
 	}
 
 	sh.catalog.Store(next)
-	treeHash, _ := next.TreeHash()
+
+	treeHash, err := next.TreeHash()
+	if err != nil {
+		writeProblem(w, r, http.StatusInternalServerError, fmt.Sprintf("failed to compute tree hash: %v", err))
+		return
+	}
 
 	writeJSON(w, http.StatusOK, map[string]string{
 		"status":    "ok",
