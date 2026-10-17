@@ -2,10 +2,12 @@ package source_test
 
 import (
 	"errors"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
+	"testing/fstest"
 
 	"github.com/ju4n97/catl/internal/conf"
 	"github.com/ju4n97/catl/internal/errdef"
@@ -484,6 +486,162 @@ func TestResolverResolveAll(t *testing.T) {
 		}
 		if len(res) != 0 {
 			t.Errorf("got %d resolved, want 0", len(res))
+		}
+	})
+}
+
+func TestResolveFS(t *testing.T) {
+	t.Parallel()
+
+	const (
+		depName = "infra"
+	)
+
+	// Build vendor FS and compute hash
+	vendorSub := fstest.MapFS{
+		"catl.toml": &fstest.MapFile{
+			Data: []byte("[catalog]\nname = \"" + depName + "\"\n[collections.services]\n"),
+		},
+		"services/auth.yaml": &fstest.MapFile{
+			Data: []byte("tier: critical\n"),
+		},
+	}
+
+	treeHash, err := hash.Tree(vendorSub)
+	if err != nil {
+		t.Fatalf("hash.Tree failed: %v", err)
+	}
+
+	rootFS := fstest.MapFS{
+		".catl/vendor/infra/catl.toml":          vendorSub["catl.toml"],
+		".catl/vendor/infra/services/auth.yaml": vendorSub["services/auth.yaml"],
+	}
+
+	gitDep := conf.Dependency{Git: "https://github.com/acme/infra", Tag: "v1.0.0"}
+	declared := map[string]conf.Dependency{depName: gitDep}
+
+	t.Run("resolves valid vendored dependency", func(t *testing.T) {
+		t.Parallel()
+
+		req, err := lock.CanonicalRequested(gitDep)
+		if err != nil {
+			t.Fatal(err)
+		}
+		lockFile := &lock.File{Dependencies: []lock.Entry{{Requested: req, Tree: treeHash}}}
+
+		res, err := source.ResolveFS(rootFS, declared, lockFile)
+		if err != nil {
+			t.Fatalf("ResolveFS() unexpected error: %v", err)
+		}
+		if res[depName] == nil {
+			t.Fatal("expected result for infra")
+		}
+		if !res[depName].IsVendored {
+			t.Error("expected IsVendored true")
+		}
+		if res[depName].Path != ".catl/vendor/infra" {
+			t.Errorf("Path = %q, want .catl/vendor/infra", res[depName].Path)
+		}
+		if res[depName].TreeHash != treeHash {
+			t.Errorf("TreeHash mismatch")
+		}
+		if res[depName].FS == nil {
+			t.Error("FS nil")
+		} else if _, err := fs.Stat(res[depName].FS, "services/auth.yaml"); err != nil {
+			t.Errorf("res.FS missing manifest file: %v", err)
+		}
+	})
+
+	t.Run("stale lockfile returns err lock stale", func(t *testing.T) {
+		t.Parallel()
+
+		_, err := source.ResolveFS(rootFS, declared, nil)
+		if err == nil {
+			t.Fatal("expected error")
+		}
+		if !errors.Is(err, errdef.ErrLockStale) {
+			t.Errorf("got %v, want ErrLockStale", err)
+		}
+	})
+
+	t.Run("missing pin returns err lock stale", func(t *testing.T) {
+		t.Parallel()
+
+		lockFile := &lock.File{Dependencies: []lock.Entry{}} // empty
+		_, err := source.ResolveFS(rootFS, declared, lockFile)
+		if err == nil {
+			t.Fatal("expected error")
+		}
+		if !errors.Is(err, errdef.ErrLockStale) {
+			t.Errorf("got %v, want ErrLockStale", err)
+		}
+	})
+
+	t.Run("path dependency returns not supported error", func(t *testing.T) {
+		t.Parallel()
+
+		decl := map[string]conf.Dependency{depName: {Path: "../core"}}
+		lockFile := &lock.File{Dependencies: []lock.Entry{}}
+		_, err := source.ResolveFS(rootFS, decl, lockFile)
+		if err == nil {
+			t.Fatal("expected error")
+		}
+		if !strings.Contains(err.Error(), "not supported in pure in-memory filesystem") {
+			t.Errorf("unexpected error: %v", err)
+		}
+	})
+
+	t.Run("name mismatch returns err target mismatch", func(t *testing.T) {
+		t.Parallel()
+
+		badFS := fstest.MapFS{
+			".catl/vendor/infra/catl.toml": &fstest.MapFile{
+				Data: []byte("[catalog]\nname = \"other\"\n[collections.services]\n"),
+			},
+		}
+		req, _ := lock.CanonicalRequested(gitDep)
+		lockFile := &lock.File{Dependencies: []lock.Entry{{Requested: req, Tree: "sha256:dummy"}}}
+		_, err := source.ResolveFS(badFS, declared, lockFile)
+		if err == nil {
+			t.Fatal("expected error")
+		}
+		if !errors.Is(err, errdef.ErrTargetMismatch) {
+			t.Errorf("got %v, want ErrTargetMismatch", err)
+		}
+	})
+
+	t.Run("missing catl.toml returns err missing", func(t *testing.T) {
+		t.Parallel()
+
+		badFS := fstest.MapFS{
+			".catl/vendor/infra/services/auth.yaml": vendorSub["services/auth.yaml"],
+		}
+		req, _ := lock.CanonicalRequested(gitDep)
+		lockFile := &lock.File{Dependencies: []lock.Entry{{Requested: req, Tree: treeHash}}}
+		_, err := source.ResolveFS(badFS, declared, lockFile)
+		if err == nil {
+			t.Fatal("expected error")
+		}
+		if !errors.Is(err, errdef.ErrMissing) {
+			t.Errorf("got %v, want ErrMissing", err)
+		}
+	})
+
+	t.Run("tampered vendored file returns err tampered vendor", func(t *testing.T) {
+		t.Parallel()
+
+		tamperedFS := fstest.MapFS{
+			".catl/vendor/infra/catl.toml":          vendorSub["catl.toml"],
+			".catl/vendor/infra/services/auth.yaml": &fstest.MapFile{Data: []byte("tier: tampered\n")},
+		}
+		req, _ := lock.CanonicalRequested(gitDep)
+		lockFile := &lock.File{Dependencies: []lock.Entry{{Requested: req, Tree: treeHash}}}
+		_, err := source.ResolveFS(tamperedFS, declared, lockFile)
+		if err == nil {
+			t.Fatal("expected error")
+		}
+		if !errors.Is(err, errdef.ErrTamperedVendor) {
+			t.Errorf("got %v, want ErrTamperedVendor", err)
 		}
 	})
 }

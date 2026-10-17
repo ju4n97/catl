@@ -185,12 +185,12 @@ task fmt && task lint && task test && task test-e2e
 
 ## Using AI tools
 
-AI tools can be used to explore ideas, understand code, and assist with implementation, but contributions must remain human-directed and human-owned.
+AI tools can be used to explore ideas, understand code, and assist with implementation, but contributions must remain human-directed and human-owned. If you let an agent write code you can't follow, you're held hostage by the tool for every future change.
 
 - You are responsible for every line you submit. You must understand your changes and verify that they work before opening a PR. Unverified contributions from autonomous agents are not accepted.
 - All issues, PR titles and descriptions, commit messages, and discussion comments must be written by you, in your own words, reflecting your own understanding. Don't use AI to draft or post public-facing project communication, and especially avoid wall-of-text AI-generated summaries.
 - If you configure a local `AGENTS.md`, `CLAUDE.md`, or system prompt, its rules must be consistent with this document and the spec.
-- Unreviewed code dumps and large unverified diffs will be closed.
+- Unreviewed code dumps and large unverified diffs will be closed without review.
 
 ## Workspace discipline
 

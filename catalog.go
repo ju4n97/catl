@@ -44,9 +44,6 @@ type Catalog struct {
 	// collection -> entity ID -> entity. Used for direct lookups in Resolve().
 	entityByCollectionAndID map[string]map[string]*Entity
 
-	// All local entities, sorted by collection and then ID.
-	localEntities []*Entity
-
 	// Loaded direct dependencies, keyed by namespace.
 	dependenciesByNamespace map[string]*Catalog
 
@@ -168,7 +165,6 @@ func openInternal(ctx context.Context, fsys fs.FS, rootPath string, isDependency
 
 			cat.entitiesByCollection[collName] = append(cat.entitiesByCollection[collName], ent)
 			cat.entityByCollectionAndID[collName][se.ID] = ent
-			cat.localEntities = append(cat.localEntities, ent)
 		}
 	}
 
@@ -241,45 +237,18 @@ func (c *Catalog) loadDependencies(ctx context.Context, rootPath string) error {
 		}
 	}
 
-	if err := lock.VerifyFreshness(c.config.Dependencies, lockFile); err != nil {
+	resolvedMap, err := source.ResolveFS(c.fsys, c.config.Dependencies, lockFile)
+	if err != nil {
 		return err
 	}
 
-	for name, dep := range c.config.Dependencies {
-		if dep.Path != "" {
-			return fmt.Errorf("local path dependency %q not supported in pure in-memory filesystem", name)
-		}
-
-		req, err := lock.CanonicalRequested(dep)
-		if err != nil {
-			return err
-		}
-
-		entry, ok := lockFile.FindEntry(req)
-		if !ok {
-			return fmt.Errorf("%w: missing pin for %q", ErrLockStale, name)
-		}
-
-		vendorPath := path.Join(".catl", "vendor", name)
-		sub, err := fs.Sub(c.fsys, vendorPath)
-		if err != nil {
-			return fmt.Errorf("%w: dependency %q not found in vendor: %w", ErrMissing, name, err)
-		}
-
-		actualHash, err := hash.Tree(sub)
-		if err != nil {
-			return fmt.Errorf("tree hash for vendored %q: %w", name, err)
-		}
-		if actualHash != entry.Tree {
-			return fmt.Errorf("%w: dependency %q tree hash is %s, want %s", ErrTamperedVendor, name, actualHash, entry.Tree)
-		}
-
-		depCat, err := openInternal(ctx, sub, "", true)
+	for name, resolved := range resolvedMap {
+		depCat, err := openInternal(ctx, resolved.FS, "", true)
 		if err != nil {
 			return fmt.Errorf("open vendored dependency %q: %w", name, err)
 		}
 		c.dependenciesByNamespace[name] = depCat
-		c.dependencyPathPrefixes[name] = vendorPath
+		c.dependencyPathPrefixes[name] = resolved.Path
 	}
 
 	return nil
@@ -376,7 +345,15 @@ func (c *Catalog) Schema(collection string) ([]byte, error) {
 // for the caller to mutate. Use AllEntities() to include dependencies.
 func (c *Catalog) Entities(collections ...string) []*Entity {
 	if len(collections) == 0 {
-		return cloneEntities(c.localEntities)
+		total := 0
+		for _, coll := range c.collectionNames {
+			total += len(c.entitiesByCollection[coll])
+		}
+		all := make([]*Entity, 0, total)
+		for _, coll := range c.collectionNames {
+			all = append(all, c.entitiesByCollection[coll]...)
+		}
+		return cloneEntities(all)
 	}
 
 	var res []*Entity

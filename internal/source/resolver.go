@@ -23,7 +23,7 @@ import (
 // Resolved represents an external catalog dependency resolved to an on-disk location.
 type Resolved struct {
 	Name       string // Dependency namespace matching the key in catl.toml
-	Path       string // Absolute filesystem path to the dependency's root directory
+	Path       string // Absolute filesystem path (Resolve) or slash-separated path within the input filesystem (ResolveFS)
 	FS         fs.FS  // Read-only filesystem scoped to the dependency catalog
 	IsVendored bool   // True if resolved from the local .catl/vendor directory
 	IsPath     bool   // True if resolved from a local path source
@@ -150,6 +150,63 @@ func (r *Resolver) ResolveAll(declared map[string]conf.Dependency, lockFile *loc
 			return nil, err
 		}
 		res[name] = resolved
+	}
+
+	return res, nil
+}
+
+// ResolveFS resolves declared dependencies against vendored content inside an
+// in-memory fs.FS, such as embed.FS or fstest.MapFS. It performs no disk or
+// network access. Dependencies must be vendored under .catl/vendor/<name> and
+// pinned in lockFile; local path dependencies are rejected. It verifies
+// lockfile freshness, each vendored catalog's declared name, and each
+// vendored tree hash against the recorded pin.
+func ResolveFS(fsys fs.FS, declared map[string]conf.Dependency, lockFile *lock.File) (map[string]*Resolved, error) {
+	if err := lock.VerifyFreshness(declared, lockFile); err != nil {
+		return nil, err
+	}
+
+	if len(declared) == 0 {
+		return map[string]*Resolved{}, nil
+	}
+
+	res := make(map[string]*Resolved, len(declared))
+	for name, dep := range declared {
+		if err := conf.ValidateIdent(name); err != nil {
+			return nil, fmt.Errorf("invalid dependency identifier %q: %w", name, err)
+		}
+
+		if dep.Path != "" {
+			return nil, fmt.Errorf("local path dependency %q not supported in pure in-memory filesystem", name)
+		}
+
+		req, err := lock.CanonicalRequested(dep)
+		if err != nil {
+			return nil, fmt.Errorf("canonical requested for %q: %w", name, err)
+		}
+
+		entry, ok := lockFile.FindEntry(req)
+		if !ok {
+			return nil, fmt.Errorf("%w: missing pin for %q", errdef.ErrLockStale, name)
+		}
+
+		vendorPath := path.Join(".catl", "vendor", name)
+		sub, err := fs.Sub(fsys, vendorPath)
+		if err != nil {
+			return nil, fmt.Errorf("%w: dependency %q not found in vendor: %w", errdef.ErrMissing, name, err)
+		}
+
+		if err := verifyCatalogTreeFS(fsys, vendorPath, name, entry.Tree, errdef.ErrTamperedVendor); err != nil {
+			return nil, err
+		}
+
+		res[name] = &Resolved{
+			Name:       name,
+			Path:       vendorPath,
+			FS:         sub,
+			IsVendored: true,
+			TreeHash:   entry.Tree,
+		}
 	}
 
 	return res, nil
@@ -324,6 +381,59 @@ func verifyCatalogTree(name, absPath, wantTreeHash string, mismatchErr error) er
 	}
 
 	actualHash, err := hash.Tree(os.DirFS(absPath))
+	if err != nil {
+		return fmt.Errorf("calculate tree hash for %q: %w", name, err)
+	}
+
+	if actualHash != wantTreeHash {
+		return fmt.Errorf(
+			"%w: dependency %q tree hash is %s, want %s",
+			mismatchErr,
+			name,
+			actualHash,
+			wantTreeHash,
+		)
+	}
+
+	return nil
+}
+
+// verifyCatalogTreeFS checks that the directory at root inside fsys contains a
+// valid catl.toml with a matching catalog.name, and verifies content integrity
+// against wantTreeHash if non-empty. It is the fs.FS-based twin of
+// verifyCatalogTree, used for in-memory vendored resolution.
+func verifyCatalogTreeFS(fsys fs.FS, root, name, wantTreeHash string, mismatchErr error) error {
+	confPath := path.Join(root, "catl.toml")
+	data, err := fs.ReadFile(fsys, confPath)
+	if err != nil {
+		return fmt.Errorf("%w: directory %q is missing catl.toml", errdef.ErrMissing, root)
+	}
+
+	cfg, err := conf.Parse(data)
+	if err != nil {
+		return fmt.Errorf("load config for dependency %q at %q: %w", name, confPath, err)
+	}
+
+	if cfg.Catalog.Name != name {
+		return fmt.Errorf(
+			"%w: dependency key %q does not match target catalog name %q in %s",
+			errdef.ErrTargetMismatch,
+			name,
+			cfg.Catalog.Name,
+			confPath,
+		)
+	}
+
+	if wantTreeHash == "" {
+		return nil
+	}
+
+	sub, err := fs.Sub(fsys, root)
+	if err != nil {
+		return fmt.Errorf("open dependency tree for %q: %w", name, err)
+	}
+
+	actualHash, err := hash.Tree(sub)
 	if err != nil {
 		return fmt.Errorf("calculate tree hash for %q: %w", name, err)
 	}

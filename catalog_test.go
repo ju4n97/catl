@@ -12,6 +12,7 @@ import (
 	"testing/fstest"
 
 	"github.com/ju4n97/catl"
+	"github.com/ju4n97/catl/internal/hash"
 )
 
 // validCatalogFS returns an in-memory catalog filesystem with multiple collections,
@@ -760,6 +761,120 @@ func TestCatalogValidateManifest(t *testing.T) {
 		}
 		if !errors.Is(err, catl.ErrNotFound) {
 			t.Errorf("got %v, want ErrNotFound", err)
+		}
+	})
+}
+
+// TestOpenFSVendoredDependencies verifies that OpenFS resolves git dependencies
+// vendored under .catl/vendor through the centralized ResolveFS policy,
+// including the name-match regression this consolidation fixes.
+func TestOpenFSVendoredDependencies(t *testing.T) {
+	t.Parallel()
+
+	ctx := context.Background()
+
+	t.Run("vendored dependency loads through openfs", func(t *testing.T) {
+		t.Parallel()
+
+		vendorSub := fstest.MapFS{
+			"catl.toml": &fstest.MapFile{
+				Data: []byte("[catalog]\nname = \"infra\"\n[collections.services]\n"),
+			},
+			"services/postgres.yaml": &fstest.MapFile{
+				Data: []byte("tier: primary\n"),
+			},
+		}
+
+		treeHash, err := hash.Tree(vendorSub)
+		if err != nil {
+			t.Fatalf("hash.Tree failed: %v", err)
+		}
+
+		rootFS := fstest.MapFS{
+			"catl.toml": &fstest.MapFile{
+				Data: []byte(
+					"[catalog]\nname = \"app\"\n[collections.services]\n\n[dependencies]\ninfra = { git = \"https://github.com/acme/infra\", tag = \"v1.0.0\" }\n",
+				),
+			},
+			"services/api.yaml": &fstest.MapFile{
+				Data: []byte("tier: web\n"),
+			},
+			"catl.lock": &fstest.MapFile{
+				Data: []byte(
+					"version = 1\n\n[[dependency]]\nrequested = \"git+https://github.com/acme/infra#tag=v1.0.0\"\nresolved = \"abcdef0123456789abcdef0123456789abcdef01\"\ntree = \"" + treeHash + "\"\n",
+				),
+			},
+			".catl/vendor/infra/catl.toml":              vendorSub["catl.toml"],
+			".catl/vendor/infra/services/postgres.yaml": vendorSub["services/postgres.yaml"],
+		}
+
+		cat, err := catl.OpenFS(ctx, rootFS)
+		if err != nil {
+			t.Fatalf("OpenFS() unexpected error: %v", err)
+		}
+
+		if _, ok := cat.Dependency("infra"); !ok {
+			t.Fatal("expected dependency infra to load")
+		}
+
+		all := cat.AllEntities()
+		if len(all) != 2 {
+			t.Fatalf("AllEntities() count = %d, want 2", len(all))
+		}
+
+		depEnt, err := cat.Resolve("services", "infra.postgres")
+		if err != nil {
+			t.Fatalf("Resolve(infra.postgres) failed: %v", err)
+		}
+		if depEnt.Namespace != "infra" {
+			t.Errorf("depEnt.Namespace = %q, want 'infra'", depEnt.Namespace)
+		}
+		if !strings.HasPrefix(depEnt.ManifestPath, ".catl/vendor/infra/") {
+			t.Errorf("depEnt.ManifestPath = %q, want prefix '.catl/vendor/infra/'", depEnt.ManifestPath)
+		}
+	})
+
+	t.Run("vendored dependency name mismatch returns err target mismatch", func(t *testing.T) {
+		t.Parallel()
+
+		vendorSub := fstest.MapFS{
+			"catl.toml": &fstest.MapFile{
+				Data: []byte("[catalog]\nname = \"infra\"\n[collections.services]\n"),
+			},
+			"services/postgres.yaml": &fstest.MapFile{
+				Data: []byte("tier: primary\n"),
+			},
+		}
+		treeHash, err := hash.Tree(vendorSub)
+		if err != nil {
+			t.Fatalf("hash.Tree failed: %v", err)
+		}
+
+		rootFS := fstest.MapFS{
+			"catl.toml": &fstest.MapFile{
+				Data: []byte(
+					"[catalog]\nname = \"app\"\n[collections.services]\n\n[dependencies]\ninfra = { git = \"https://github.com/acme/infra\", tag = \"v1.0.0\" }\n",
+				),
+			},
+			"services/api.yaml": &fstest.MapFile{
+				Data: []byte("tier: web\n"),
+			},
+			"catl.lock": &fstest.MapFile{
+				Data: []byte(
+					"version = 1\n\n[[dependency]]\nrequested = \"git+https://github.com/acme/infra#tag=v1.0.0\"\nresolved = \"abcdef0123456789abcdef0123456789abcdef01\"\ntree = \"" + treeHash + "\"\n",
+				),
+			},
+			".catl/vendor/infra/catl.toml": &fstest.MapFile{
+				Data: []byte("[catalog]\nname = \"other\"\n[collections.services]\n"),
+			},
+		}
+
+		_, err = catl.OpenFS(ctx, rootFS)
+		if err == nil {
+			t.Fatal("expected error")
+		}
+		if !errors.Is(err, catl.ErrTargetMismatch) {
+			t.Errorf("got %v, want ErrTargetMismatch", err)
 		}
 	})
 }
