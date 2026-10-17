@@ -416,7 +416,7 @@ func (sh *singleHandler) handleGetCompanionFile(w http.ResponseWriter, r *http.R
 		return
 	}
 
-	bundleFS, err := ent.FS(r.Context())
+	bundleFS, err := ent.FS()
 	if err != nil {
 		writeProblem(w, r, http.StatusInternalServerError, err.Error())
 		return

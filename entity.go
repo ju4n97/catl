@@ -2,7 +2,6 @@ package catl
 
 import (
 	"bytes"
-	"context"
 	"io/fs"
 
 	"github.com/goccy/go-yaml"
@@ -29,7 +28,7 @@ func (e *Entity) Unmarshal(v any) error {
 
 // FS returns a read-only filesystem scoped to the bundle directory.
 // For flat entities, calling FS returns an error.
-func (e *Entity) FS(ctx context.Context) (fs.FS, error) {
+func (e *Entity) FS() (fs.FS, error) {
 	return e.Entity.FS(e.cat.fsys)
 }
 

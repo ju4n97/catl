@@ -370,7 +370,7 @@ func (s *Server) handleReadFileTool(
 		return nil, ReadFileOutput{}, fmt.Errorf("entity %q is a flat entity and has no companion files", ent.ID)
 	}
 
-	bfs, err := ent.FS(ctx)
+	bfs, err := ent.FS()
 	if err != nil {
 		return nil, ReadFileOutput{}, err
 	}
@@ -443,7 +443,7 @@ func (s *Server) registerResources() {
 							MIMEType:    companionMime,
 						},
 						func(ctx context.Context, rrr *mcp.ReadResourceRequest) (*mcp.ReadResourceResult, error) {
-							bfs, err := capturedEnt.FS(ctx)
+							bfs, err := capturedEnt.FS()
 							if err != nil {
 								return nil, err
 							}

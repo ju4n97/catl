@@ -78,7 +78,7 @@ func TestEntity(t *testing.T) {
 			t.Errorf("unexpected unmarshaled config: %+v", cfg)
 		}
 
-		if _, err := ent.FS(ctx); err == nil {
+		if _, err := ent.FS(); err == nil {
 			t.Error("flat entity FS() expected error, got nil")
 		}
 	})
@@ -98,7 +98,7 @@ func TestEntity(t *testing.T) {
 			t.Errorf("unexpected companion files: %v", ent.CompanionFiles)
 		}
 
-		bundleFS, err := ent.FS(ctx)
+		bundleFS, err := ent.FS()
 		if err != nil {
 			t.Fatalf("FS() failed: %v", err)
 		}

@@ -402,7 +402,7 @@ func TestCatalogResolve(t *testing.T) {
 			t.Errorf("unexpected companion files: %v", ent.CompanionFiles)
 		}
 
-		bundleFS, err := ent.FS(ctx)
+		bundleFS, err := ent.FS()
 		if err != nil {
 			t.Fatalf("FS() failed: %v", err)
 		}
@@ -575,7 +575,7 @@ func TestCatalogDependencies(t *testing.T) {
 			t.Fatal("expected bundle entity")
 		}
 
-		bfs, err := ent.FS(ctx)
+		bfs, err := ent.FS()
 		if err != nil {
 			t.Fatalf("ent.FS() failed: %v", err)
 		}

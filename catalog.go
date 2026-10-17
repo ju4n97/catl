@@ -433,7 +433,7 @@ func (c *Catalog) AllEntities(collections ...string) []*Entity {
 // catalog's root. That way, callers can pass the path to shell tools or editors
 // without having to work out the relative path themselves.
 //
-// This doesn't change companion file access: Entity.FS(ctx) still reads from
+// This doesn't change companion file access: Entity.FS() still reads from
 // the entity's own bundle.
 //
 // Returns an error wrapping ErrNotFound if the collection, namespace, or entity

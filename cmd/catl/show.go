@@ -77,7 +77,7 @@ Examples:
 				return cli.Exit(fmt.Sprintf("entity %q is a flat entity and has no companion files", ent.ID), 1)
 			}
 
-			bundleFS, err := ent.FS(ctx)
+			bundleFS, err := ent.FS()
 			if err != nil {
 				return cli.Exit(err.Error(), 1)
 			}

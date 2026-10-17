@@ -87,7 +87,7 @@ fmt.Println("Catalog SHA-256 tree hash:", treeHash)
 
 ## Reading companion files
 
-`entity.FS(ctx)` returns an `io/fs.FS` rooted at a bundle directory. Flat entities have no companion files, so check `IsBundle` first:
+`entity.FS()` returns an `io/fs.FS` rooted at a bundle directory. Flat entities have no companion files, so check `IsBundle` first:
 
 ```go title="main.go"
 func readRunbook(ctx context.Context, cat *catl.Catalog, qualifiedID string) error {
@@ -100,7 +100,7 @@ func readRunbook(ctx context.Context, cat *catl.Catalog, qualifiedID string) err
 		return fmt.Errorf("entity %q is a flat entity and has no companion files", entity.ID)
 	}
 
-	bundleFS, err := entity.FS(ctx) // [!code highlight]
+	bundleFS, err := entity.FS() // [!code highlight]
 	if err != nil {
 		return err
 	}
